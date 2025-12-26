@@ -12,6 +12,8 @@ class AuthService:
         user = await self.user_repo.get_by_email(email)
         if not user or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        if not user.is_active:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
         token = create_access_token(str(user.id))
         return token, user
 
