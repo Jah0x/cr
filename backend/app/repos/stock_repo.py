@@ -22,6 +22,15 @@ class StockRepo:
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
+    async def list_on_hand(self, product_id=None):
+        stmt = select(StockMove.product_id, func.coalesce(func.sum(StockMove.quantity), 0).label("on_hand")).group_by(
+            StockMove.product_id
+        )
+        if product_id:
+            stmt = stmt.where(StockMove.product_id == product_id)
+        result = await self.session.execute(stmt)
+        return result.all()
+
     async def on_hand(self, product_id) -> float:
         result = await self.session.execute(
             select(func.coalesce(func.sum(StockMove.quantity), 0)).where(StockMove.product_id == product_id)

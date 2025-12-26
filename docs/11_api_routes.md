@@ -34,8 +34,33 @@ Notes:
 - **DELETE /lines/{line_id}** — hard delete. Response: `{ "detail": "deleted" }`.
 
 ### Products
-- **GET /products?category_id=&brand_id=&line_id=&q=&is_active=** — list products with optional filters. `is_active` defaults to `true` to hide soft-deleted items. Response: `[ { "id": uuid, "sku": string, "name": string, "description": string, "image_url": string|null, "category_id": uuid|null, "brand_id": uuid|null, "line_id": uuid|null, "price": decimal, "is_active": bool } ]`.
+- **GET /products?category_id=&brand_id=&line_id=&q=&is_active=** — list products with optional filters. `is_active` defaults to `true` to hide soft-deleted items. Response: `[ { "id": uuid, "sku": string, "name": string, "description": string, "image_url": string|null, "category_id": uuid|null, "brand_id": uuid|null, "line_id": uuid|null, "price": decimal, "last_purchase_unit_cost": decimal, "is_active": bool } ]`.
 - **POST /products** — create. Payload: `{ "sku": string, "name": string, "description": string, "image_url"?: string, "category_id"?: uuid, "brand_id"?: uuid, "line_id"?: uuid, "price": decimal, "is_active": bool }`. Response mirrors GET item.
 - **GET /products/{product_id}** — fetch single product. Response mirrors GET item.
 - **PATCH /products/{product_id}** — update fields. Payload: `{ "sku"?: string, "name"?: string, "description"?: string, "image_url"?: string, "category_id"?: uuid, "brand_id"?: uuid, "line_id"?: uuid, "price"?: decimal, "is_active"?: bool }`. Response mirrors GET item.
 - **DELETE /products/{product_id}** — soft delete. Action flips `is_active` to `false` and returns `{ "detail": "deleted" }`.
+
+## Purchasing
+- Access control: authenticated.
+
+### Suppliers
+- **GET /suppliers** — list suppliers. Response: `[ { "id": uuid, "name": string, "contact": string } ]`.
+- **POST /suppliers** — create supplier. Payload: `{ "name": string, "contact": string }`. Response mirrors GET item.
+- **PATCH /suppliers/{supplier_id}** — update supplier fields. Payload: `{ "name"?: string, "contact"?: string }`. Response mirrors GET item.
+- **DELETE /suppliers/{supplier_id}** — hard delete. Response: `{ "detail": "deleted" }`.
+
+### Purchase invoices
+- **POST /purchase-invoices** — create draft invoice. Payload: `{ "supplier_id"?: uuid }`. Response: `{ "id": uuid, "supplier_id": uuid|null, "status": "draft" }`.
+- **GET /purchase-invoices?status=** — list invoices optionally filtered by status (`draft|posted|void`). Response mirrors create payload plus `status`.
+- **GET /purchase-invoices/{invoice_id}** — fetch invoice with lines. Response: `{ "id": uuid, "supplier_id": uuid|null, "status": string, "items": [ { "id": uuid, "product_id": uuid, "quantity": decimal, "unit_cost": decimal } ] }`.
+- **POST /purchase-invoices/{invoice_id}/items** — add line to draft invoice. Payload: `{ "product_id": uuid, "quantity": decimal, "unit_cost": decimal }`. Response mirrors GET invoice with updated items.
+- **POST /purchase-invoices/{invoice_id}/post** — post draft invoice. Creates purchase stock moves/batches, updates product last purchase cost, and returns `{ "id": uuid, "status": "posted" }`. Empty invoices return HTTP 400.
+- **POST /purchase-invoices/{invoice_id}/void** — mark invoice void. Response mirrors post payload with `status: "void"`.
+
+## Stock
+- Access control: authenticated.
+- Stock on-hand is computed from `stock_moves` totals.
+
+- **GET /stock** — aggregate on-hand by product. Response: `[ { "product_id": uuid, "on_hand": decimal } ]`.
+- **GET /stock/moves?product_id=** — list stock moves (optionally filtered by product). Response: `[ { "id": uuid, "product_id": uuid, "quantity": decimal, "reason": string, "reference": string } ]`.
+- **POST /stock/adjustments** — record manual adjustment or write-off. Payload: `{ "product_id": uuid, "quantity": decimal, "reason": string }`. Response mirrors stock move.

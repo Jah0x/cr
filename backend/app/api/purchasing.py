@@ -1,17 +1,26 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db_session, get_current_user
 from app.schemas.purchasing import SupplierCreate, SupplierUpdate, SupplierOut, PurchaseInvoiceCreate, PurchaseInvoiceOut, PurchaseItemCreate, PurchaseInvoiceDetail, PurchasePostResult
 from app.services.purchasing_service import PurchasingService
+from app.repos.catalog_repo import ProductRepo
 from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, PurchaseItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
+from app.models.purchasing import PurchaseStatus
 
 router = APIRouter(prefix="", tags=["purchasing"], dependencies=[Depends(get_current_user)])
 
 
 def get_service(session: AsyncSession):
-    return PurchasingService(SupplierRepo(session), PurchaseInvoiceRepo(session), PurchaseItemRepo(session), StockRepo(session), StockBatchRepo(session))
+    return PurchasingService(
+        SupplierRepo(session),
+        PurchaseInvoiceRepo(session),
+        PurchaseItemRepo(session),
+        StockRepo(session),
+        StockBatchRepo(session),
+        ProductRepo(session),
+    )
 
 
 @router.get("/suppliers", response_model=list[SupplierOut])
@@ -42,7 +51,12 @@ async def create_invoice(payload: PurchaseInvoiceCreate, session: AsyncSession =
 
 @router.get("/purchase-invoices", response_model=list[PurchaseInvoiceOut])
 async def list_invoices(status: str | None = None, session: AsyncSession = Depends(get_db_session)):
-    status_filter = status if status else None
+    status_filter = None
+    if status:
+        try:
+            status_filter = PurchaseStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
     return await get_service(session).list_invoices(status_filter)
 
 
