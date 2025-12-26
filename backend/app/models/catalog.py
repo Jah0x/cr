@@ -50,6 +50,7 @@ class Product(Base):
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"))
     line_id = Column(UUID(as_uuid=True), ForeignKey("product_lines.id", ondelete="SET NULL"))
     price = Column(Numeric(12, 2), nullable=False, default=0)
+    last_purchase_unit_cost = Column(Numeric(12, 2), nullable=False, default=0)
     is_active = Column(Boolean, default=True)
 
     category = relationship("Category", back_populates="products")

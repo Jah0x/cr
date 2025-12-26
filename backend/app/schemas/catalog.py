@@ -96,5 +96,6 @@ class ProductUpdate(BaseModel):
 
 class ProductOut(ProductBase):
     id: uuid.UUID
+    last_purchase_unit_cost: Decimal
 
     model_config = {"from_attributes": True}
