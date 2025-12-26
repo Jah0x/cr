@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, EmailStr
 
 
 class Settings(BaseSettings):
@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     discount_max_amount_line: float = Field(default=0, alias="DISCOUNT_MAX_AMOUNT_LINE")
     discount_max_amount_receipt: float = Field(default=0, alias="DISCOUNT_MAX_AMOUNT_RECEIPT")
     allow_negative_stock: bool = Field(default=False, alias="ALLOW_NEGATIVE_STOCK")
+    first_owner_email: EmailStr | None = Field(default=None, alias="FIRST_OWNER_EMAIL")
+    first_owner_password: str | None = Field(default=None, alias="FIRST_OWNER_PASSWORD")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

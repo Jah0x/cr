@@ -16,18 +16,6 @@ async def login(payload: UserCreate, session: AsyncSession = Depends(get_db_sess
     return TokenOut(access_token=token)
 
 
-@router.post("/logout")
-async def logout():
-    return {"detail": "logged out"}
-
-
-@router.post("/register", response_model=UserOut)
-async def register(payload: UserCreate, session: AsyncSession = Depends(get_db_session)):
-    service = AuthService(UserRepo(session))
-    user = await service.register(payload.email, payload.password)
-    return user
-
-
 @router.get("/me", response_model=UserOut)
 async def me(current_user=Depends(get_current_user)):
     return current_user
