@@ -1,0 +1,33 @@
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db import get_session
+from app.core.security import verify_token
+from app.repos.user_repo import UserRepo
+
+auth_scheme = HTTPBearer(auto_error=False)
+
+
+async def get_db_session() -> AsyncSession:
+    async for session in get_session():
+        yield session
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    session: AsyncSession = Depends(get_db_session),
+):
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    token = credentials.credentials
+    try:
+        user_id = verify_token(token)
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    repo = UserRepo(session)
+    user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user

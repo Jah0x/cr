@@ -1,0 +1,18 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+a {
+  color: #2563eb;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  cursor: pointer;
+}
