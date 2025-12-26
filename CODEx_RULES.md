@@ -9,3 +9,4 @@
 - Provide clear run instructions in docs/14_runbook.md and backend/README.md + frontend/README.md.
 - Keep repo structure exactly as specified.
 - Every PR-sized change must update relevant docs.
+- If docs conflict, prefer docs/10_engineering_rules.md and docs/04_api_spec.md as authoritative.
