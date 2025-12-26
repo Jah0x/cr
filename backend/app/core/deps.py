@@ -38,3 +38,14 @@ async def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     return user
+
+
+def require_roles(allowed_roles: set[str]):
+    async def _checker(current_user=Depends(get_current_user)):
+        allowed = {role.lower() for role in allowed_roles}
+        role_names = {role.name.lower() for role in current_user.roles}
+        if not role_names.intersection(allowed):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+        return current_user
+
+    return _checker

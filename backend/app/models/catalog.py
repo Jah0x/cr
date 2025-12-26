@@ -11,7 +11,7 @@ class Category(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, unique=True, nullable=False)
-    active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
 
     products = relationship("Product", back_populates="category")
 
@@ -21,7 +21,7 @@ class Brand(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, unique=True, nullable=False)
-    active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
 
     lines = relationship("ProductLine", back_populates="brand")
 
@@ -32,7 +32,7 @@ class ProductLine(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="CASCADE"), nullable=False)
-    active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
 
     brand = relationship("Brand", back_populates="lines")
     products = relationship("Product", back_populates="line")
@@ -45,11 +45,12 @@ class Product(Base):
     sku = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, default="")
+    image_url = Column(String, nullable=True)
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"))
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"))
     line_id = Column(UUID(as_uuid=True), ForeignKey("product_lines.id", ondelete="SET NULL"))
     price = Column(Numeric(12, 2), nullable=False, default=0)
-    active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
 
     category = relationship("Category", back_populates="products")
     brand = relationship("Brand")

@@ -86,8 +86,8 @@ class ProductRepo:
             stmt = stmt.where(Product.brand_id == filters["brand_id"])
         if filters.get("line_id"):
             stmt = stmt.where(Product.line_id == filters["line_id"])
-        if filters.get("active") is not None:
-            stmt = stmt.where(Product.active == filters["active"])
+        if filters.get("is_active") is not None:
+            stmt = stmt.where(Product.is_active == filters["is_active"])
         if filters.get("q"):
             stmt = stmt.where(Product.name.ilike(f"%{filters['q']}%"))
         result = await self.session.execute(stmt)
@@ -103,5 +103,6 @@ class ProductRepo:
         result = await self.session.execute(select(Product).where(Product.id == product_id))
         return result.scalar_one_or_none()
 
-    async def delete(self, product: Product) -> None:
-        await self.session.delete(product)
+    async def soft_delete(self, product: Product) -> None:
+        product.is_active = False
+        await self.session.flush()
