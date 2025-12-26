@@ -1,14 +1,14 @@
 # Product vision: Retail Backoffice + POS
 
 ## Purpose
-A web system for a small retail shop:
-- manage catalog (categories/brands/lines), photos, prices
-- manage purchases (invoices/receipts), stock
-- POS sales with discounts (percent or amount)
-- payments tracking (cash/card, terminal integration optional)
-- accounting-style analytics: turnover, COGS, gross profit, margin
-- cost methods: Last Purchase / Weighted Average / FIFO
+Web system for a small retail shop:
+- catalog with photos: categories, brands, lines, products
+- purchasing: invoices (накладные) -> stock increase
+- POS sales: fast selection by category tiles + search + discounts (% or amount)
+- payments: CASH / CARD / TRANSFER with confirmation workflow
+- analytics: turnover, COGS, gross profit, margin, slices by category/brand/line
+- costing methods: LAST_PURCHASE, WEIGHTED_AVERAGE, FIFO (FIFO with allocations)
 
 ## Interfaces
-- Web Admin (owner/manager): catalog, purchases, pricing, analytics, users/roles
-- Web POS (cashier): fast tile-based selling by categories, search, discounts, payment, receipt
+- Web Admin: owner/manager
+- Web POS: cashier
