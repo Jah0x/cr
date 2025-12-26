@@ -9,12 +9,16 @@ class CatalogService:
         self.brand_repo = brand_repo
         self.line_repo = line_repo
         self.product_repo = product_repo
+        self.session = category_repo.session
 
     async def list_categories(self):
         return await self.category_repo.list()
 
     async def create_category(self, data):
-        return await self.category_repo.create(data)
+        category = await self.category_repo.create(data)
+        await self.session.commit()
+        await self.session.refresh(category)
+        return category
 
     async def update_category(self, category_id, data):
         category = await self.category_repo.get(category_id)
@@ -23,6 +27,9 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(category, key, value)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(category)
         return category
 
     async def delete_category(self, category_id):
@@ -30,12 +37,16 @@ class CatalogService:
         if not category:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         await self.category_repo.delete(category)
+        await self.session.commit()
 
     async def list_brands(self):
         return await self.brand_repo.list()
 
     async def create_brand(self, data):
-        return await self.brand_repo.create(data)
+        brand = await self.brand_repo.create(data)
+        await self.session.commit()
+        await self.session.refresh(brand)
+        return brand
 
     async def update_brand(self, brand_id, data):
         brand = await self.brand_repo.get(brand_id)
@@ -44,6 +55,9 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(brand, key, value)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(brand)
         return brand
 
     async def delete_brand(self, brand_id):
@@ -51,12 +65,16 @@ class CatalogService:
         if not brand:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
         await self.brand_repo.delete(brand)
+        await self.session.commit()
 
     async def list_lines(self, brand_id=None):
         return await self.line_repo.list(brand_id)
 
     async def create_line(self, data):
-        return await self.line_repo.create(data)
+        line = await self.line_repo.create(data)
+        await self.session.commit()
+        await self.session.refresh(line)
+        return line
 
     async def update_line(self, line_id, data):
         line = await self.line_repo.get(line_id)
@@ -65,6 +83,9 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(line, key, value)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(line)
         return line
 
     async def delete_line(self, line_id):
@@ -72,12 +93,16 @@ class CatalogService:
         if not line:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Line not found")
         await self.line_repo.delete(line)
+        await self.session.commit()
 
     async def list_products(self, filters):
         return await self.product_repo.list(filters)
 
     async def create_product(self, data):
-        return await self.product_repo.create(data)
+        product = await self.product_repo.create(data)
+        await self.session.commit()
+        await self.session.refresh(product)
+        return product
 
     async def get_product(self, product_id):
         product = await self.product_repo.get(product_id)
@@ -92,10 +117,14 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(product, key, value)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(product)
         return product
 
     async def delete_product(self, product_id):
         product = await self.product_repo.get(product_id)
         if not product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-        await self.product_repo.delete(product)
+        await self.product_repo.soft_delete(product)
+        await self.session.commit()
