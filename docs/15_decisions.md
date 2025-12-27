@@ -1,8 +1,9 @@
 # Decisions
 
-- FastAPI is mounted under `/api/v1` with a dedicated health check for service monitoring.
-- SQLAlchemy is configured in async mode with `asyncpg` to align with FastAPI's async request handling.
-- Authentication uses stateless JWTs (HS256) carrying the user id in `sub`; access tokens expire based on `JWT_ACCESS_TTL_SECONDS`.
-- There is no public registration; administrators create accounts via migrations or the owner bootstrap CLI.
-- The bootstrap CLI seeds an `owner` role and ensures the configured owner account exists and remains active.
-- The initial Alembic migration includes only the authentication tables to keep the first deployment minimal.
+- API served under `/api/v1` with standalone `/healthz` and `/readyz` for probes; readiness hits the DB.
+- Async SQLAlchemy with asyncpg remains the persistence layer to keep parity with FastAPI async handlers.
+- Auth uses stateless HS256 JWT containing `sub` and `roles`; expiry driven by `JWT_EXPIRES`.
+- No public signup. Owners manage all user provisioning via the `/users` endpoints; bootstrap seeds the first owner only when the database is empty.
+- Roles are explicit (`owner`, `admin`, `cashier`) and enforced at router level: owner manages users and cash registers; admin covers catalog/stock/purchasing; cashier handles sales.
+- Cash registers are modular: business logic consumes an abstract interface; a mock provider is default and registers are stored in `cash_registers` to allow future pluggable providers without altering services.
+- Sales are transactional: item creation, stock deductions, payments, and receipt registration happen in a single DB transaction; refunds/voids always append stock history and receipts.

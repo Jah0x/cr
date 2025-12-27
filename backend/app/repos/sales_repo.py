@@ -18,12 +18,14 @@ class SaleRepo:
         return sale
 
     async def get(self, sale_id) -> Optional[Sale]:
-        stmt = select(Sale).where(Sale.id == sale_id).options(selectinload(Sale.items), selectinload(Sale.receipts))
+        stmt = select(Sale).where(Sale.id == sale_id).options(
+            selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments), selectinload(Sale.refunds)
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def list(self, status_filter=None, date_from=None, date_to=None) -> List[Sale]:
-        stmt = select(Sale).options(selectinload(Sale.items), selectinload(Sale.receipts))
+        stmt = select(Sale).options(selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments))
         if status_filter:
             stmt = stmt.where(Sale.status == status_filter)
         if date_from:

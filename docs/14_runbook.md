@@ -1,23 +1,26 @@
 # Runbook
 
 ## Setup
-1. Start PostgreSQL locally or with Docker: `docker compose up -d db` from the repo root.
-2. Set environment variables from `docs/13_env_vars.md`, including `DATABASE_URL` with the `postgresql+asyncpg://` driver and a `JWT_SECRET` value.
+1. Start PostgreSQL locally or with Docker: `docker compose up -d db` from repo root.
+2. Populate environment variables from `docs/13_env_vars.md` (minimum: `DATABASE_URL`, `JWT_SECRET`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`).
 3. Install backend dependencies: `cd backend && poetry install`.
-4. Apply migrations to a fresh database: `cd backend && poetry run alembic upgrade head`.
-5. Create the bootstrap owner after migrations: `cd backend && poetry run python -m app.cli create-owner`.
+4. Apply migrations: `cd backend && poetry run alembic upgrade head`.
+5. Launch API: `cd backend && poetry run uvicorn app.main:app --host $APP_HOST --port $APP_PORT`.
+
+Bootstrap creates the first owner and all roles automatically on startup if the users table is empty and `FIRST_OWNER_EMAIL`/`FIRST_OWNER_PASSWORD` are set. A default mock cash register is seeded when none exist.
 
 ## Database operations
-- Generate a migration after model changes: `cd backend && poetry run alembic revision --autogenerate -m "<message>"`.
-- Apply migrations in any environment: `cd backend && poetry run alembic upgrade head`.
-- Check the current revision: `cd backend && poetry run alembic current`.
+- Generate migration after model changes: `cd backend && poetry run alembic revision --autogenerate -m "message"`.
+- Apply migrations: `cd backend && poetry run alembic upgrade head`.
+- Inspect current revision: `cd backend && poetry run alembic current`.
 
-## Running the API
-- Start the app: `cd backend && poetry run uvicorn app.main:app --host $APP_HOST --port $APP_PORT`.
-- Health check: `GET /api/v1/health`.
-- Login: `POST /api/v1/auth/login` with JSON `{ "email": FIRST_OWNER_EMAIL, "password": FIRST_OWNER_PASSWORD }`.
-- Use the returned bearer token for `GET /api/v1/auth/me`.
+## Running and health
+- Liveness: `GET /healthz` or `/api/v1/health`.
+- Readiness with DB check: `GET /readyz` or `/api/v1/health/ready`.
+- Login: `POST /api/v1/auth/login` with owner credentials to obtain bearer token.
+- Authenticated echo: `GET /api/v1/auth/me`.
 
 ## Operational notes
-- The owner seeding task is idempotent; rerun it safely after resetting credentials or databases.
-- Tokens are stateless; rotate `JWT_SECRET` to invalidate existing sessions.
+- Roles: owner manages users and cash registers; admin handles catalog, stock, purchasing; cashier handles sales.
+- Stock moves are append-only; never delete historical records.
+- Cash register provider defaults to `mock`; configure a different provider via env or database row without changing business logic.

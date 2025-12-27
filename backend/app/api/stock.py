@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db_session, get_current_user
+from app.core.deps import get_db_session, get_current_user, require_roles
 from app.schemas.stock import StockAdjustmentCreate, StockMoveOut, StockQuery
 from app.services.stock_service import StockService
 from app.repos.stock_repo import StockRepo
 
-router = APIRouter(prefix="/stock", tags=["stock"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/stock", tags=["stock"], dependencies=[Depends(require_roles({"owner", "admin"}))])
 
 
 def get_service(session: AsyncSession):

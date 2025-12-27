@@ -1,8 +1,11 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.api import auth, health, catalog, purchasing, stock, sales
+from app.core.deps import get_db_session
+from app.api import auth, health, catalog, purchasing, stock, sales, users
 from app.services.bootstrap import bootstrap_owner
 
 app = FastAPI(title="Retail POS", version="0.1.0")
@@ -22,6 +25,7 @@ api_router.include_router(catalog.router)
 api_router.include_router(purchasing.router)
 api_router.include_router(stock.router)
 api_router.include_router(sales.router)
+api_router.include_router(users.router)
 app.include_router(api_router)
 
 
@@ -33,3 +37,9 @@ async def startup_event():
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
+
+
+@app.get("/readyz")
+async def readyz(session: AsyncSession = Depends(get_db_session)):
+    await session.execute(text("SELECT 1"))
+    return {"status": "ready"}

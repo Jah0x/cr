@@ -19,6 +19,12 @@ class PaymentProvider(str, enum.Enum):
     external = "external"
 
 
+class PaymentStatus(str, enum.Enum):
+    pending = "pending"
+    confirmed = "confirmed"
+    cancelled = "cancelled"
+
+
 class Sale(Base):
     __tablename__ = "sales"
     __table_args__ = (Index("ix_sales_status", "status"),)
@@ -32,6 +38,8 @@ class Sale(Base):
 
     items = relationship("SaleItem", back_populates="sale")
     receipts = relationship("CashReceipt", back_populates="sale")
+    payments = relationship("Payment", back_populates="sale")
+    refunds = relationship("Refund", back_populates="sale")
 
 
 class SaleItem(Base):
@@ -51,3 +59,32 @@ class SaleItem(Base):
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product", back_populates="sale_items")
     allocations = relationship("SaleItemCostAllocation", back_populates="sale_item")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    __table_args__ = (Index("ix_payments_status", "status"),)
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String, default="")
+    method = Column(Enum(PaymentProvider), nullable=False)
+    status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending)
+    reference = Column(String, default="")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    sale = relationship("Sale", back_populates="payments")
+
+
+class Refund(Base):
+    __tablename__ = "refunds"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    reason = Column(String, default="")
+    created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    sale = relationship("Sale", back_populates="refunds")

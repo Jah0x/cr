@@ -19,7 +19,7 @@ from app.schemas.catalog import (
 from app.services.catalog_service import CatalogService
 from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo
 
-router = APIRouter(prefix="", tags=["catalog"], dependencies=[Depends(require_roles({"owner", "manager"}))])
+router = APIRouter(prefix="", tags=["catalog"], dependencies=[Depends(require_roles({"owner", "admin"}))])
 
 
 def get_catalog_service(session: AsyncSession):
