@@ -8,24 +8,29 @@ from app.models.sales import Sale, SaleItem
 
 
 class SaleRepo:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, tenant_id):
         self.session = session
+        self.tenant_id = tenant_id
 
     async def create(self, data: dict) -> Sale:
-        sale = Sale(**data)
+        sale = Sale(**data, tenant_id=self.tenant_id)
         self.session.add(sale)
         await self.session.flush()
         return sale
 
     async def get(self, sale_id) -> Optional[Sale]:
-        stmt = select(Sale).where(Sale.id == sale_id).options(
+        stmt = select(Sale).where(Sale.id == sale_id, Sale.tenant_id == self.tenant_id).options(
             selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments), selectinload(Sale.refunds)
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def list(self, status_filter=None, date_from=None, date_to=None) -> List[Sale]:
-        stmt = select(Sale).options(selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments))
+        stmt = (
+            select(Sale)
+            .where(Sale.tenant_id == self.tenant_id)
+            .options(selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments))
+        )
         if status_filter:
             stmt = stmt.where(Sale.status == status_filter)
         if date_from:
@@ -37,15 +42,18 @@ class SaleRepo:
 
 
 class SaleItemRepo:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, tenant_id):
         self.session = session
+        self.tenant_id = tenant_id
 
     async def add(self, sale_id, data: dict) -> SaleItem:
-        item = SaleItem(sale_id=sale_id, **data)
+        item = SaleItem(sale_id=sale_id, tenant_id=self.tenant_id, **data)
         self.session.add(item)
         await self.session.flush()
         return item
 
     async def get(self, item_id) -> Optional[SaleItem]:
-        result = await self.session.execute(select(SaleItem).where(SaleItem.id == item_id))
+        result = await self.session.execute(
+            select(SaleItem).where(SaleItem.id == item_id, SaleItem.tenant_id == self.tenant_id)
+        )
         return result.scalar_one_or_none()
