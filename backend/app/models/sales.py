@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Numeric, ForeignKey, Enum, DateTime
+from sqlalchemy import Column, String, Numeric, ForeignKey, Enum, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -9,8 +9,7 @@ from app.core.db import Base
 
 
 class SaleStatus(str, enum.Enum):
-    draft = "draft"
-    finalized = "finalized"
+    completed = "completed"
     void = "void"
 
 
@@ -22,38 +21,33 @@ class PaymentProvider(str, enum.Enum):
 
 class Sale(Base):
     __tablename__ = "sales"
+    __table_args__ = (Index("ix_sales_status", "status"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    status = Column(Enum(SaleStatus), default=SaleStatus.draft, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    customer_name = Column(String, default="")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    status = Column(Enum(SaleStatus), default=SaleStatus.completed, nullable=False)
+    total_amount = Column(Numeric(12, 2), nullable=False, server_default="0")
+    currency = Column(String, default="")
 
     items = relationship("SaleItem", back_populates="sale")
-    payments = relationship("Payment", back_populates="sale")
+    receipts = relationship("CashReceipt", back_populates="sale")
 
 
 class SaleItem(Base):
     __tablename__ = "sale_items"
+    __table_args__ = (
+        Index("ix_sale_items_sale_id", "sale_id"),
+        Index("ix_sale_items_product_id", "product_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="SET NULL"))
-    quantity = Column(Numeric(12, 3), nullable=False)
+    qty = Column(Numeric(12, 3), nullable=False)
     unit_price = Column(Numeric(12, 2), nullable=False)
-    discount_amount = Column(Numeric(12, 2), default=0)
+    line_total = Column(Numeric(12, 2), nullable=False)
 
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product", back_populates="sale_items")
     allocations = relationship("SaleItemCostAllocation", back_populates="sale_item")
-
-
-class Payment(Base):
-    __tablename__ = "payments"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
-    amount = Column(Numeric(12, 2), nullable=False)
-    provider = Column(Enum(PaymentProvider), nullable=False)
-    reference = Column(String, default="")
-
-    sale = relationship("Sale", back_populates="payments")

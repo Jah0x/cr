@@ -10,7 +10,12 @@ class StockRepo:
         self.session = session
 
     async def record_move(self, data: dict) -> StockMove:
-        move = StockMove(**data)
+        payload = data.copy()
+        if "delta_qty" not in payload and "quantity" in payload:
+            payload["delta_qty"] = payload["quantity"]
+        if "quantity" not in payload and "delta_qty" in payload:
+            payload["quantity"] = payload["delta_qty"]
+        move = StockMove(**payload)
         self.session.add(move)
         await self.session.flush()
         return move
@@ -23,18 +28,18 @@ class StockRepo:
         return result.scalars().all()
 
     async def list_on_hand(self, product_id=None):
-        stmt = select(StockMove.product_id, func.coalesce(func.sum(StockMove.quantity), 0).label("on_hand")).group_by(
-            StockMove.product_id
-        )
+        sum_expr = func.coalesce(func.sum(StockMove.delta_qty), 0)
+        fallback_expr = func.coalesce(func.sum(StockMove.quantity), 0)
+        stmt = select(StockMove.product_id, func.coalesce(sum_expr, fallback_expr).label("on_hand")).group_by(StockMove.product_id)
         if product_id:
             stmt = stmt.where(StockMove.product_id == product_id)
         result = await self.session.execute(stmt)
         return result.all()
 
     async def on_hand(self, product_id) -> float:
-        result = await self.session.execute(
-            select(func.coalesce(func.sum(StockMove.quantity), 0)).where(StockMove.product_id == product_id)
-        )
+        sum_expr = func.coalesce(func.sum(StockMove.delta_qty), 0)
+        fallback_expr = func.coalesce(func.sum(StockMove.quantity), 0)
+        result = await self.session.execute(select(func.coalesce(sum_expr, fallback_expr)).where(StockMove.product_id == product_id))
         return float(result.scalar_one())
 
 

@@ -24,9 +24,10 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     token = credentials.credentials
     try:
-        user_id = verify_token(token)
+        payload = verify_token(token)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user_id = payload.get("sub")
     repo = UserRepo(session)
     try:
         user_uuid = uuid.UUID(user_id)

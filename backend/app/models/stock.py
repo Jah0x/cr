@@ -13,8 +13,11 @@ class StockMove(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     quantity = Column(Numeric(12, 3), nullable=False)
+    delta_qty = Column(Numeric(12, 3), nullable=False, server_default="0")
     reason = Column(String, nullable=False)
     reference = Column(String, default="")
+    ref_id = Column(UUID(as_uuid=True))
+    created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     product = relationship("Product")
