@@ -1,12 +1,14 @@
 import uuid
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.security import verify_token
+from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
+from app.services.tenant_service import TenantService
 
 auth_scheme = HTTPBearer(auto_error=False)
 
@@ -50,3 +52,18 @@ def require_roles(allowed_roles: set[str]):
         return current_user
 
     return _checker
+
+
+async def get_current_tenant(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    session: AsyncSession = Depends(get_db_session),
+):
+    token_payload = None
+    if credentials:
+        try:
+            token_payload = verify_token(credentials.credentials)
+        except JWTError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    service = TenantService(TenantRepo(session))
+    return await service.resolve_tenant(request, token_payload)
