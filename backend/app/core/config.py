@@ -16,8 +16,12 @@ class Settings(BaseSettings):
     discount_max_amount_line: float = Field(default=0, alias="DISCOUNT_MAX_AMOUNT_LINE")
     discount_max_amount_receipt: float = Field(default=0, alias="DISCOUNT_MAX_AMOUNT_RECEIPT")
     allow_negative_stock: bool = Field(default=False, alias="ALLOW_NEGATIVE_STOCK")
-    first_owner_email: EmailStr | None = Field(default=None, alias="FIRST_OWNER_EMAIL")
-    first_owner_password: str | None = Field(default=None, alias="FIRST_OWNER_PASSWORD")
+    first_owner_email: EmailStr | None = Field(
+        default=None, alias="FIRST_OWNER_EMAIL", validation_alias="OWNER_EMAIL"
+    )
+    first_owner_password: str | None = Field(
+        default=None, alias="FIRST_OWNER_PASSWORD", validation_alias="OWNER_PASSWORD"
+    )
     bootstrap_token: str | None = Field(default=None, alias="BOOTSTRAP_TOKEN")
     cash_register_provider: str = Field(default="mock", alias="CASH_REGISTER_PROVIDER")
     default_cash_register_id: str | None = Field(default=None, alias="DEFAULT_CASH_REGISTER_ID")

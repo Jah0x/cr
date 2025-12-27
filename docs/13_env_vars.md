@@ -20,3 +20,5 @@
 | `BOOTSTRAP_TOKEN` | Reserved token for future bootstrap flows. | — |
 | `CASH_REGISTER_PROVIDER` | Active cash register provider key (e.g., `mock`). | `mock` |
 | `DEFAULT_CASH_REGISTER_ID` | Prefer a specific register ID when multiple are configured. | — |
+
+Legacy `OWNER_EMAIL` and `OWNER_PASSWORD` are accepted as aliases for `FIRST_OWNER_EMAIL` and `FIRST_OWNER_PASSWORD` to keep existing setups working.
