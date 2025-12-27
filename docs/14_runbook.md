@@ -24,4 +24,4 @@ Bootstrap creates the first owner and all roles automatically on startup if the 
 - Roles: owner manages users and cash registers; admin handles catalog, stock, purchasing; cashier handles sales.
 - Stock moves are append-only; never delete historical records.
 - Cash register provider defaults to `mock`; configure a different provider via env or database row without changing business logic.
-- Tenancy: API dependencies resolve the tenant in order of `X-Tenant-ID` (UUID), `X-Tenant-Code`/`X-Tenant` (string), JWT `tenant_id`, then request host subdomain. The selected tenant id is placed on `request.state.tenant_id`. Requests for inactive tenants return 403; missing or unknown tenants fail fast before handler logic runs.
+- Tenancy: API dependencies resolve the tenant in order of `X-Tenant-ID` (UUID), `X-Tenant-Code`/`X-Tenant` (string), JWT `tenant_id`, then request host subdomain. The selected tenant id is placed on `request.state.tenant_id`. JWTs must include a tenant claim that matches the resolved tenant. Requests for inactive tenants return 403; missing or unknown tenants fail fast before handler logic runs.

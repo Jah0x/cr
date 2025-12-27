@@ -8,7 +8,10 @@ from app.core.db import Base
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (Index("ix_users_email", "email", unique=True),)
+    __table_args__ = (
+        Index("ix_users_email_tenant", "email", "tenant_id", unique=True),
+        Index("ix_users_tenant_id", "tenant_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, nullable=False)
@@ -16,16 +19,21 @@ class User(Base):
     is_active = Column(Boolean, default=True, server_default="true", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_login_at = Column(DateTime(timezone=True))
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)
 
     roles = relationship("Role", secondary="user_roles", back_populates="users")
 
 
 class Role(Base):
     __tablename__ = "roles"
-    __table_args__ = (Index("ix_roles_name", "name", unique=True),)
+    __table_args__ = (
+        Index("ix_roles_name_tenant", "name", "tenant_id", unique=True),
+        Index("ix_roles_tenant_id", "tenant_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)
 
     users = relationship("User", secondary="user_roles", back_populates="roles")
 
@@ -35,7 +43,9 @@ class UserRole(Base):
     __table_args__ = (
         Index("ix_user_roles_user_id", "user_id"),
         Index("ix_user_roles_role_id", "role_id"),
+        Index("ix_user_roles_tenant_id", "tenant_id"),
     )
 
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)

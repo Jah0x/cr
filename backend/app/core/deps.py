@@ -19,6 +19,7 @@ async def get_db_session() -> AsyncSession:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
     session: AsyncSession = Depends(get_db_session),
 ):
@@ -29,13 +30,18 @@ async def get_current_user(
         payload = verify_token(token)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    tenant_service = TenantService(TenantRepo(session))
+    tenant = await tenant_service.resolve_tenant(request, payload)
+    tenant_claim = payload.get("tenant_id")
+    if str(tenant.id) != str(tenant_claim):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user_id = payload.get("sub")
     repo = UserRepo(session)
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    user = await repo.get_by_id(user_uuid)
+    user = await repo.get_by_id(user_uuid, tenant.id)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if not user.is_active:

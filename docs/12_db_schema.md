@@ -12,24 +12,27 @@ Alembic revisions:
 
 ## users
 - `id` — UUID primary key.
-- `email` — unique email address.
+- `email` — unique per-tenant email address.
 - `password_hash` — bcrypt hash.
 - `is_active` — boolean flag for login eligibility, defaults to true.
 - `created_at` — timezone-aware creation timestamp, defaults to `now()`.
 - `last_login_at` — optional timestamp of last login.
-- Indexes: `ix_users_email` unique index on `email`.
+- `tenant_id` — references `tenants.id`, required.
+- Indexes: `ix_users_email_tenant` unique on (`email`,`tenant_id`); `ix_users_tenant_id` on `tenant_id`.
 
 ## roles
 - `id` — UUID primary key.
-- `name` — unique role name.
+- `name` — unique role name scoped to tenant.
+- `tenant_id` — references `tenants.id`, required.
 - Seeded values: `owner`, `admin`, `cashier`.
-- Indexes: `ix_roles_name` unique index on `name`.
+- Indexes: `ix_roles_name_tenant` unique on (`name`,`tenant_id`); `ix_roles_tenant_id` on `tenant_id`.
 
 ## user_roles
 - `user_id` — references `users.id`, cascade delete.
 - `role_id` — references `roles.id`, cascade delete.
+- `tenant_id` — references `tenants.id`, required.
 - Primary key on (`user_id`, `role_id`).
-- Indexes: `ix_user_roles_user_id`, `ix_user_roles_role_id`.
+- Indexes: `ix_user_roles_user_id`, `ix_user_roles_role_id`, `ix_user_roles_tenant_id` on `tenant_id`.
 
 ## categories
 - `id` — UUID primary key.
