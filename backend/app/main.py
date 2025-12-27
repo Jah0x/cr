@@ -1,11 +1,11 @@
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import FastAPI, APIRouter, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.deps import get_db_session
 from app.api import auth, health, catalog, purchasing, stock, sales, users
+from app.api.health import readiness_check
 from app.services.bootstrap import bootstrap_owner
 
 app = FastAPI(title="Retail POS", version="0.1.0")
@@ -40,6 +40,5 @@ async def healthz():
 
 
 @app.get("/readyz")
-async def readyz(session: AsyncSession = Depends(get_db_session)):
-    await session.execute(text("SELECT 1"))
-    return {"status": "ready"}
+async def readyz(request: Request, tenant: str | None = None, session: AsyncSession = Depends(get_db_session)):
+    return await readiness_check(session, request, tenant)

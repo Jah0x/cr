@@ -16,7 +16,7 @@ Bootstrap creates the first owner and all roles automatically on startup if the 
 
 ## Running and health
 - Liveness: `GET /healthz` or `/api/v1/health`.
-- Readiness with DB check: `GET /readyz` or `/api/v1/health/ready`.
+- Readiness with DB check: `GET /readyz` or `/api/v1/health/ready`; supply `X-Tenant-ID`, `X-Tenant-Code`/`X-Tenant`, or `tenant` query to verify readiness for a specific tenant schema and migrations.
 - Login: `POST /api/v1/auth/login` with owner credentials to obtain bearer token.
 - Authenticated echo: `GET /api/v1/auth/me`.
 

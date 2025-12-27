@@ -5,7 +5,7 @@ Base path: `/api/v1`
 ## Health
 - **GET /health** — public liveness probe.
 - **GET /health/z** — public liveness probe alias.
-- **GET /health/ready** — readiness probe hitting the database; returns `{ "status": "ready" }` on success.
+- **GET /health/ready** — readiness probe hitting the database; accepts an optional tenant hint via `X-Tenant-ID`, `X-Tenant-Code`/`X-Tenant`, or `tenant` query. When a tenant is provided it validates the tenant is active and migrations are applied for that schema before returning `{ "status": "ready" }`; without a tenant it only checks base connectivity.
 - **GET /healthz** — root liveness alias.
 - **GET /readyz** — root readiness alias with DB check.
 
