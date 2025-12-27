@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Boolean, Column, String, DateTime, ForeignKey, Index, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -18,3 +18,14 @@ class CashReceipt(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     sale = relationship("Sale", back_populates="receipts")
+
+
+class CashRegister(Base):
+    __tablename__ = "cash_registers"
+    __table_args__ = (Index("ix_cash_registers_active", "is_active"),)
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False, unique=True)
+    type = Column(String, nullable=False)
+    config = Column(JSON, nullable=False, default=dict)
+    is_active = Column(Boolean, nullable=False, server_default="true")

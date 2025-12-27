@@ -15,7 +15,7 @@ class MockCashRegister(CashRegister):
     async def close_shift(self):
         return {"status": "closed"}
 
-    async def sell(self, sale_id: str):
+    async def register_sale(self, sale_id: str):
         receipt_id = f"mock-{uuid.uuid4()}"
         payload = {"sale_id": str(sale_id), "timestamp": datetime.now(timezone.utc).isoformat()}
         receipt = await self.receipt_repo.create(
@@ -23,7 +23,7 @@ class MockCashRegister(CashRegister):
         )
         return receipt
 
-    async def refund(self, sale_id: str):
+    async def refund_sale(self, sale_id: str):
         receipt_id = f"mock-refund-{uuid.uuid4()}"
         payload = {"sale_id": str(sale_id), "timestamp": datetime.now(timezone.utc).isoformat(), "type": "refund"}
         receipt = await self.receipt_repo.create(

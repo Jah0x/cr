@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db_session, get_current_user
+from app.core.deps import get_db_session, get_current_user, require_roles
 from app.schemas.purchasing import SupplierCreate, SupplierUpdate, SupplierOut, PurchaseInvoiceCreate, PurchaseInvoiceOut, PurchaseItemCreate, PurchaseInvoiceDetail, PurchasePostResult
 from app.services.purchasing_service import PurchasingService
 from app.repos.catalog_repo import ProductRepo
@@ -9,7 +9,7 @@ from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, Purchas
 from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.models.purchasing import PurchaseStatus
 
-router = APIRouter(prefix="", tags=["purchasing"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="", tags=["purchasing"], dependencies=[Depends(require_roles({"owner", "admin"}))])
 
 
 def get_service(session: AsyncSession):
