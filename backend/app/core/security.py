@@ -8,9 +8,16 @@ from jose import JWTError, jwt
 from app.core.config import settings
 
 
-def create_access_token(subject: str, roles: list[str], expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    subject: str,
+    roles: list[str],
+    tenant_id: Optional[str | uuid.UUID] = None,
+    expires_delta: Optional[timedelta] = None,
+) -> str:
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(seconds=settings.jwt_expires_seconds))
     to_encode = {"sub": subject, "roles": roles, "exp": expire, "jti": str(uuid.uuid4())}
+    if tenant_id:
+        to_encode["tenant_id"] = str(tenant_id)
     return jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
 
 
