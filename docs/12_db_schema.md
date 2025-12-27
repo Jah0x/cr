@@ -8,6 +8,7 @@ Alembic revisions:
 - `0005_sales` — basic sales tables.
 - `0006_cash_receipts` — cash receipt records.
 - `0007_sales_cash_registers` — payments, refunds, and cash registers.
+- `0008_tenants` — tenant directory table.
 
 ## users
 - `id` — UUID primary key.
@@ -148,5 +149,14 @@ Alembic revisions:
 - `config` — JSONB configuration blob.
 - `is_active` — boolean flag for activation.
 - Indexes: `ix_cash_registers_active` on `is_active`.
+
+## tenants
+- `id` — UUID primary key.
+- `name` — tenant display name.
+- `code` — unique tenant code.
+- `status` — enum(`active`,`inactive`), defaults to `active`.
+- `created_at` — timezone-aware creation timestamp, defaults to `now()`.
+- `updated_at` — timezone-aware update timestamp, defaults to `now()`.
+- Indexes: `ix_tenants_status` on `status`.
 
 All UUID defaults are generated in the application layer.
