@@ -6,7 +6,8 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.db import async_session
 from app.core.security import hash_password, verify_password
-from app.models.user import User, Role
+from app.models.user import User, Role, UserRole
+from app.services.bootstrap import ensure_default_tenant, ensure_roles
 
 
 async def create_owner():
@@ -15,22 +16,44 @@ async def create_owner():
     if not email or not password:
         raise ValueError("FIRST_OWNER_EMAIL and FIRST_OWNER_PASSWORD are required")
     async with async_session() as session:
-        role_result = await session.execute(select(Role).where(Role.name == "owner"))
+        tenant = await ensure_default_tenant(session)
+        role_result = await session.execute(
+            select(Role).where(Role.name == "owner", Role.tenant_id == tenant.id)
+        )
         owner_role = role_result.scalar_one_or_none()
         if not owner_role:
-            owner_role = Role(name="owner")
-            session.add(owner_role)
-            await session.flush()
-        user_result = await session.execute(select(User).where(User.email == email))
+            await ensure_roles(session, tenant.id)
+            owner_role = await session.scalar(
+                select(Role).where(Role.name == "owner", Role.tenant_id == tenant.id)
+            )
+        user_result = await session.execute(
+            select(User).where(User.email == email, User.tenant_id == tenant.id)
+        )
         user = user_result.scalar_one_or_none()
         if not user:
-            user = User(email=email, password_hash=hash_password(password), is_active=True)
+            user = User(
+                email=email,
+                password_hash=hash_password(password),
+                is_active=True,
+                tenant_id=tenant.id,
+            )
             session.add(user)
             await session.flush()
         if not verify_password(password, user.password_hash):
             user.password_hash = hash_password(password)
-        if owner_role not in user.roles:
-            user.roles.append(owner_role)
+        role_link = await session.scalar(
+            select(UserRole).where(
+                UserRole.user_id == user.id,
+                UserRole.role_id == owner_role.id,
+                UserRole.tenant_id == tenant.id,
+            )
+        )
+        if not role_link:
+            await session.execute(
+                UserRole.__table__.insert().values(
+                    user_id=user.id, role_id=owner_role.id, tenant_id=tenant.id
+                )
+            )
         await session.commit()
 
 

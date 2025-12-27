@@ -14,13 +14,13 @@ os.environ.setdefault("JWT_SECRET", "test")
 os.environ.setdefault("JWT_EXPIRES", "3600")
 
 from app.core.db import Base, async_session
-from app.models.user import User, Role
+from app.models.user import User, Role, UserRole
 from app.models.catalog import Product
 from app.repos.catalog_repo import ProductRepo
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo
 from app.repos.cash_repo import CashReceiptRepo
-from app.services.bootstrap import bootstrap_owner
+from app.services.bootstrap import bootstrap_owner, ensure_default_tenant, ensure_roles
 from app.services.sales_service import SalesService
 
 
@@ -60,7 +60,10 @@ def test_bootstrap_owner_idempotent():
 
     async def count_owners():
         async with async_session() as session:
-            result = await session.execute(select(User).join(User.roles).where(Role.name == "owner"))
+            tenant = await ensure_default_tenant(session)
+            result = await session.execute(
+                select(User).join(User.roles).where(Role.name == "owner", User.tenant_id == tenant.id)
+            )
             return len(result.scalars().all())
 
     first = asyncio.run(count_owners())
@@ -71,14 +74,27 @@ def test_bootstrap_owner_idempotent():
 
 
 async def seed_user_and_product(session):
-    role_result = await session.execute(select(Role).where(Role.name == "owner"))
-    owner_role = role_result.scalar_one_or_none()
-    if not owner_role:
-        owner_role = Role(name="owner")
-        session.add(owner_role)
-    user = User(email=f"user-{uuid.uuid4()}@example.com", password_hash="x", is_active=True, roles=[owner_role])
+    tenant = await ensure_default_tenant(session)
+    await ensure_roles(session, tenant.id)
+    role_result = await session.execute(
+        select(Role).where(Role.name == "owner", Role.tenant_id == tenant.id)
+    )
+    owner_role = role_result.scalar_one()
+    user = User(
+        email=f"user-{uuid.uuid4()}@example.com",
+        password_hash="x",
+        is_active=True,
+        tenant_id=tenant.id,
+    )
+    session.add(user)
+    await session.flush()
+    await session.execute(
+        UserRole.__table__.insert().values(
+            user_id=user.id, role_id=owner_role.id, tenant_id=tenant.id
+        )
+    )
     product = Product(id=uuid.uuid4(), sku=f"SKU-{uuid.uuid4()}", name="Item", description="", price=Decimal("10.00"))
-    session.add_all([owner_role, user, product])
+    session.add_all([owner_role, product])
     await session.flush()
     return user, product
 

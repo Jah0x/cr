@@ -1,7 +1,5 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-
 import bcrypt
 from jose import JWTError, jwt
 
@@ -11,20 +9,27 @@ from app.core.config import settings
 def create_access_token(
     subject: str,
     roles: list[str],
-    tenant_id: Optional[str | uuid.UUID] = None,
-    expires_delta: Optional[timedelta] = None,
+    tenant_id: str | uuid.UUID,
+    expires_delta: timedelta | None = None,
 ) -> str:
+    if not tenant_id:
+        raise ValueError("tenant_id is required")
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(seconds=settings.jwt_expires_seconds))
-    to_encode = {"sub": subject, "roles": roles, "exp": expire, "jti": str(uuid.uuid4())}
-    if tenant_id:
-        to_encode["tenant_id"] = str(tenant_id)
+    to_encode = {
+        "sub": subject,
+        "roles": roles,
+        "exp": expire,
+        "jti": str(uuid.uuid4()),
+        "tenant_id": str(tenant_id),
+    }
     return jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
 
 
 def verify_token(token: str) -> dict:
     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     sub = payload.get("sub")
-    if not sub:
+    tenant_id = payload.get("tenant_id")
+    if not sub or not tenant_id:
         raise JWTError("Invalid token")
     return payload
 
