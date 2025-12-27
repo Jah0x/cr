@@ -1,61 +1,51 @@
 import uuid
-from typing import List, Optional
 from decimal import Decimal
+from datetime import datetime
 from pydantic import BaseModel
 
-from app.models.sales import SaleStatus, PaymentProvider
+from app.models.sales import SaleStatus
+
+
+class SaleItemIn(BaseModel):
+    product_id: uuid.UUID
+    qty: Decimal
+    unit_price: Decimal | None = None
 
 
 class SaleCreate(BaseModel):
-    customer_name: str = ""
+    items: list[SaleItemIn]
+    currency: str | None = None
+
+
+class SaleItemOut(BaseModel):
+    id: uuid.UUID
+    product_id: uuid.UUID | None
+    qty: Decimal
+    unit_price: Decimal
+    line_total: Decimal
+
+    model_config = {"from_attributes": True}
+
+
+class CashReceiptOut(BaseModel):
+    id: uuid.UUID
+    receipt_id: str
+    provider: str
+
+    model_config = {"from_attributes": True}
 
 
 class SaleOut(BaseModel):
     id: uuid.UUID
     status: SaleStatus
-    customer_name: str
-
-    model_config = {"from_attributes": True}
-
-
-class SaleItemCreate(BaseModel):
-    product_id: uuid.UUID
-    quantity: Decimal
-    unit_price: Decimal
-    discount_amount: Decimal = 0
-
-
-class SaleItemUpdate(BaseModel):
-    quantity: Optional[Decimal] = None
-    unit_price: Optional[Decimal] = None
-    discount_amount: Optional[Decimal] = None
-
-
-class SaleItemOut(BaseModel):
-    id: uuid.UUID
-    product_id: uuid.UUID
-    quantity: Decimal
-    unit_price: Decimal
-    discount_amount: Decimal
-
-    model_config = {"from_attributes": True}
-
-
-class PaymentCreate(BaseModel):
-    amount: Decimal
-    provider: PaymentProvider
-    reference: str = ""
-
-
-class PaymentOut(BaseModel):
-    id: uuid.UUID
-    amount: Decimal
-    provider: PaymentProvider
-    reference: str
+    total_amount: Decimal
+    currency: str | None
+    created_at: datetime
+    created_by_user_id: uuid.UUID | None
 
     model_config = {"from_attributes": True}
 
 
 class SaleDetail(SaleOut):
-    items: List[SaleItemOut] = []
-    payments: List[PaymentOut] = []
+    items: list[SaleItemOut]
+    receipts: list[CashReceiptOut]

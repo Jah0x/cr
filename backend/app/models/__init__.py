@@ -3,7 +3,8 @@ from app.models.user import User, Role, UserRole
 from app.models.catalog import Category, Brand, ProductLine, Product
 from app.models.purchasing import Supplier, PurchaseInvoice, PurchaseItem
 from app.models.stock import StockMove, StockBatch, SaleItemCostAllocation
-from app.models.sales import Sale, SaleItem, Payment
+from app.models.sales import Sale, SaleItem
+from app.models.cash import CashReceipt
 
 __all__ = [
     "Base",
@@ -22,5 +23,5 @@ __all__ = [
     "SaleItemCostAllocation",
     "Sale",
     "SaleItem",
-    "Payment",
+    "CashReceipt",
 ]

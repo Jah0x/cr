@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 
 from app.core.security import hash_password, verify_password, create_access_token
@@ -14,7 +16,9 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
-        token = create_access_token(str(user.id))
+        user.last_login_at = datetime.now(timezone.utc)
+        role_names = [role.name for role in user.roles]
+        token = create_access_token(str(user.id), role_names)
         return token, user
 
     async def register(self, email: str, password: str):

@@ -1,8 +1,10 @@
 from typing import List, Optional
+from typing import List, Optional
+from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.sales import Sale, SaleItem, Payment
+from sqlalchemy.orm import selectinload
+from app.models.sales import Sale, SaleItem
 
 
 class SaleRepo:
@@ -16,11 +18,19 @@ class SaleRepo:
         return sale
 
     async def get(self, sale_id) -> Optional[Sale]:
-        result = await self.session.execute(select(Sale).where(Sale.id == sale_id))
+        stmt = select(Sale).where(Sale.id == sale_id).options(selectinload(Sale.items), selectinload(Sale.receipts))
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list(self) -> List[Sale]:
-        result = await self.session.execute(select(Sale))
+    async def list(self, status_filter=None, date_from=None, date_to=None) -> List[Sale]:
+        stmt = select(Sale).options(selectinload(Sale.items), selectinload(Sale.receipts))
+        if status_filter:
+            stmt = stmt.where(Sale.status == status_filter)
+        if date_from:
+            stmt = stmt.where(Sale.created_at >= date_from)
+        if date_to:
+            stmt = stmt.where(Sale.created_at <= date_to)
+        result = await self.session.execute(stmt)
         return result.scalars().all()
 
 
@@ -37,14 +47,3 @@ class SaleItemRepo:
     async def get(self, item_id) -> Optional[SaleItem]:
         result = await self.session.execute(select(SaleItem).where(SaleItem.id == item_id))
         return result.scalar_one_or_none()
-
-
-class PaymentRepo:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def add(self, sale_id, data: dict) -> Payment:
-        payment = Payment(sale_id=sale_id, **data)
-        self.session.add(payment)
-        await self.session.flush()
-        return payment
