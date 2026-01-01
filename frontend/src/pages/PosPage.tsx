@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+
+type PaymentMethod = 'cash' | 'card' | 'external'
 
 interface Product {
   id: string
@@ -7,59 +9,132 @@ interface Product {
   price: number
 }
 
+interface CartItem {
+  product: Product
+  qty: number
+}
+
+interface PaymentDraft {
+  amount: number
+  method: PaymentMethod
+  reference: string
+}
+
+interface SaleItem {
+  id: string
+  product_id: string
+  qty: number
+  unit_price: number
+  line_total: number
+}
+
+interface PaymentRecord {
+  id: string
+  amount: number
+  method: PaymentMethod
+  status: string
+  reference: string
+}
+
 interface SaleDetail {
   id: string
   status: string
-  customer_name: string
-  items: any[]
-  payments: any[]
+  total_amount: number
+  currency: string
+  items: SaleItem[]
+  payments: PaymentRecord[]
 }
 
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [sale, setSale] = useState<SaleDetail | null>(null)
-  const [customer, setCustomer] = useState('')
-  const [selectedProduct, setSelectedProduct] = useState('')
-  const [quantity, setQuantity] = useState('1')
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [payments, setPayments] = useState<PaymentDraft[]>([])
+  const [search, setSearch] = useState('')
   const [paymentAmount, setPaymentAmount] = useState('0')
-  const [provider, setProvider] = useState('cash')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
+  const [paymentReference, setPaymentReference] = useState('')
+  const [sale, setSale] = useState<SaleDetail | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     api.get('/products').then((res) => setProducts(res.data))
   }, [])
 
-  const startSale = async () => {
-    const res = await api.post('/pos/sales', { customer_name: customer })
-    setSale({ ...res.data, items: [], payments: [] })
-  }
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return products
+    return products.filter((product) => product.name.toLowerCase().includes(query))
+  }, [products, search])
 
-  const addItem = async () => {
-    if (!sale) return
-    const product = products.find((p) => p.id === selectedProduct)
-    if (!product) return
-    const res = await api.post(`/pos/sales/${sale.id}/items`, {
-      product_id: product.id,
-      quantity: Number(quantity),
-      unit_price: product.price,
-      discount_amount: 0
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + item.qty * item.product.price, 0)
+  }, [cartItems])
+
+  const paidTotal = useMemo(() => {
+    return payments.reduce((sum, payment) => sum + payment.amount, 0)
+  }, [payments])
+
+  const totalDue = Math.max(subtotal - paidTotal, 0)
+
+  const addToCart = (product: Product) => {
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id)
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, qty: item.qty + 1 } : item
+        )
+      }
+      return [...prev, { product, qty: 1 }]
     })
-    setSale(res.data)
   }
 
-  const addPayment = async () => {
-    if (!sale) return
-    const res = await api.post(`/pos/sales/${sale.id}/payments`, {
-      amount: Number(paymentAmount),
-      provider,
-      reference: ''
-    })
-    setSale({ ...sale, payments: [...sale.payments, res.data] })
+  const updateQty = (productId: string, qty: number) => {
+    if (Number.isNaN(qty) || qty <= 0) return
+    setCartItems((prev) => prev.map((item) => (item.product.id === productId ? { ...item, qty } : item)))
   }
 
-  const finalize = async () => {
-    if (!sale) return
-    const res = await api.post(`/pos/sales/${sale.id}/finalize`)
-    setSale({ ...sale, status: res.data.status })
+  const removeItem = (productId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.product.id !== productId))
+  }
+
+  const addPayment = () => {
+    const amountValue = Number(paymentAmount)
+    if (!amountValue || amountValue <= 0) return
+    setPayments((prev) => [...prev, { amount: amountValue, method: paymentMethod, reference: paymentReference }])
+    setPaymentAmount('0')
+    setPaymentReference('')
+  }
+
+  const removePayment = (index: number) => {
+    setPayments((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const finalizeSale = async () => {
+    setError('')
+    if (cartItems.length === 0) {
+      setError('Add items to the cart before finalizing.')
+      return
+    }
+    const payload = {
+      items: cartItems.map((item) => ({
+        product_id: item.product.id,
+        qty: item.qty,
+        unit_price: item.product.price
+      })),
+      payments: payments.map((payment) => ({
+        amount: payment.amount,
+        method: payment.method,
+        reference: payment.reference
+      }))
+    }
+    try {
+      const res = await api.post('/sales', payload)
+      setSale(res.data)
+      setCartItems([])
+      setPayments([])
+    } catch (e) {
+      setError('Unable to finalize sale.')
+    }
   }
 
   return (
@@ -67,50 +142,95 @@ export default function PosPage() {
       <h2>POS</h2>
       <div style={{ display: 'flex', gap: 16 }}>
         <div style={{ flex: 1 }}>
-          <input placeholder="Customer" value={customer} onChange={(e) => setCustomer(e.target.value)} />
-          <button onClick={startSale}>Start Sale</button>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginTop: 12 }}>
-            {products.map((p) => (
-              <button key={p.id} onClick={() => setSelectedProduct(p.id)} style={{ padding: 12, border: selectedProduct === p.id ? '2px solid #2563eb' : '1px solid #cbd5e1' }}>
-                <div>{p.name}</div>
-                <div>${p.price}</div>
+          <input placeholder="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+              gap: 8,
+              marginTop: 12
+            }}
+          >
+            {filteredProducts.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => addToCart(product)}
+                style={{ padding: 12, border: '1px solid #cbd5e1', background: '#fff' }}
+              >
+                <div>{product.name}</div>
+                <div>${product.price}</div>
               </button>
             ))}
           </div>
         </div>
-        <div style={{ width: 320, background: '#fff', padding: 12 }}>
+        <div style={{ width: 360, background: '#fff', padding: 12 }}>
           <h3>Cart</h3>
-          {sale ? (
-            <div>
-              <p>Status: {sale.status}</p>
-              <input placeholder="Qty" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-              <button onClick={addItem}>Add Item</button>
-              <ul>
-                {sale.items.map((item) => (
-                  <li key={item.id}>
-                    {item.product_id} x {item.quantity}
-                  </li>
-                ))}
-              </ul>
-              <h4>Payments</h4>
-              <input placeholder="Amount" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
-              <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="external">External</option>
-              </select>
-              <button onClick={addPayment}>Add Payment</button>
-              <ul>
-                {sale.payments.map((p) => (
-                  <li key={p.id}>
-                    {p.provider}: {p.amount}
-                  </li>
-                ))}
-              </ul>
-              <button onClick={finalize}>Finalize</button>
-            </div>
+          {cartItems.length === 0 ? (
+            <p>No items in cart</p>
           ) : (
-            <p>Start a sale to add items</p>
+            <div>
+              <ul>
+                {cartItems.map((item) => (
+                  <li key={item.product.id} style={{ marginBottom: 8 }}>
+                    <div>{item.product.name}</div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        value={item.qty}
+                        onChange={(e) => updateQty(item.product.id, Number(e.target.value))}
+                        style={{ width: 60 }}
+                      />
+                      <span>${(item.qty * item.product.price).toFixed(2)}</span>
+                      <button onClick={() => removeItem(item.product.id)}>Remove</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p>Subtotal: ${subtotal.toFixed(2)}</p>
+            </div>
+          )}
+          <h4>Payments</h4>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input
+              placeholder="Amount"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              style={{ width: 80 }}
+            />
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
+              <option value="cash">Cash</option>
+              <option value="card">Card</option>
+              <option value="external">External</option>
+            </select>
+            <input
+              placeholder="Reference"
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button onClick={addPayment}>Add</button>
+          </div>
+          <ul>
+            {payments.map((payment, index) => (
+              <li key={`${payment.method}-${index}`}>
+                {payment.method} ${payment.amount.toFixed(2)}
+                {payment.reference ? ` (${payment.reference})` : ''}
+                <button onClick={() => removePayment(index)} style={{ marginLeft: 8 }}>
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p>Due: ${totalDue.toFixed(2)}</p>
+          <button onClick={finalizeSale} style={{ marginTop: 12 }}>
+            Finalize Sale
+          </button>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {sale && (
+            <div style={{ marginTop: 12 }}>
+              <p>Sale {sale.id}</p>
+              <p>Status: {sale.status}</p>
+              <p>Total: ${sale.total_amount}</p>
+            </div>
           )}
         </div>
       </div>
