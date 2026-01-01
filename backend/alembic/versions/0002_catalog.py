@@ -16,12 +16,14 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column("name", sa.String(), nullable=False, unique=True),
         sa.Column("is_active", sa.Boolean(), default=True),
+        if_not_exists=True,
     )
     op.create_table(
         "brands",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column("name", sa.String(), nullable=False, unique=True),
         sa.Column("is_active", sa.Boolean(), default=True),
+        if_not_exists=True,
     )
     op.create_table(
         "product_lines",
@@ -29,6 +31,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("brand_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("brands.id", ondelete="CASCADE"), nullable=False),
         sa.Column("is_active", sa.Boolean(), default=True),
+        if_not_exists=True,
     )
     op.create_table(
         "products",
@@ -42,6 +45,7 @@ def upgrade() -> None:
         sa.Column("line_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("product_lines.id", ondelete="SET NULL")),
         sa.Column("price", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("is_active", sa.Boolean(), default=True),
+        if_not_exists=True,
     )
     conn.execute(
         sa.text("INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING"),
@@ -58,7 +62,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("products")
-    op.drop_table("product_lines")
-    op.drop_table("brands")
-    op.drop_table("categories")
+    op.drop_table("products", if_exists=True)
+    op.drop_table("product_lines", if_exists=True)
+    op.drop_table("brands", if_exists=True)
+    op.drop_table("categories", if_exists=True)

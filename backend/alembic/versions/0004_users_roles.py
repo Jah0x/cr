@@ -10,7 +10,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("last_login_at", sa.DateTime(timezone=True)))
+    op.add_column("users", sa.Column("last_login_at", sa.DateTime(timezone=True)), if_not_exists=True)
     op.execute("UPDATE roles SET name = 'admin' WHERE name = 'manager'")
     roles_table = sa.table("roles", sa.column("id", sa.String()), sa.column("name", sa.String()))
     op.bulk_insert(
@@ -24,4 +24,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_column("users", "last_login_at")
+    op.drop_column("users", "last_login_at", if_exists=True)
