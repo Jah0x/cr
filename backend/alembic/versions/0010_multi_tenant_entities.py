@@ -65,7 +65,9 @@ def upgrade() -> None:
         "cash_registers",
     ]
     for table in tables:
-        op.execute(sa.text(f"UPDATE {table} SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id})
+        conn.execute(
+            sa.text(f"UPDATE {table} SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id}
+        )
 
     for table in tables:
         op.alter_column(table, "tenant_id", nullable=False)
