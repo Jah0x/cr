@@ -1,5 +1,6 @@
 FROM python:3.12-slim
 WORKDIR /app
+ENV PYTHONPATH=/app
 COPY pyproject.toml /app/
 RUN pip install poetry && poetry config virtualenvs.create false && poetry install --without dev
 COPY app /app/app

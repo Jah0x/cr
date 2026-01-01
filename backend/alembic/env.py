@@ -1,4 +1,6 @@
 import asyncio
+import sys
+from pathlib import Path
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -6,6 +8,11 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
 from app.core.config import settings
 from app.core.db import Base
 from app import models
