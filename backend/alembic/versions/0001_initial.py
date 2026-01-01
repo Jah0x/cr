@@ -23,14 +23,16 @@ def upgrade() -> None:
             server_default=sa.text("timezone('utc', now())"),
             nullable=False,
         ),
+        if_not_exists=True,
     )
-    op.create_index("ix_users_email", "users", ["email"], unique=True)
+    op.create_index("ix_users_email", "users", ["email"], unique=True, if_not_exists=True)
     op.create_table(
         "roles",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
         sa.Column("name", sa.String(), nullable=False),
+        if_not_exists=True,
     )
-    op.create_index("ix_roles_name", "roles", ["name"], unique=True)
+    op.create_index("ix_roles_name", "roles", ["name"], unique=True, if_not_exists=True)
     op.create_table(
         "user_roles",
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -38,9 +40,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "role_id"),
+        if_not_exists=True,
     )
-    op.create_index("ix_user_roles_user_id", "user_roles", ["user_id"])
-    op.create_index("ix_user_roles_role_id", "user_roles", ["role_id"])
+    op.create_index("ix_user_roles_user_id", "user_roles", ["user_id"], if_not_exists=True)
+    op.create_index("ix_user_roles_role_id", "user_roles", ["role_id"], if_not_exists=True)
     roles_table = sa.table(
         "roles",
         sa.column("id", postgresql.UUID(as_uuid=True)),
@@ -57,10 +60,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_user_roles_role_id", table_name="user_roles")
-    op.drop_index("ix_user_roles_user_id", table_name="user_roles")
-    op.drop_table("user_roles")
-    op.drop_index("ix_roles_name", table_name="roles")
-    op.drop_table("roles")
-    op.drop_index("ix_users_email", table_name="users")
-    op.drop_table("users")
+    op.drop_index("ix_user_roles_role_id", table_name="user_roles", if_exists=True)
+    op.drop_index("ix_user_roles_user_id", table_name="user_roles", if_exists=True)
+    op.drop_table("user_roles", if_exists=True)
+    op.drop_index("ix_roles_name", table_name="roles", if_exists=True)
+    op.drop_table("roles", if_exists=True)
+    op.drop_index("ix_users_email", table_name="users", if_exists=True)
+    op.drop_table("users", if_exists=True)
