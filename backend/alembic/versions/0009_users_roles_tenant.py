@@ -30,9 +30,11 @@ def upgrade() -> None:
     op.add_column("roles", sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=True))
     op.add_column("user_roles", sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=True))
 
-    op.execute(sa.text("UPDATE users SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id})
-    op.execute(sa.text("UPDATE roles SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id})
-    op.execute(sa.text("UPDATE user_roles SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id})
+    conn.execute(sa.text("UPDATE users SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id})
+    conn.execute(sa.text("UPDATE roles SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id})
+    conn.execute(
+        sa.text("UPDATE user_roles SET tenant_id = :tenant_id WHERE tenant_id IS NULL"), {"tenant_id": tenant_id}
+    )
 
     op.alter_column("users", "tenant_id", nullable=False)
     op.alter_column("roles", "tenant_id", nullable=False)

@@ -46,10 +46,10 @@ async def create_sale(
 
 @router.get("", response_model=list[SaleOut])
 async def list_sales(
+    request: Request,
     status: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
-    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ):
     status_filter = None

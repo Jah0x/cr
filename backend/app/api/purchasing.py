@@ -56,7 +56,7 @@ async def create_invoice(payload: PurchaseInvoiceCreate, request: Request, sessi
 
 
 @router.get("/purchase-invoices", response_model=list[PurchaseInvoiceOut])
-async def list_invoices(status: str | None = None, request: Request, session: AsyncSession = Depends(get_db_session)):
+async def list_invoices(request: Request, status: str | None = None, session: AsyncSession = Depends(get_db_session)):
     status_filter = None
     if status:
         try:

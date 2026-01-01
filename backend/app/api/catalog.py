@@ -88,7 +88,7 @@ async def delete_brand(brand_id: str, request: Request, session: AsyncSession = 
 
 
 @router.get("/lines", response_model=list[ProductLineOut])
-async def list_lines(brand_id: str | None = None, request: Request, session: AsyncSession = Depends(get_db_session)):
+async def list_lines(request: Request, brand_id: str | None = None, session: AsyncSession = Depends(get_db_session)):
     service = get_catalog_service(session, request.state.tenant_id)
     return await service.list_lines(brand_id)
 
@@ -114,12 +114,12 @@ async def delete_line(line_id: str, request: Request, session: AsyncSession = De
 
 @router.get("/products", response_model=list[ProductOut])
 async def list_products(
+    request: Request,
     category_id: str | None = None,
     brand_id: str | None = None,
     line_id: str | None = None,
     q: str | None = None,
     is_active: bool | None = True,
-    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ):
     service = get_catalog_service(session, request.state.tenant_id)

@@ -23,7 +23,7 @@ async def stock_levels(request: Request, session: AsyncSession = Depends(get_db_
 
 
 @router.get("/moves", response_model=list[StockMoveOut])
-async def stock_moves(product_id: str | None = None, request: Request, session: AsyncSession = Depends(get_db_session)):
+async def stock_moves(request: Request, product_id: str | None = None, session: AsyncSession = Depends(get_db_session)):
     return await get_service(session, request.state.tenant_id).list_moves(product_id)
 
 

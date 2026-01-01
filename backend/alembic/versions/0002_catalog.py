@@ -10,6 +10,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
     op.create_table(
         "categories",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
@@ -42,16 +43,16 @@ def upgrade() -> None:
         sa.Column("price", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("is_active", sa.Boolean(), default=True),
     )
-    op.execute(
-        "INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING",
+    conn.execute(
+        sa.text("INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING"),
         {"id": str(uuid.uuid4()), "name": "owner"},
     )
-    op.execute(
-        "INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING",
+    conn.execute(
+        sa.text("INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING"),
         {"id": str(uuid.uuid4()), "name": "manager"},
     )
-    op.execute(
-        "INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING",
+    conn.execute(
+        sa.text("INSERT INTO roles (id, name) VALUES (:id, :name) ON CONFLICT (name) DO NOTHING"),
         {"id": str(uuid.uuid4()), "name": "cashier"},
     )
 
