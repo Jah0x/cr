@@ -5,6 +5,17 @@ Frontend: React + Vite + React Query.
 
 Use docker-compose to start PostgreSQL, backend, and frontend.
 
+## Docker compose (recommended)
+
+```bash
+docker compose up -d --build
+```
+
+### Check services
+
+* Health: `http://localhost/api/v1/health`
+* Login: open `http://localhost`, sign in, and confirm the UI shows the authenticated state or user data.
+
 ## Backend sanity checks (manual)
 
 From the repo root:

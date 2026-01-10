@@ -9,7 +9,15 @@ export default function LoginPage() {
   const submit = async () => {
     try {
       const res = await api.post('/auth/login', { email, password })
-      localStorage.setItem('token', res.data.access_token)
+      if (res.data?.access_token) {
+        localStorage.setItem('token', res.data.access_token)
+      }
+      try {
+        const me = await api.get('/auth/me')
+        localStorage.setItem('user', JSON.stringify(me.data))
+      } catch (meError) {
+        console.warn('Failed to load current user', meError)
+      }
       window.location.href = '/admin'
     } catch (e) {
       setError('Invalid credentials')
