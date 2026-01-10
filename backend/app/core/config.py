@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_expires_seconds: int = Field(default=3600, alias="JWT_EXPIRES")
-    cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+    cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
     costing_method: str = Field(default="LAST_PURCHASE", alias="COSTING_METHOD")
     discount_max_percent_line: float = Field(default=0, alias="DISCOUNT_MAX_PERCENT_LINE")
     discount_max_percent_receipt: float = Field(default=0, alias="DISCOUNT_MAX_PERCENT_RECEIPT")
