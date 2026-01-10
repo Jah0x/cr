@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import axios from 'axios'
 import api from '../api/client'
 
 export default function LoginPage() {
@@ -20,7 +21,12 @@ export default function LoginPage() {
       }
       window.location.href = '/admin'
     } catch (e) {
-      setError('Invalid credentials')
+      if (axios.isAxiosError(e)) {
+        const message = e.response?.data?.detail ?? 'Login failed'
+        setError(message)
+      } else {
+        setError('Login failed')
+      }
     }
   }
 

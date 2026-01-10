@@ -11,6 +11,14 @@ Use docker-compose to start PostgreSQL, backend, and frontend.
 docker compose up -d --build
 ```
 
+## Frontend API base URL
+
+The frontend defaults to using `/api/v1` for API requests. You can override this at build time by setting `VITE_API_BASE_URL`.
+
+```bash
+VITE_API_BASE_URL=/api/v1
+```
+
 ### Check services
 
 * Health: `http://localhost/api/v1/health`
