@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     bootstrap_token: str | None = Field(default=None, alias="BOOTSTRAP_TOKEN")
     cash_register_provider: str = Field(default="mock", alias="CASH_REGISTER_PROVIDER")
     default_cash_register_id: str | None = Field(default=None, alias="DEFAULT_CASH_REGISTER_ID")
+    root_domain: str = Field(default="", alias="ROOT_DOMAIN")
+    platform_hosts: str = Field(default="", alias="PLATFORM_HOSTS")
+    reserved_subdomains: str = Field(default="", alias="RESERVED_SUBDOMAINS")
+    default_tenant_slug: str | None = Field(default=None, alias="DEFAULT_TENANT_SLUG")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

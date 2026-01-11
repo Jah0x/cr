@@ -31,7 +31,9 @@ async def get_current_user(
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     tenant_service = TenantService(TenantRepo(session))
-    tenant = await tenant_service.resolve_tenant(request, payload)
+    tenant = await tenant_service.resolve_tenant(request)
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant not specified")
     tenant_claim = payload.get("tenant_id")
     if str(tenant.id) != str(tenant_claim):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
@@ -65,11 +67,8 @@ async def get_current_tenant(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
     session: AsyncSession = Depends(get_db_session),
 ):
-    token_payload = None
-    if credentials:
-        try:
-            token_payload = verify_token(credentials.credentials)
-        except JWTError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     service = TenantService(TenantRepo(session))
-    return await service.resolve_tenant(request, token_payload)
+    tenant = await service.resolve_tenant(request)
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant not specified")
+    return tenant
