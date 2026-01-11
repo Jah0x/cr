@@ -23,6 +23,8 @@ class Settings(BaseSettings):
         default=None, alias="FIRST_OWNER_PASSWORD", validation_alias="OWNER_PASSWORD"
     )
     bootstrap_token: str | None = Field(default=None, alias="BOOTSTRAP_TOKEN")
+    auto_migrate_on_startup: bool = Field(default=False, alias="AUTO_MIGRATE_ON_STARTUP")
+    auto_bootstrap_on_startup: bool = Field(default=False, alias="AUTO_BOOTSTRAP_ON_STARTUP")
     cash_register_provider: str = Field(default="mock", alias="CASH_REGISTER_PROVIDER")
     default_cash_register_id: str | None = Field(default=None, alias="DEFAULT_CASH_REGISTER_ID")
     root_domain: str = Field(default="", alias="ROOT_DOMAIN")
