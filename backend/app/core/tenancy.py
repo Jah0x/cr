@@ -1,7 +1,7 @@
 import re
 
 
-TENANT_SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+TENANT_SLUG_RE = re.compile(r"^[a-z0-9_-]{1,63}$")
 CODE_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?$")
 
 
