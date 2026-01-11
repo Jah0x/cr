@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request, status
 
 from app.core.config import settings
+from app.core.tenancy import is_valid_tenant_slug, normalize_tenant_slug
 from app.models.tenant import TenantStatus
 from app.repos.tenant_repo import TenantRepo
 
@@ -26,6 +27,10 @@ class TenantService:
         host = (request.headers.get("host") or "").split(":", 1)[0].lower().strip()
         if not host:
             return None
+        if host in {"localhost", "127.0.0.1"}:
+            if settings.default_tenant_slug and is_valid_tenant_slug(settings.default_tenant_slug):
+                return normalize_tenant_slug(settings.default_tenant_slug)
+            return None
         platform_hosts = {item for item in self._split_csv(settings.platform_hosts)}
         if host in platform_hosts:
             return None
@@ -37,15 +42,19 @@ class TenantService:
             suffix = f".{root_domain}"
             if host.endswith(suffix):
                 subdomain = host[: -len(suffix)]
-                if not subdomain or subdomain in reserved_subdomains:
+                if not subdomain or "." in subdomain or subdomain in reserved_subdomains:
+                    return None
+                if not is_valid_tenant_slug(subdomain):
                     return None
                 return subdomain
             return None
         parts = host.split(".")
-        if len(parts) < 2:
+        if len(parts) != 2:
             return None
         subdomain = parts[0]
         if subdomain in reserved_subdomains:
+            return None
+        if not is_valid_tenant_slug(subdomain):
             return None
         return subdomain
 

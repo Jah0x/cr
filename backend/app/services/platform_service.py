@@ -6,6 +6,7 @@ from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.tenancy import build_search_path, normalize_code, normalize_tenant_slug
 from app.core.security import create_access_token, hash_password
 from app.models.platform import Module, Template, TenantFeature, TenantModule
 from app.models.tenant import Tenant, TenantStatus
@@ -31,7 +32,7 @@ class PlatformService:
         owner_password: str,
         template_id: str | None = None,
     ):
-        schema = code.lower()
+        schema = normalize_tenant_slug(code)
         existing = await self.session.scalar(select(Tenant).where(Tenant.code == schema))
         if existing:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tenant code already exists")
@@ -63,7 +64,7 @@ class PlatformService:
         return result.scalars().all()
 
     async def create_module(self, *, code: str, name: str, description: str | None, is_active: bool):
-        module = Module(code=code, name=name, description=description, is_active=is_active)
+        module = Module(code=normalize_code(code), name=name, description=description, is_active=is_active)
         self.session.add(module)
         await self.session.flush()
         return module
@@ -76,15 +77,15 @@ class PlatformService:
         template = Template(
             name=name,
             description=description,
-            module_codes=module_codes,
-            feature_codes=feature_codes,
+            module_codes=[normalize_code(code) for code in module_codes],
+            feature_codes=[normalize_code(code) for code in feature_codes],
         )
         self.session.add(template)
         await self.session.flush()
         return template
 
     async def _bootstrap_owner(self, schema: str, email: str, password: str, tenant_id):
-        await self.session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
+        await self.session.execute(text(build_search_path(schema)))
         user = await self.session.scalar(select(User).where(User.email == email))
         await ensure_roles(self.session)
         owner_role = await self.session.scalar(select(Role).where(Role.name == "owner"))
@@ -99,17 +100,17 @@ class PlatformService:
             await self.session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
         await ensure_cash_register(self.session)
         await self.session.flush()
-        await self.session.execute(text("SET LOCAL search_path TO public"))
+        await self.session.execute(text(build_search_path(None)))
         return create_access_token(str(user.id), ["owner"], tenant_id)
 
     async def _seed_template(self, schema: str, template_id: str | None):
         if not template_id:
             return
-        await self.session.execute(text("SET LOCAL search_path TO public"))
+        await self.session.execute(text(build_search_path(None)))
         template = await self.session.get(Template, template_id)
         if not template:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-        await self.session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
+        await self.session.execute(text(build_search_path(schema)))
         module_codes = list(dict.fromkeys(template.module_codes or []))
         feature_codes = list(dict.fromkeys(template.feature_codes or []))
         if module_codes:
@@ -121,12 +122,12 @@ class PlatformService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Unknown modules: {', '.join(missing)}",
                 )
-            existing_modules = await self.session.execute(
-                select(TenantModule.module_id)
-            )
-            existing_ids = {row[0] for row in existing_modules}
+            existing_modules = await self.session.execute(select(TenantModule))
+            existing_map = {row.module_id: row for row in existing_modules.scalars()}
             for module in module_map.values():
-                if module.id in existing_ids:
+                existing = existing_map.get(module.id)
+                if existing:
+                    existing.is_enabled = True
                     continue
                 self.session.add(
                     TenantModule(
@@ -136,12 +137,12 @@ class PlatformService:
                     )
                 )
         if feature_codes:
-            existing_features = await self.session.execute(
-                select(TenantFeature.code)
-            )
-            existing_codes = {row[0] for row in existing_features}
+            existing_features = await self.session.execute(select(TenantFeature))
+            existing_map = {row.code: row for row in existing_features.scalars()}
             for code in feature_codes:
-                if code in existing_codes:
+                existing = existing_map.get(code)
+                if existing:
+                    existing.is_enabled = True
                     continue
                 self.session.add(
                     TenantFeature(
@@ -150,7 +151,7 @@ class PlatformService:
                         created_at=datetime.now(timezone.utc),
                     )
                 )
-        await self.session.execute(text("SET LOCAL search_path TO public"))
+        await self.session.execute(text(build_search_path(None)))
 
     def _tenant_url(self, schema: str) -> str:
         root_domain = settings.root_domain.strip(".")

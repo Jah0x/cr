@@ -1,6 +1,6 @@
 # Database schema
 
-Alembic revisions:
+Alembic revisions (tenant branch unless noted):
 - `0001_initial` — authentication tables with seeded roles.
 - `0002_catalog` — catalog tables.
 - `0003_purchasing_stock` — purchasing and stock tables.
@@ -9,12 +9,14 @@ Alembic revisions:
 - `0006_cash_receipts` — cash receipt records.
 - `0007_sales_cash_registers` — payments, refunds, and cash registers.
 - `0008_tenants` — tenant directory table.
-- `0002_public_platform` — public modules/templates and tenant mapping tables.
+- `0002_public_platform` (public branch) — public modules/templates and tenant mapping tables.
+- `0004_public_features` (public branch) — public features catalog.
 
 ## Tenancy layout
 - `public.tenants` stores the tenant directory.
 - Each tenant has its own schema, and all tenant-scoped tables live inside that schema.
 - Application connections set `search_path` to the tenant schema, so tenant-scoped tables do not store `tenant_id` columns.
+- Alembic splits migrations into public (`alembic/versions/public`) and tenant (`alembic/versions/tenant`) branches; use `python -m app.cli migrate-all` to apply both to all tenants.
 
 ## users
 - `id` — UUID primary key.

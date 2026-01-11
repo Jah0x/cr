@@ -1,10 +1,13 @@
 import asyncio
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select, text
 
 from app.core.config import settings
+from app.core.tenancy import build_search_path, normalize_tenant_slug
 from app.core.db import async_session
 from app.core.security import hash_password
+from app.models.platform import Module, Template, TenantFeature, TenantModule
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
 from app.models.cash import CashRegister
@@ -27,7 +30,7 @@ async def ensure_tenant_schema(session, schema: str):
 
 async def bootstrap_tenant_owner(schema: str, email: str, password: str):
     async with async_session() as session:
-        await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
+        await session.execute(text(build_search_path(schema)))
         count_result = await session.execute(select(func.count(User.id)))
         if count_result.scalar_one() > 0:
             return
@@ -44,6 +47,7 @@ async def bootstrap_tenant_owner(schema: str, email: str, password: str):
 
 async def provision_tenant(schema: str, name: str, *, owner_email: str | None = None, owner_password: str | None = None):
     async with async_session() as session:
+        schema = normalize_tenant_slug(schema)
         await ensure_tenant_schema(session, schema)
         tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
         if not tenant:
@@ -56,6 +60,145 @@ async def provision_tenant(schema: str, name: str, *, owner_email: str | None = 
         await bootstrap_tenant_owner(schema, owner_email, owner_password)
 
 
+async def seed_platform_defaults():
+    modules = [
+        {
+            "code": "catalog",
+            "name": "Catalog",
+            "description": "Catalog and product management.",
+        },
+        {
+            "code": "purchasing",
+            "name": "Purchasing",
+            "description": "Suppliers and purchase invoices.",
+        },
+        {
+            "code": "stock",
+            "name": "Stock",
+            "description": "Stock management and adjustments.",
+        },
+        {
+            "code": "sales",
+            "name": "Sales",
+            "description": "Sales operations and refunds.",
+        },
+        {
+            "code": "pos",
+            "name": "POS",
+            "description": "Point of sale operations.",
+        },
+        {
+            "code": "users",
+            "name": "Users",
+            "description": "User and role management.",
+        },
+        {
+            "code": "reports",
+            "name": "Reports",
+            "description": "Reporting and analytics.",
+        },
+    ]
+    templates = [
+        {
+            "name": "retail",
+            "description": "General retail operations.",
+            "module_codes": ["catalog", "purchasing", "stock", "sales", "pos", "users", "reports"],
+            "feature_codes": ["reports", "ui_prefs"],
+        },
+        {
+            "name": "tobacco",
+            "description": "Tobacco shop defaults.",
+            "module_codes": ["catalog", "stock", "sales", "pos", "users", "reports"],
+            "feature_codes": ["reports", "ui_prefs"],
+        },
+        {
+            "name": "ecom",
+            "description": "E-commerce focused setup.",
+            "module_codes": ["catalog", "stock", "sales", "users", "reports"],
+            "feature_codes": ["reports", "ui_prefs"],
+        },
+        {
+            "name": "printshop",
+            "description": "Print shop configuration.",
+            "module_codes": ["catalog", "stock", "sales", "pos", "users", "reports"],
+            "feature_codes": ["reports", "ui_prefs"],
+        },
+    ]
+    async with async_session() as session:
+        existing_modules = await session.execute(select(Module))
+        module_map = {module.code: module for module in existing_modules.scalars()}
+        for module in modules:
+            if module["code"] in module_map:
+                continue
+            session.add(
+                Module(
+                    code=module["code"],
+                    name=module["name"],
+                    description=module["description"],
+                    is_active=True,
+                )
+            )
+        existing_templates = await session.execute(select(Template))
+        template_map = {template.name: template for template in existing_templates.scalars()}
+        for template in templates:
+            if template["name"] in template_map:
+                continue
+            session.add(
+                Template(
+                    name=template["name"],
+                    description=template["description"],
+                    module_codes=template["module_codes"],
+                    feature_codes=template["feature_codes"],
+                )
+            )
+        await session.commit()
+
+
+async def apply_template_by_name(schema: str, template_name: str):
+    schema = normalize_tenant_slug(schema)
+    async with async_session() as session:
+        await session.execute(text(build_search_path(None)))
+        template = await session.scalar(select(Template).where(Template.name == template_name))
+        if not template:
+            return
+        await session.execute(text(build_search_path(schema)))
+        module_codes = list(dict.fromkeys(template.module_codes or []))
+        feature_codes = list(dict.fromkeys(template.feature_codes or []))
+        if module_codes:
+            modules = await session.execute(select(Module).where(Module.code.in_(module_codes)))
+            module_map = {module.code: module for module in modules.scalars()}
+            existing_modules = await session.execute(select(TenantModule))
+            existing_map = {row.module_id: row for row in existing_modules.scalars()}
+            for module in module_map.values():
+                existing = existing_map.get(module.id)
+                if existing:
+                    existing.is_enabled = True
+                    continue
+                session.add(
+                    TenantModule(
+                        module_id=module.id,
+                        is_enabled=True,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                )
+        if feature_codes:
+            existing_features = await session.execute(select(TenantFeature))
+            existing_map = {row.code: row for row in existing_features.scalars()}
+            for code in feature_codes:
+                existing = existing_map.get(code)
+                if existing:
+                    existing.is_enabled = True
+                    continue
+                session.add(
+                    TenantFeature(
+                        code=code,
+                        is_enabled=True,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                )
+        await session.commit()
+
+
 async def bootstrap_first_tenant():
     await provision_tenant(
         "husky",
@@ -63,6 +206,7 @@ async def bootstrap_first_tenant():
         owner_email=settings.first_owner_email,
         owner_password=settings.first_owner_password,
     )
+    await apply_template_by_name("husky", "retail")
 
 
 async def ensure_default_tenant() -> bool:
@@ -78,6 +222,7 @@ async def ensure_default_tenant() -> bool:
 
 async def bootstrap_platform():
     await asyncio.to_thread(run_public_migrations)
+    await seed_platform_defaults()
 
 
 async def ensure_cash_register(session):
