@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_tenant, get_db_session, require_roles
+from app.core.deps import get_current_tenant, get_db_session, require_roles, require_module
 from app.repos.user_repo import RoleRepo, UserRepo
 from app.schemas.user import UserCreate, UserOut, UserRolesUpdate
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_roles({"owner"}))])
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(require_roles({"owner"})), Depends(get_current_tenant), Depends(require_module("users"))],
+)
 
 
 def get_service(session: AsyncSession):
@@ -14,9 +18,7 @@ def get_service(session: AsyncSession):
 
 
 @router.get("", response_model=list[UserOut])
-async def list_users(
-    session: AsyncSession = Depends(get_db_session), tenant=Depends(get_current_tenant)
-):
+async def list_users(session: AsyncSession = Depends(get_db_session), tenant=Depends(get_current_tenant)):
     users = await get_service(session).list_users()
     return users
 

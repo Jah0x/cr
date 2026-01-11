@@ -1,0 +1,160 @@
+from datetime import datetime, timezone
+
+from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.platform import Module, TenantFeature, TenantModule, TenantUIPreference
+
+
+AVAILABLE_FEATURES = [
+    {
+        "code": "reports",
+        "name": "Reports",
+        "description": "Access reporting endpoints.",
+    },
+    {
+        "code": "ui_prefs",
+        "name": "UI preferences",
+        "description": "Customize the tenant UI preferences.",
+    },
+]
+
+DEFAULT_UI_PREFS = {
+    "compact_nav": False,
+    "show_help": True,
+}
+
+
+class TenantSettingsService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_settings(self, tenant_id):
+        modules = await self.session.execute(select(Module))
+        modules = modules.scalars().all()
+        tenant_modules = await self.session.execute(
+            select(TenantModule).where(TenantModule.tenant_id == tenant_id)
+        )
+        tenant_module_map = {item.module_id: item for item in tenant_modules.scalars()}
+        module_settings = []
+        for module in modules:
+            tenant_module = tenant_module_map.get(module.id)
+            is_enabled = tenant_module.is_enabled if tenant_module else True
+            module_settings.append(
+                {
+                    "code": module.code,
+                    "name": module.name,
+                    "description": module.description,
+                    "is_active": module.is_active,
+                    "is_enabled": is_enabled,
+                }
+            )
+
+        tenant_features = await self.session.execute(
+            select(TenantFeature).where(TenantFeature.tenant_id == tenant_id)
+        )
+        feature_map = {item.code: item for item in tenant_features.scalars()}
+        feature_settings = []
+        for feature in AVAILABLE_FEATURES:
+            stored = feature_map.get(feature["code"])
+            is_enabled = stored.is_enabled if stored else True
+            feature_settings.append(
+                {
+                    "code": feature["code"],
+                    "name": feature["name"],
+                    "description": feature["description"],
+                    "is_enabled": is_enabled,
+                }
+            )
+
+        ui_prefs = await self._load_ui_prefs(tenant_id)
+        return {
+            "modules": module_settings,
+            "features": feature_settings,
+            "ui_prefs": ui_prefs,
+        }
+
+    async def update_module(self, tenant_id, code: str, is_enabled: bool):
+        module = await self.session.scalar(select(Module).where(Module.code == code))
+        if not module:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+        if is_enabled and not module.is_active:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Module is inactive")
+        tenant_module = await self.session.scalar(
+            select(TenantModule).where(
+                TenantModule.tenant_id == tenant_id,
+                TenantModule.module_id == module.id,
+            )
+        )
+        if tenant_module:
+            tenant_module.is_enabled = is_enabled
+        else:
+            tenant_module = TenantModule(
+                tenant_id=tenant_id,
+                module_id=module.id,
+                is_enabled=is_enabled,
+            )
+            self.session.add(tenant_module)
+        await self.session.commit()
+        return {
+            "code": module.code,
+            "name": module.name,
+            "description": module.description,
+            "is_active": module.is_active,
+            "is_enabled": tenant_module.is_enabled,
+        }
+
+    async def update_feature(self, tenant_id, code: str, is_enabled: bool):
+        feature = next((item for item in AVAILABLE_FEATURES if item["code"] == code), None)
+        if not feature:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feature not found")
+        tenant_feature = await self.session.scalar(
+            select(TenantFeature).where(
+                TenantFeature.tenant_id == tenant_id,
+                TenantFeature.code == code,
+            )
+        )
+        if tenant_feature:
+            tenant_feature.is_enabled = is_enabled
+        else:
+            tenant_feature = TenantFeature(
+                tenant_id=tenant_id,
+                code=code,
+                is_enabled=is_enabled,
+            )
+            self.session.add(tenant_feature)
+        await self.session.commit()
+        return {
+            "code": code,
+            "name": feature["name"],
+            "description": feature["description"],
+            "is_enabled": tenant_feature.is_enabled,
+        }
+
+    async def update_ui_prefs(self, tenant_id, prefs: dict[str, bool]):
+        current = await self.session.scalar(
+            select(TenantUIPreference).where(TenantUIPreference.tenant_id == tenant_id)
+        )
+        merged = {**DEFAULT_UI_PREFS, **(current.prefs if current else {}), **prefs}
+        if current:
+            current.prefs = merged
+            current.updated_at = datetime.now(timezone.utc)
+        else:
+            current = TenantUIPreference(
+                tenant_id=tenant_id,
+                prefs=merged,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            self.session.add(current)
+        await self.session.commit()
+        return merged
+
+    async def _load_ui_prefs(self, tenant_id):
+        current = await self.session.scalar(
+            select(TenantUIPreference).where(TenantUIPreference.tenant_id == tenant_id)
+        )
+        if not current:
+            return DEFAULT_UI_PREFS.copy()
+        return {**DEFAULT_UI_PREFS, **(current.prefs or {})}

@@ -1,0 +1,95 @@
+import { useState } from 'react'
+import {
+  useTenantSettings,
+  useUpdateFeatureSetting,
+  useUpdateModuleSetting,
+  useUpdateUIPrefs
+} from '../api/tenantSettings'
+
+const uiPrefLabels: Record<string, string> = {
+  compact_nav: 'Compact navigation',
+  show_help: 'Show help tips'
+}
+
+export default function TenantSettingsPage() {
+  const { data, isLoading } = useTenantSettings()
+  const updateModule = useUpdateModuleSetting()
+  const updateFeature = useUpdateFeatureSetting()
+  const updatePrefs = useUpdateUIPrefs()
+  const [pendingPrefs, setPendingPrefs] = useState<Record<string, boolean>>({})
+
+  if (isLoading) {
+    return <div style={{ padding: 24 }}>Loading settings...</div>
+  }
+
+  if (!data) {
+    return <div style={{ padding: 24 }}>No settings available.</div>
+  }
+
+  const uiPrefsFeatureEnabled =
+    data.features.find((feature) => feature.code === 'ui_prefs')?.is_enabled ?? true
+
+  const handlePrefToggle = (key: string) => {
+    const currentValue = pendingPrefs[key] ?? data.ui_prefs[key] ?? false
+    const next = { ...data.ui_prefs, ...pendingPrefs, [key]: !currentValue }
+    setPendingPrefs(next)
+    updatePrefs.mutate(next)
+  }
+
+  return (
+    <div style={{ padding: 24, display: 'grid', gap: 24 }}>
+      <div>
+        <h2>Tenant settings</h2>
+        <p>Manage enabled modules, feature flags, and UI preferences.</p>
+      </div>
+      <section style={{ display: 'grid', gap: 12 }}>
+        <h3>Modules</h3>
+        {data.modules.map((module) => (
+          <label key={module.code} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={module.is_active && module.is_enabled}
+              disabled={!module.is_active || updateModule.isPending}
+              onChange={() => updateModule.mutate({ code: module.code, is_enabled: !module.is_enabled })}
+            />
+            <span>
+              {module.name} ({module.code}) {!module.is_active && '— inactive'}
+            </span>
+          </label>
+        ))}
+      </section>
+      <section style={{ display: 'grid', gap: 12 }}>
+        <h3>Features</h3>
+        {data.features.map((feature) => (
+          <label key={feature.code} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={feature.is_enabled}
+              disabled={updateFeature.isPending}
+              onChange={() => updateFeature.mutate({ code: feature.code, is_enabled: !feature.is_enabled })}
+            />
+            <span>
+              {feature.name} ({feature.code})
+            </span>
+          </label>
+        ))}
+      </section>
+      {uiPrefsFeatureEnabled && (
+        <section style={{ display: 'grid', gap: 12 }}>
+          <h3>UI preferences</h3>
+          {Object.entries(uiPrefLabels).map(([key, label]) => (
+            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={pendingPrefs[key] ?? data.ui_prefs[key] ?? false}
+                disabled={updatePrefs.isPending}
+                onChange={() => handlePrefToggle(key)}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </section>
+      )}
+    </div>
+  )
+}

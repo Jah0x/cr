@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db_session, get_current_tenant, require_roles
+from app.core.deps import get_db_session, get_current_tenant, require_roles, require_module
 from app.schemas.catalog import (
     CategoryCreate,
     CategoryUpdate,
@@ -22,7 +22,11 @@ from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, Pro
 router = APIRouter(
     prefix="",
     tags=["catalog"],
-    dependencies=[Depends(require_roles({"owner", "admin"})), Depends(get_current_tenant)],
+    dependencies=[
+        Depends(require_roles({"owner", "admin"})),
+        Depends(get_current_tenant),
+        Depends(require_module("catalog")),
+    ],
 )
 
 

@@ -21,6 +21,13 @@ Notes: registration is not public; owners provision accounts.
 - **POST /users** — create user. Payload: `{ "email": string, "password": string, "roles": ["owner"|"admin"|"cashier"] }`. Response mirrors list item.
 - **POST /users/{user_id}/roles** — replace roles. Payload: `{ "roles": ["owner"|"admin"|"cashier"] }`.
 
+## Tenant settings
+- Access: authenticated users for read; `owner` for updates.
+- **GET /tenant/settings** — list module toggles, feature flags, and UI preferences for the current tenant.
+- **PATCH /tenant/settings/modules/{code}** — enable/disable a module for the tenant. Payload: `{ "is_enabled": bool }`.
+- **PATCH /tenant/settings/features/{code}** — enable/disable a feature flag for the tenant. Payload: `{ "is_enabled": bool }`.
+- **PUT /tenant/settings/ui-prefs** — update UI preference toggles (requires `ui_prefs` feature). Payload: `{ "prefs": { "<key>": bool } }`.
+
 ## Catalog (owner, admin)
 ### Categories
 - **GET /categories** — list.
@@ -73,6 +80,13 @@ Notes: registration is not public; owners provision accounts.
 - **GET /sales/{sale_id}** — sale detail with items, receipts, payments, refunds.
 - **POST /sales/{sale_id}/void** — owner only. Marks sale void and restocks items.
 - **POST /sales/{sale_id}/refunds** — create refund (partial or full). Payload: `{ "amount"?: decimal, "reason"?: string, "items"?: [ { "sale_item_id": uuid, "qty": decimal } ] }`. Restocks returned quantities and records refund plus cash register entry.
+
+## Reports (feature-guarded)
+- **GET /reports/summary** — totals summary.
+- **GET /reports/by-category** — sales grouped by category.
+- **GET /reports/by-brand** — sales grouped by brand.
+- **GET /reports/top-products?limit=5** — top products.
+- **GET /reports/stock-alerts?threshold=** — low stock alerts.
 
 ## Cash registers (owner)
 - Bootstraps one active mock register if none exist. Future endpoints will manage registers; current provider selection uses `CASH_REGISTER_PROVIDER` or the active DB record.
