@@ -39,10 +39,9 @@ class PlatformService:
         tenant = Tenant(name=name, code=schema, status=TenantStatus.active)
         self.session.add(tenant)
         await self.session.flush()
-        await self.session.commit()
         await asyncio.to_thread(run_tenant_migrations, schema)
         await self._bootstrap_owner(schema, owner_email, owner_password)
-        await self._seed_template(tenant.id, template_id)
+        await self._seed_template(schema, template_id)
         tenant_url = self._tenant_url(schema)
         return {
             "tenant": tenant,
@@ -55,7 +54,7 @@ class PlatformService:
         tenant = await self.session.get(Tenant, tenant_id)
         if not tenant:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
-        await self._seed_template(tenant.id, template_id)
+        await self._seed_template(tenant.code, template_id)
         return tenant
 
     async def list_modules(self):
@@ -65,8 +64,7 @@ class PlatformService:
     async def create_module(self, *, code: str, name: str, description: str | None, is_active: bool):
         module = Module(code=code, name=name, description=description, is_active=is_active)
         self.session.add(module)
-        await self.session.commit()
-        await self.session.refresh(module)
+        await self.session.flush()
         return module
 
     async def list_templates(self):
@@ -81,8 +79,7 @@ class PlatformService:
             feature_codes=feature_codes,
         )
         self.session.add(template)
-        await self.session.commit()
-        await self.session.refresh(template)
+        await self.session.flush()
         return template
 
     async def _bootstrap_owner(self, schema: str, email: str, password: str):
@@ -96,15 +93,17 @@ class PlatformService:
             await self.session.flush()
             await self.session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
             await ensure_cash_register(self.session)
-            await self.session.commit()
+            await self.session.flush()
         await self.session.execute(text("SET LOCAL search_path TO public"))
 
-    async def _seed_template(self, tenant_id: str, template_id: str | None):
+    async def _seed_template(self, schema: str, template_id: str | None):
         if not template_id:
             return
+        await self.session.execute(text("SET LOCAL search_path TO public"))
         template = await self.session.get(Template, template_id)
         if not template:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        await self.session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
         module_codes = list(dict.fromkeys(template.module_codes or []))
         feature_codes = list(dict.fromkeys(template.feature_codes or []))
         if module_codes:
@@ -117,7 +116,7 @@ class PlatformService:
                     detail=f"Unknown modules: {', '.join(missing)}",
                 )
             existing_modules = await self.session.execute(
-                select(TenantModule.module_id).where(TenantModule.tenant_id == tenant_id)
+                select(TenantModule.module_id)
             )
             existing_ids = {row[0] for row in existing_modules}
             for module in module_map.values():
@@ -125,7 +124,6 @@ class PlatformService:
                     continue
                 self.session.add(
                     TenantModule(
-                        tenant_id=tenant_id,
                         module_id=module.id,
                         is_enabled=True,
                         created_at=datetime.now(timezone.utc),
@@ -133,7 +131,7 @@ class PlatformService:
                 )
         if feature_codes:
             existing_features = await self.session.execute(
-                select(TenantFeature.code).where(TenantFeature.tenant_id == tenant_id)
+                select(TenantFeature.code)
             )
             existing_codes = {row[0] for row in existing_features}
             for code in feature_codes:
@@ -141,13 +139,12 @@ class PlatformService:
                     continue
                 self.session.add(
                     TenantFeature(
-                        tenant_id=tenant_id,
                         code=code,
                         is_enabled=True,
                         created_at=datetime.now(timezone.utc),
                     )
                 )
-        await self.session.commit()
+        await self.session.execute(text("SET LOCAL search_path TO public"))
 
     def _tenant_url(self, schema: str) -> str:
         root_domain = settings.root_domain.strip(".")

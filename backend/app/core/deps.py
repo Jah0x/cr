@@ -79,7 +79,7 @@ async def get_current_user(
         user_uuid = uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    user = await repo.get_by_id(user_uuid, tenant.id)
+    user = await repo.get_by_id(user_uuid)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if not user.is_active:
@@ -109,12 +109,7 @@ def require_module(code: str):
             return True
         if not module.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
-        tenant_module = await session.scalar(
-            select(TenantModule).where(
-                TenantModule.tenant_id == tenant.id,
-                TenantModule.module_id == module.id,
-            )
-        )
+        tenant_module = await session.scalar(select(TenantModule).where(TenantModule.module_id == module.id))
         if tenant_module and not tenant_module.is_enabled:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
         return True
@@ -127,12 +122,7 @@ def require_feature(code: str):
         tenant=Depends(get_current_tenant),
         session: AsyncSession = Depends(get_db_session),
     ):
-        tenant_feature = await session.scalar(
-            select(TenantFeature).where(
-                TenantFeature.tenant_id == tenant.id,
-                TenantFeature.code == code,
-            )
-        )
+        tenant_feature = await session.scalar(select(TenantFeature).where(TenantFeature.code == code))
         if tenant_feature and not tenant_feature.is_enabled:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Feature disabled")
         return True
