@@ -8,7 +8,7 @@ from app.core.db import async_session
 from app.core.security import hash_password, verify_password
 from app.models.tenant import Tenant
 from app.models.user import User, Role, UserRole
-from app.services.bootstrap import ensure_roles, ensure_tenant_schema
+from app.services.bootstrap import ensure_default_tenant, ensure_roles, ensure_tenant_schema
 from app.services.migrations import run_public_migrations, run_tenant_migrations
 
 
@@ -54,6 +54,7 @@ async def create_owner(tenant_schema: str):
 
 async def migrate_all():
     await asyncio.to_thread(run_public_migrations)
+    await ensure_default_tenant()
     async with async_session() as session:
         result = await session.execute(select(Tenant))
         tenants = result.scalars().all()
@@ -78,7 +79,11 @@ def main():
             sys.stderr.write(f"{exc}\n")
             sys.exit(1)
     elif args.command == "migrate-all":
-        asyncio.run(migrate_all())
+        try:
+            asyncio.run(migrate_all())
+        except ValueError as exc:
+            sys.stderr.write(f"{exc}\n")
+            sys.exit(1)
     else:
         parser.print_help()
 

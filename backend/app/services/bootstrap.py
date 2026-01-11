@@ -65,6 +65,17 @@ async def bootstrap_first_tenant():
     )
 
 
+async def ensure_default_tenant() -> bool:
+    async with async_session() as session:
+        tenant_count = await session.scalar(select(func.count(Tenant.id)))
+    if tenant_count and tenant_count > 0:
+        return False
+    if not settings.first_owner_email or not settings.first_owner_password:
+        raise ValueError("FIRST_OWNER_EMAIL and FIRST_OWNER_PASSWORD are required")
+    await bootstrap_first_tenant()
+    return True
+
+
 async def bootstrap_platform():
     await asyncio.to_thread(run_public_migrations)
 

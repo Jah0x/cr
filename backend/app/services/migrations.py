@@ -38,7 +38,7 @@ def run_public_migrations() -> None:
     config = _alembic_config(
         version_locations=PUBLIC_VERSIONS,
         schema="public",
-        version_table="alembic_version_public",
+        version_table="alembic_version",
         version_table_schema="public",
     )
     command.upgrade(config, "head")
@@ -48,7 +48,7 @@ def run_tenant_migrations(schema: str) -> None:
     config = _alembic_config(
         version_locations=TENANT_VERSIONS,
         schema=schema,
-        version_table="alembic_version_tenant",
-        version_table_schema=schema,
+        version_table="alembic_version",
+        version_table_schema="public",
     )
     command.upgrade(config, "head")
