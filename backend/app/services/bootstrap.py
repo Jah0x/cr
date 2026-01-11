@@ -1,6 +1,4 @@
 import asyncio
-from datetime import datetime, timezone
-
 from sqlalchemy import func, select, text
 
 from app.core.config import settings
@@ -8,11 +6,12 @@ from app.core.db_utils import quote_ident, set_search_path, validate_schema_name
 from app.core.tenancy import normalize_tenant_slug
 from app.core.db import async_session
 from app.core.security import hash_password
-from app.models.platform import Module, Template, TenantFeature, TenantModule
+from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
 from app.models.cash import CashRegister
 from app.services.migrations import run_public_migrations, run_tenant_migrations
+from app.services.template_service import apply_template_codes
 
 
 async def ensure_roles(session):
@@ -164,40 +163,12 @@ async def apply_template_by_name(schema: str, template_name: str):
         if not template:
             return
         await set_search_path(session, schema)
-        module_codes = list(dict.fromkeys(template.module_codes or []))
-        feature_codes = list(dict.fromkeys(template.feature_codes or []))
-        if module_codes:
-            modules = await session.execute(select(Module).where(Module.code.in_(module_codes)))
-            module_map = {module.code: module for module in modules.scalars()}
-            existing_modules = await session.execute(select(TenantModule))
-            existing_map = {row.module_id: row for row in existing_modules.scalars()}
-            for module in module_map.values():
-                existing = existing_map.get(module.id)
-                if existing:
-                    existing.is_enabled = True
-                    continue
-                session.add(
-                    TenantModule(
-                        module_id=module.id,
-                        is_enabled=True,
-                        created_at=datetime.now(timezone.utc),
-                    )
-                )
-        if feature_codes:
-            existing_features = await session.execute(select(TenantFeature))
-            existing_map = {row.code: row for row in existing_features.scalars()}
-            for code in feature_codes:
-                existing = existing_map.get(code)
-                if existing:
-                    existing.is_enabled = True
-                    continue
-                session.add(
-                    TenantFeature(
-                        code=code,
-                        is_enabled=True,
-                        created_at=datetime.now(timezone.utc),
-                    )
-                )
+        await apply_template_codes(
+            session,
+            schema=schema,
+            module_codes=template.module_codes,
+            feature_codes=template.feature_codes,
+        )
         await session.commit()
 
 
@@ -208,7 +179,7 @@ async def bootstrap_first_tenant():
         owner_email=settings.first_owner_email,
         owner_password=settings.first_owner_password,
     )
-    await apply_template_by_name("husky", "retail")
+    await apply_template_by_name("husky", "tobacco")
 
 
 async def ensure_default_tenant() -> bool:
