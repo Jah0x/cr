@@ -16,7 +16,12 @@ auth_scheme = HTTPBearer(auto_error=False)
 
 async def get_db_session() -> AsyncSession:
     async for session in get_session():
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def set_search_path(session: AsyncSession, schema: str | None):

@@ -16,7 +16,6 @@ class CatalogService:
 
     async def create_category(self, data):
         category = await self.category_repo.create(data)
-        await self.session.commit()
         await self.session.refresh(category)
         return category
 
@@ -28,7 +27,6 @@ class CatalogService:
             if value is not None:
                 setattr(category, key, value)
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(category)
         return category
 
@@ -37,14 +35,12 @@ class CatalogService:
         if not category:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         await self.category_repo.delete(category)
-        await self.session.commit()
 
     async def list_brands(self):
         return await self.brand_repo.list()
 
     async def create_brand(self, data):
         brand = await self.brand_repo.create(data)
-        await self.session.commit()
         await self.session.refresh(brand)
         return brand
 
@@ -56,7 +52,6 @@ class CatalogService:
             if value is not None:
                 setattr(brand, key, value)
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(brand)
         return brand
 
@@ -65,14 +60,12 @@ class CatalogService:
         if not brand:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
         await self.brand_repo.delete(brand)
-        await self.session.commit()
 
     async def list_lines(self, brand_id=None):
         return await self.line_repo.list(brand_id)
 
     async def create_line(self, data):
         line = await self.line_repo.create(data)
-        await self.session.commit()
         await self.session.refresh(line)
         return line
 
@@ -84,7 +77,6 @@ class CatalogService:
             if value is not None:
                 setattr(line, key, value)
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(line)
         return line
 
@@ -93,14 +85,12 @@ class CatalogService:
         if not line:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Line not found")
         await self.line_repo.delete(line)
-        await self.session.commit()
 
     async def list_products(self, filters):
         return await self.product_repo.list(filters)
 
     async def create_product(self, data):
         product = await self.product_repo.create(data)
-        await self.session.commit()
         await self.session.refresh(product)
         return product
 
@@ -118,7 +108,6 @@ class CatalogService:
             if value is not None:
                 setattr(product, key, value)
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(product)
         return product
 
@@ -127,4 +116,3 @@ class CatalogService:
         if not product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
         await self.product_repo.soft_delete(product)
-        await self.session.commit()
