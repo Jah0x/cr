@@ -2,6 +2,7 @@ import uuid
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -18,6 +19,25 @@ async def get_db_session() -> AsyncSession:
         yield session
 
 
+async def resolve_tenant_with_schema(
+    request: Request,
+    session: AsyncSession,
+    *,
+    allow_public: bool = False,
+):
+    tenant_service = TenantService(TenantRepo(session))
+    tenant = await tenant_service.resolve_tenant(request)
+    if tenant:
+        schema = tenant.code
+        await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
+        request.state.tenant_schema = schema
+        return tenant
+    if allow_public:
+        request.state.tenant_schema = "public"
+        await session.execute(text("SET LOCAL search_path TO public"))
+    return None
+
+
 async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
@@ -30,8 +50,7 @@ async def get_current_user(
         payload = verify_token(token)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    tenant_service = TenantService(TenantRepo(session))
-    tenant = await tenant_service.resolve_tenant(request)
+    tenant = await resolve_tenant_with_schema(request, session)
     if not tenant:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant not specified")
     tenant_claim = payload.get("tenant_id")
@@ -67,8 +86,7 @@ async def get_current_tenant(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
     session: AsyncSession = Depends(get_db_session),
 ):
-    service = TenantService(TenantRepo(session))
-    tenant = await service.resolve_tenant(request)
+    tenant = await resolve_tenant_with_schema(request, session)
     if not tenant:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant not specified")
     return tenant
