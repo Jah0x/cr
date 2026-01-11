@@ -22,7 +22,7 @@ def get_service(session: AsyncSession):
 
 @router.get("", response_model=TenantSettingsResponse, dependencies=[Depends(get_current_user), Depends(get_current_tenant)])
 async def get_settings(session: AsyncSession = Depends(get_db_session), tenant=Depends(get_current_tenant)):
-    return await get_service(session).get_settings(tenant.id)
+    return await get_service(session).get_settings()
 
 
 @router.patch(
@@ -36,7 +36,7 @@ async def update_module(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    return await get_service(session).update_module(tenant.id, code, payload.is_enabled)
+    return await get_service(session).update_module(code, payload.is_enabled)
 
 
 @router.patch(
@@ -50,7 +50,7 @@ async def update_feature(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    return await get_service(session).update_feature(tenant.id, code, payload.is_enabled)
+    return await get_service(session).update_feature(code, payload.is_enabled)
 
 
 @router.put(
@@ -63,5 +63,5 @@ async def update_ui_prefs(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    prefs = await get_service(session).update_ui_prefs(tenant.id, payload.prefs)
+    prefs = await get_service(session).update_ui_prefs(payload.prefs)
     return {"prefs": prefs}
