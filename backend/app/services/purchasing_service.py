@@ -29,7 +29,6 @@ class PurchasingService:
 
     async def create_supplier(self, data):
         supplier = await self.supplier_repo.create(data)
-        await self.session.commit()
         await self.session.refresh(supplier)
         return supplier
 
@@ -41,7 +40,6 @@ class PurchasingService:
             if value is not None:
                 setattr(supplier, key, value)
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(supplier)
         return supplier
 
@@ -50,11 +48,9 @@ class PurchasingService:
         if not supplier:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
         await self.supplier_repo.delete(supplier)
-        await self.session.commit()
 
     async def create_invoice(self, data):
         invoice = await self.invoice_repo.create(data)
-        await self.session.commit()
         await self.session.refresh(invoice)
         return invoice
 
@@ -72,7 +68,6 @@ class PurchasingService:
         if invoice.status != PurchaseStatus.draft:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot edit invoice")
         item = await self.invoice_repo.add_item(invoice, data)
-        await self.session.commit()
         await self.session.refresh(invoice)
         return item
 
@@ -105,7 +100,6 @@ class PurchasingService:
                 product.last_purchase_unit_cost = item.unit_cost
         invoice.status = PurchaseStatus.posted
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(invoice)
         return invoice
 
@@ -113,6 +107,5 @@ class PurchasingService:
         invoice = await self.get_invoice(invoice_id)
         invoice.status = PurchaseStatus.void
         await self.session.flush()
-        await self.session.commit()
         await self.session.refresh(invoice)
         return invoice

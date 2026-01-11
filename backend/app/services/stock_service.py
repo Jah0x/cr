@@ -15,6 +15,5 @@ class StockService:
 
     async def adjust(self, data):
         move = await self.stock_repo.record_move(data)
-        await self.session.commit()
         await self.session.refresh(move)
         return move

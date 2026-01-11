@@ -44,6 +44,7 @@ async def bootstrap_owner():
         await session.flush()
         await session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
         await ensure_cash_register(session)
+        # Platform bootstrap runs outside request-scoped transactions; commit explicitly.
         await session.commit()
 
 
