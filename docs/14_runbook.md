@@ -1,13 +1,18 @@
 # Runbook
 
 ## Setup
-1. Start PostgreSQL locally or with Docker: `docker compose up -d db` from repo root.
-2. Populate environment variables from `docs/13_env_vars.md` (minimum: `DATABASE_URL`, `JWT_SECRET`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`). For platform-only admin APIs set `BOOTSTRAP_TOKEN`.
+1. Provision PostgreSQL (local, managed service, or Kubernetes). Capture its connection URL.
+2. Populate environment variables (required: `DATABASE_URL`, `JWT_SECRET`, `ROOT_DOMAIN`, `PLATFORM_HOSTS`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`, `BOOTSTRAP_TOKEN`).
 3. Install backend dependencies: `cd backend && poetry install`.
 4. Apply migrations (public + tenant): `cd backend && poetry run python -m app.cli migrate-all`.
 5. Launch API: `cd backend && poetry run uvicorn app.main:app --host $APP_HOST --port $APP_PORT`.
 
-Bootstrap creates the first owner and all roles automatically on startup if the users table is empty and `FIRST_OWNER_EMAIL`/`FIRST_OWNER_PASSWORD` are set. A default mock cash register is seeded when none exist. Platform bootstrap seeds base modules/templates and applies the `retail` template to the initial `husky` tenant.
+## Kubernetes run (conceptual)
+1. Build and publish backend/frontend container images.
+2. Create Deployments for backend and frontend, Services for each, and an Ingress (or Gateway) for routing.
+3. Provide all required environment variables to the backend Deployment.
+4. Run migrations as a one-off Job or `kubectl exec` with `python -m app.cli migrate-all`.
+5. Roll out the Deployments and verify health endpoints.
 
 ## Database operations
 - Generate migration after model changes: `cd backend && poetry run alembic revision --autogenerate -m "message"`.

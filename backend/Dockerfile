@@ -2,6 +2,7 @@ FROM python:3.12-slim
 WORKDIR /app
 ENV PYTHONPATH=/app
 COPY pyproject.toml /app/
+COPY poetry.lock* /app/
 RUN pip install poetry && poetry config virtualenvs.create false && poetry install --without dev
 COPY app /app/app
 COPY alembic.ini /app/
