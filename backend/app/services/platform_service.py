@@ -2,11 +2,12 @@ import asyncio
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.tenancy import build_search_path, normalize_code, normalize_tenant_slug
+from app.core.db_utils import set_search_path
+from app.core.tenancy import normalize_code, normalize_tenant_slug
 from app.core.security import create_access_token, hash_password
 from app.models.platform import Module, Template, TenantFeature, TenantModule
 from app.models.tenant import Tenant, TenantStatus
@@ -85,7 +86,7 @@ class PlatformService:
         return template
 
     async def _bootstrap_owner(self, schema: str, email: str, password: str, tenant_id):
-        await self.session.execute(text(build_search_path(schema)))
+        await set_search_path(self.session, schema)
         user = await self.session.scalar(select(User).where(User.email == email))
         await ensure_roles(self.session)
         owner_role = await self.session.scalar(select(Role).where(Role.name == "owner"))
@@ -100,17 +101,17 @@ class PlatformService:
             await self.session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
         await ensure_cash_register(self.session)
         await self.session.flush()
-        await self.session.execute(text(build_search_path(None)))
+        await set_search_path(self.session, None)
         return create_access_token(str(user.id), ["owner"], tenant_id)
 
     async def _seed_template(self, schema: str, template_id: str | None):
         if not template_id:
             return
-        await self.session.execute(text(build_search_path(None)))
+        await set_search_path(self.session, None)
         template = await self.session.get(Template, template_id)
         if not template:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-        await self.session.execute(text(build_search_path(schema)))
+        await set_search_path(self.session, schema)
         module_codes = list(dict.fromkeys(template.module_codes or []))
         feature_codes = list(dict.fromkeys(template.feature_codes or []))
         if module_codes:
@@ -151,7 +152,7 @@ class PlatformService:
                         created_at=datetime.now(timezone.utc),
                     )
                 )
-        await self.session.execute(text(build_search_path(None)))
+        await set_search_path(self.session, None)
 
     def _tenant_url(self, schema: str) -> str:
         root_domain = settings.root_domain.strip(".")
