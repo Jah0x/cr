@@ -3,13 +3,25 @@
 Backend: FastAPI with PostgreSQL, SQLAlchemy, Alembic.
 Frontend: React + Vite + React Query.
 
-Use docker-compose to start PostgreSQL, backend, and frontend.
+## Kubernetes run (conceptual)
 
-## Docker compose (recommended)
+1. Build and publish the backend/frontend container images.
+2. Provision PostgreSQL (managed service or StatefulSet) and expose it to the backend.
+3. Create Kubernetes Deployments for backend and frontend, plus Services and an Ingress (or Gateway) for routing.
+4. Configure the backend with the required environment variables (see below).
+5. Run database migrations as a one-off Job or `kubectl exec` using:
+   `python -m app.cli migrate-all`.
+6. Roll out the backend and frontend Deployments.
 
-```bash
-docker compose up -d --build
-```
+### Required environment variables
+
+* `DATABASE_URL`
+* `JWT_SECRET`
+* `ROOT_DOMAIN`
+* `PLATFORM_HOSTS`
+* `FIRST_OWNER_EMAIL`
+* `FIRST_OWNER_PASSWORD`
+* `BOOTSTRAP_TOKEN`
 
 ## Frontend API base URL
 
@@ -23,15 +35,3 @@ VITE_API_BASE_URL=/api/v1
 
 * Health: `http://localhost/api/v1/health`
 * Login: open `http://localhost`, sign in, and confirm the UI shows the authenticated state or user data.
-
-## Backend sanity checks (manual)
-
-From the repo root:
-
-```bash
-docker-compose up -d db
-export DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/app
-cd backend
-alembic upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
