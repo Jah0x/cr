@@ -1,5 +1,8 @@
 import re
 
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 _SCHEMA_RE = re.compile(r"^[a-z0-9_-]+$")
 
 
@@ -16,3 +19,11 @@ def quote_ident(schema: str) -> str:
     validate_schema_name(schema)
     escaped = schema.replace('"', '""')
     return f'"{escaped}"'
+
+
+async def set_search_path(session: AsyncSession, schema: str | None) -> None:
+    if schema is None:
+        await session.execute(text("SET LOCAL search_path TO public"))
+        return
+    validate_schema_name(schema)
+    await session.execute(text(f'SET LOCAL search_path TO "{schema}", public'))

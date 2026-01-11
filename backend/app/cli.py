@@ -1,12 +1,12 @@
 import argparse
 import asyncio
 import sys
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.db import async_session
+from app.core.db_utils import set_search_path
 from app.core.security import hash_password, verify_password
-from app.core.tenancy import build_search_path
 from app.models.tenant import Tenant
 from app.models.user import User, Role, UserRole
 from app.services.bootstrap import ensure_default_tenant, ensure_roles, ensure_tenant_schema, seed_platform_defaults
@@ -20,7 +20,7 @@ async def create_owner(tenant_schema: str):
         raise ValueError("FIRST_OWNER_EMAIL and FIRST_OWNER_PASSWORD are required")
     async with async_session() as session:
         await ensure_tenant_schema(session, tenant_schema)
-        await session.execute(text(build_search_path(tenant_schema)))
+        await set_search_path(session, tenant_schema)
         role_result = await session.execute(select(Role).where(Role.name == "owner"))
         owner_role = role_result.scalar_one_or_none()
         if not owner_role:
