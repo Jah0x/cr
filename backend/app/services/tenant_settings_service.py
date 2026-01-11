@@ -38,7 +38,7 @@ class TenantSettingsService:
         module_settings = []
         for module in modules:
             tenant_module = tenant_module_map.get(module.id)
-            is_enabled = tenant_module.is_enabled if tenant_module else True
+            is_enabled = tenant_module.is_enabled if tenant_module else False
             module_settings.append(
                 {
                     "code": module.code,
@@ -54,7 +54,7 @@ class TenantSettingsService:
         feature_settings = []
         for feature in AVAILABLE_FEATURES:
             stored = feature_map.get(feature["code"])
-            is_enabled = stored.is_enabled if stored else True
+            is_enabled = stored.is_enabled if stored else False
             feature_settings.append(
                 {
                     "code": feature["code"],
@@ -116,7 +116,7 @@ class TenantSettingsService:
         )
         if tenant_module:
             await self.session.delete(tenant_module)
-        return self._build_module_setting(module, True)
+        return self._build_module_setting(module, False)
 
     async def update_feature(self, code: str, is_enabled: bool):
         feature = next((item for item in AVAILABLE_FEATURES if item["code"] == code), None)
@@ -144,7 +144,7 @@ class TenantSettingsService:
         )
         if tenant_feature:
             await self.session.delete(tenant_feature)
-        return self._build_feature_setting(feature, True)
+        return self._build_feature_setting(feature, False)
 
     async def update_ui_prefs(self, prefs: dict[str, bool]):
         current = await self.session.scalar(

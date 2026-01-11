@@ -4,14 +4,15 @@
 1. Start PostgreSQL locally or with Docker: `docker compose up -d db` from repo root.
 2. Populate environment variables from `docs/13_env_vars.md` (minimum: `DATABASE_URL`, `JWT_SECRET`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`). For platform-only admin APIs set `BOOTSTRAP_TOKEN`.
 3. Install backend dependencies: `cd backend && poetry install`.
-4. Apply migrations: `cd backend && poetry run alembic upgrade head`.
+4. Apply migrations (public + tenant): `cd backend && poetry run python -m app.cli migrate-all`.
 5. Launch API: `cd backend && poetry run uvicorn app.main:app --host $APP_HOST --port $APP_PORT`.
 
-Bootstrap creates the first owner and all roles automatically on startup if the users table is empty and `FIRST_OWNER_EMAIL`/`FIRST_OWNER_PASSWORD` are set. A default mock cash register is seeded when none exist.
+Bootstrap creates the first owner and all roles automatically on startup if the users table is empty and `FIRST_OWNER_EMAIL`/`FIRST_OWNER_PASSWORD` are set. A default mock cash register is seeded when none exist. Platform bootstrap seeds base modules/templates and applies the `retail` template to the initial `husky` tenant.
 
 ## Database operations
 - Generate migration after model changes: `cd backend && poetry run alembic revision --autogenerate -m "message"`.
-- Apply migrations: `cd backend && poetry run alembic upgrade head`.
+- Apply public migrations only: `cd backend && poetry run alembic upgrade head` (useful for schema-only changes).
+- Apply public + tenant migrations: `cd backend && poetry run python -m app.cli migrate-all`.
 - Inspect current revision: `cd backend && poetry run alembic current`.
 
 ## Running and health
@@ -24,7 +25,7 @@ Bootstrap creates the first owner and all roles automatically on startup if the 
 - Platform-only routes live under `/api/v1/platform` and require `Authorization: Bearer <BOOTSTRAP_TOKEN>`.
 - Platform routes are additionally restricted to hosts in `PLATFORM_HOSTS`; align the frontend with `VITE_PLATFORM_HOSTS` so the UI renders the platform console on the same hostnames.
 - Use platform endpoints to create tenants, modules, and templates, and to apply templates to tenants.
-- Tenant module/feature toggles live under `/api/v1/tenant/settings` (owner-only) and are enforced across catalog, purchasing, stock, sales, POS, users, and reports.
+- Tenant module/feature toggles live under `/api/v1/tenant/settings` (owner-only) and are enforced across catalog, purchasing, stock, sales, POS, users, and reports. Missing tenant overrides are treated as disabled until explicitly enabled.
 
 ## Operational notes
 - Roles: owner manages users and cash registers; admin handles catalog, stock, purchasing; cashier handles sales.

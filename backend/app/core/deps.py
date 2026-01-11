@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.security import verify_token
+from app.core.tenancy import build_search_path
 from app.models.platform import Module, TenantFeature, TenantModule
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
@@ -14,10 +15,7 @@ from app.core.config import settings
 from app.services.tenant_service import TenantService
 
 async def set_search_path(session: AsyncSession, schema: str | None):
-    if schema:
-        await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
-    else:
-        await session.execute(text("SET LOCAL search_path TO public"))
+    await session.execute(text(build_search_path(schema)))
 
 
 auth_scheme = HTTPBearer(auto_error=False)
@@ -106,11 +104,11 @@ def require_module(code: str):
         result = await session.execute(select(Module).where(Module.code == code))
         module = result.scalar_one_or_none()
         if not module:
-            return True
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
         if not module.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
         tenant_module = await session.scalar(select(TenantModule).where(TenantModule.module_id == module.id))
-        if tenant_module and not tenant_module.is_enabled:
+        if not tenant_module or not tenant_module.is_enabled:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
         return True
 
@@ -123,7 +121,7 @@ def require_feature(code: str):
         session: AsyncSession = Depends(get_db_session),
     ):
         tenant_feature = await session.scalar(select(TenantFeature).where(TenantFeature.code == code))
-        if tenant_feature and not tenant_feature.is_enabled:
+        if not tenant_feature or not tenant_feature.is_enabled:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Feature disabled")
         return True
 

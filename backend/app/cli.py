@@ -6,9 +6,10 @@ from sqlalchemy import select, text
 from app.core.config import settings
 from app.core.db import async_session
 from app.core.security import hash_password, verify_password
+from app.core.tenancy import build_search_path
 from app.models.tenant import Tenant
 from app.models.user import User, Role, UserRole
-from app.services.bootstrap import ensure_default_tenant, ensure_roles, ensure_tenant_schema
+from app.services.bootstrap import ensure_default_tenant, ensure_roles, ensure_tenant_schema, seed_platform_defaults
 from app.services.migrations import run_public_migrations, run_tenant_migrations
 
 
@@ -19,7 +20,7 @@ async def create_owner(tenant_schema: str):
         raise ValueError("FIRST_OWNER_EMAIL and FIRST_OWNER_PASSWORD are required")
     async with async_session() as session:
         await ensure_tenant_schema(session, tenant_schema)
-        await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": tenant_schema})
+        await session.execute(text(build_search_path(tenant_schema)))
         role_result = await session.execute(select(Role).where(Role.name == "owner"))
         owner_role = role_result.scalar_one_or_none()
         if not owner_role:
@@ -54,6 +55,7 @@ async def create_owner(tenant_schema: str):
 
 async def migrate_all():
     await asyncio.to_thread(run_public_migrations)
+    await seed_platform_defaults()
     await ensure_default_tenant()
     async with async_session() as session:
         result = await session.execute(select(Tenant))
