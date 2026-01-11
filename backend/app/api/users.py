@@ -9,15 +9,15 @@ from app.services.user_service import UserService
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_roles({"owner"}))])
 
 
-def get_service(session: AsyncSession, tenant):
-    return UserService(UserRepo(session), RoleRepo(session), tenant.id)
+def get_service(session: AsyncSession):
+    return UserService(UserRepo(session), RoleRepo(session))
 
 
 @router.get("", response_model=list[UserOut])
 async def list_users(
     session: AsyncSession = Depends(get_db_session), tenant=Depends(get_current_tenant)
 ):
-    users = await get_service(session, tenant).list_users()
+    users = await get_service(session).list_users()
     return users
 
 
@@ -27,7 +27,7 @@ async def create_user(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    user = await get_service(session, tenant).create_user(payload.email, payload.password, payload.roles)
+    user = await get_service(session).create_user(payload.email, payload.password, payload.roles)
     return user
 
 
@@ -38,5 +38,5 @@ async def set_roles(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    user = await get_service(session, tenant).set_roles(user_id, payload.roles)
+    user = await get_service(session).set_roles(user_id, payload.roles)
     return user

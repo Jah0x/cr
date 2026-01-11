@@ -11,7 +11,7 @@ class AuthService:
         self.user_repo = user_repo
 
     async def login(self, email: str, password: str, tenant_id):
-        user = await self.user_repo.get_by_email(email, tenant_id)
+        user = await self.user_repo.get_by_email(email)
         if not user or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         if not user.is_active:
@@ -22,9 +22,9 @@ class AuthService:
         return token, user
 
     async def register(self, email: str, password: str, tenant_id):
-        existing = await self.user_repo.get_by_email(email, tenant_id)
+        existing = await self.user_repo.get_by_email(email)
         if existing:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User exists")
         hashed = hash_password(password)
-        user = await self.user_repo.create(email=email, password_hash=hashed, tenant_id=tenant_id)
+        user = await self.user_repo.create(email=email, password_hash=hashed)
         return user
