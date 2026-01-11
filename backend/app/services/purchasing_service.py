@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
-
 from fastapi import HTTPException, status
+from sqlalchemy import select
 
 from app.models.purchasing import PurchaseStatus
+from app.models.stock import StockBatch
 from app.repos.catalog_repo import ProductRepo
 from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, PurchaseItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
@@ -95,7 +95,6 @@ class PurchasingService:
                     "quantity": item.quantity,
                     "unit_cost": item.unit_cost,
                     "purchase_item_id": item.id,
-                    "created_at": datetime.now(timezone.utc),
                 }
             )
             product = await self.product_repo.get(item.product_id)
@@ -108,6 +107,29 @@ class PurchasingService:
 
     async def void_invoice(self, invoice_id):
         invoice = await self.get_invoice(invoice_id)
+        if invoice.status == PurchaseStatus.void:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invoice already void")
+        if invoice.status == PurchaseStatus.posted:
+            items = await self.item_repo.list_by_invoice(invoice.id)
+            for item in items:
+                await self.stock_repo.record_move(
+                    {
+                        "product_id": item.product_id,
+                        "quantity": -item.quantity,
+                        "reason": "PURCHASE_VOID",
+                        "reference": str(invoice.id),
+                    }
+                )
+                batches = await self.session.execute(
+                    select(StockBatch).where(StockBatch.purchase_item_id == item.id)
+                )
+                for batch in batches.scalars():
+                    if float(batch.quantity) < float(item.quantity):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Cannot void purchase with consumed batches",
+                        )
+                    await self.session.delete(batch)
         invoice.status = PurchaseStatus.void
         await self.session.flush()
         await self.session.refresh(invoice)
