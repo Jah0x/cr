@@ -19,6 +19,13 @@ async def get_db_session() -> AsyncSession:
         yield session
 
 
+async def set_search_path(session: AsyncSession, schema: str | None):
+    if schema:
+        await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
+    else:
+        await session.execute(text("SET LOCAL search_path TO public"))
+
+
 async def resolve_tenant_with_schema(
     request: Request,
     session: AsyncSession,
@@ -29,12 +36,12 @@ async def resolve_tenant_with_schema(
     tenant = await tenant_service.resolve_tenant(request)
     if tenant:
         schema = tenant.code
-        await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
+        await set_search_path(session, schema)
         request.state.tenant_schema = schema
         return tenant
     if allow_public:
         request.state.tenant_schema = "public"
-        await session.execute(text("SET LOCAL search_path TO public"))
+        await set_search_path(session, None)
     return None
 
 

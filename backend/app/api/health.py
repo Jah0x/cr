@@ -25,7 +25,7 @@ async def _assert_migrations(session: AsyncSession):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Migrations not applied")
 
 
-async def readiness_check(session: AsyncSession, request: Request, tenant: str | None):
+async def readiness_check(session: AsyncSession, request: Request):
     await resolve_tenant_with_schema(request, session, allow_public=True)
     await session.execute(text("SELECT 1"))
     await _assert_migrations(session)
@@ -33,5 +33,5 @@ async def readiness_check(session: AsyncSession, request: Request, tenant: str |
 
 
 @router.get("/ready")
-async def readyz(request: Request, tenant: str | None = None, session: AsyncSession = Depends(get_db_session)):
-    return await readiness_check(session, request, tenant)
+async def readyz(request: Request, session: AsyncSession = Depends(get_db_session)):
+    return await readiness_check(session, request)
