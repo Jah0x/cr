@@ -19,7 +19,6 @@ class UserOut(BaseModel):
     id: uuid.UUID
     email: EmailStr
     is_active: bool
-    tenant_id: uuid.UUID
     roles: list[RoleOut]
 
     model_config = {"from_attributes": True}

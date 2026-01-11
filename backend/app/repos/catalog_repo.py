@@ -6,25 +6,21 @@ from app.models.catalog import Category, Brand, ProductLine, Product
 
 
 class CategoryRepo:
-    def __init__(self, session: AsyncSession, tenant_id):
+    def __init__(self, session: AsyncSession):
         self.session = session
-        self.tenant_id = tenant_id
 
     async def list(self) -> List[Category]:
-        result = await self.session.execute(select(Category).where(Category.tenant_id == self.tenant_id))
+        result = await self.session.execute(select(Category))
         return result.scalars().all()
 
     async def create(self, data: dict) -> Category:
-        payload = {**data, "tenant_id": self.tenant_id}
-        category = Category(**payload)
+        category = Category(**data)
         self.session.add(category)
         await self.session.flush()
         return category
 
     async def get(self, category_id) -> Optional[Category]:
-        result = await self.session.execute(
-            select(Category).where(Category.id == category_id, Category.tenant_id == self.tenant_id)
-        )
+        result = await self.session.execute(select(Category).where(Category.id == category_id))
         return result.scalar_one_or_none()
 
     async def delete(self, category: Category) -> None:
@@ -32,23 +28,21 @@ class CategoryRepo:
 
 
 class BrandRepo:
-    def __init__(self, session: AsyncSession, tenant_id):
+    def __init__(self, session: AsyncSession):
         self.session = session
-        self.tenant_id = tenant_id
 
     async def list(self) -> List[Brand]:
-        result = await self.session.execute(select(Brand).where(Brand.tenant_id == self.tenant_id))
+        result = await self.session.execute(select(Brand))
         return result.scalars().all()
 
     async def create(self, data: dict) -> Brand:
-        payload = {**data, "tenant_id": self.tenant_id}
-        brand = Brand(**payload)
+        brand = Brand(**data)
         self.session.add(brand)
         await self.session.flush()
         return brand
 
     async def get(self, brand_id) -> Optional[Brand]:
-        result = await self.session.execute(select(Brand).where(Brand.id == brand_id, Brand.tenant_id == self.tenant_id))
+        result = await self.session.execute(select(Brand).where(Brand.id == brand_id))
         return result.scalar_one_or_none()
 
     async def delete(self, brand: Brand) -> None:
@@ -56,28 +50,24 @@ class BrandRepo:
 
 
 class ProductLineRepo:
-    def __init__(self, session: AsyncSession, tenant_id):
+    def __init__(self, session: AsyncSession):
         self.session = session
-        self.tenant_id = tenant_id
 
     async def list(self, brand_id: Optional[str] = None) -> List[ProductLine]:
-        stmt = select(ProductLine).where(ProductLine.tenant_id == self.tenant_id)
+        stmt = select(ProductLine)
         if brand_id:
             stmt = stmt.where(ProductLine.brand_id == brand_id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def create(self, data: dict) -> ProductLine:
-        payload = {**data, "tenant_id": self.tenant_id}
-        line = ProductLine(**payload)
+        line = ProductLine(**data)
         self.session.add(line)
         await self.session.flush()
         return line
 
     async def get(self, line_id) -> Optional[ProductLine]:
-        result = await self.session.execute(
-            select(ProductLine).where(ProductLine.id == line_id, ProductLine.tenant_id == self.tenant_id)
-        )
+        result = await self.session.execute(select(ProductLine).where(ProductLine.id == line_id))
         return result.scalar_one_or_none()
 
     async def delete(self, line: ProductLine) -> None:
@@ -85,12 +75,11 @@ class ProductLineRepo:
 
 
 class ProductRepo:
-    def __init__(self, session: AsyncSession, tenant_id):
+    def __init__(self, session: AsyncSession):
         self.session = session
-        self.tenant_id = tenant_id
 
     async def list(self, filters: dict) -> List[Product]:
-        stmt = select(Product).where(Product.tenant_id == self.tenant_id)
+        stmt = select(Product)
         if filters.get("category_id"):
             stmt = stmt.where(Product.category_id == filters["category_id"])
         if filters.get("brand_id"):
@@ -105,14 +94,13 @@ class ProductRepo:
         return result.scalars().all()
 
     async def create(self, data: dict) -> Product:
-        payload = {**data, "tenant_id": self.tenant_id}
-        product = Product(**payload)
+        product = Product(**data)
         self.session.add(product)
         await self.session.flush()
         return product
 
     async def get(self, product_id) -> Optional[Product]:
-        result = await self.session.execute(select(Product).where(Product.id == product_id, Product.tenant_id == self.tenant_id))
+        result = await self.session.execute(select(Product).where(Product.id == product_id))
         return result.scalar_one_or_none()
 
     async def soft_delete(self, product: Product) -> None:

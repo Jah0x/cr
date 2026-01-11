@@ -10,29 +10,31 @@ Alembic revisions:
 - `0007_sales_cash_registers` — payments, refunds, and cash registers.
 - `0008_tenants` — tenant directory table.
 
+## Tenancy layout
+- `public.tenants` stores the tenant directory.
+- Each tenant has its own schema, and all tenant-scoped tables live inside that schema.
+- Application connections set `search_path` to the tenant schema, so tenant-scoped tables do not store `tenant_id` columns.
+
 ## users
 - `id` — UUID primary key.
-- `email` — unique per-tenant email address.
+- `email` — unique email address within the tenant schema.
 - `password_hash` — bcrypt hash.
 - `is_active` — boolean flag for login eligibility, defaults to true.
 - `created_at` — timezone-aware creation timestamp, defaults to `now()`.
 - `last_login_at` — optional timestamp of last login.
-- `tenant_id` — references `tenants.id`, required.
-- Indexes: `ix_users_email_tenant` unique on (`email`,`tenant_id`); `ix_users_tenant_id` on `tenant_id`.
+- Indexes: `ix_users_email` unique on `email`.
 
 ## roles
 - `id` — UUID primary key.
-- `name` — unique role name scoped to tenant.
-- `tenant_id` — references `tenants.id`, required.
+- `name` — unique role name within the tenant schema.
 - Seeded values: `owner`, `admin`, `cashier`.
-- Indexes: `ix_roles_name_tenant` unique on (`name`,`tenant_id`); `ix_roles_tenant_id` on `tenant_id`.
+- Indexes: `ix_roles_name` unique on `name`.
 
 ## user_roles
 - `user_id` — references `users.id`, cascade delete.
 - `role_id` — references `roles.id`, cascade delete.
-- `tenant_id` — references `tenants.id`, required.
 - Primary key on (`user_id`, `role_id`).
-- Indexes: `ix_user_roles_user_id`, `ix_user_roles_role_id`, `ix_user_roles_tenant_id` on `tenant_id`.
+- Indexes: `ix_user_roles_user_id`, `ix_user_roles_role_id`.
 
 ## categories
 - `id` — UUID primary key.

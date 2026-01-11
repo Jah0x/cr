@@ -19,17 +19,17 @@ router = APIRouter(
 )
 
 
-def get_service(session: AsyncSession, tenant_id):
+def get_service(session: AsyncSession):
     return SalesService(
         session,
-        SaleRepo(session, tenant_id),
-        SaleItemRepo(session, tenant_id),
-        StockRepo(session, tenant_id),
-        ProductRepo(session, tenant_id),
-        CashReceiptRepo(session, tenant_id),
-        PaymentRepo(session, tenant_id),
-        RefundRepo(session, tenant_id),
-        CashRegisterRepo(session, tenant_id),
+        SaleRepo(session),
+        SaleItemRepo(session),
+        StockRepo(session),
+        ProductRepo(session),
+        CashReceiptRepo(session),
+        PaymentRepo(session),
+        RefundRepo(session),
+        CashRegisterRepo(session),
     )
 
 
@@ -40,7 +40,7 @@ async def create_sale(
     session: AsyncSession = Depends(get_db_session),
     current_user=Depends(get_current_user),
 ):
-    sale, _ = await get_service(session, request.state.tenant_id).create_sale(payload.model_dump(), current_user.id)
+    sale, _ = await get_service(session).create_sale(payload.model_dump(), current_user.id)
     return SaleDetail(**sale.__dict__, items=sale.items, receipts=sale.receipts, payments=sale.payments, refunds=sale.refunds)
 
 
@@ -58,13 +58,13 @@ async def list_sales(
             status_filter = SaleStatus(status)
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
-    sales = await get_service(session, request.state.tenant_id).list_sales(status_filter, date_from, date_to)
+    sales = await get_service(session).list_sales(status_filter, date_from, date_to)
     return [SaleOut(**sale.__dict__) for sale in sales]
 
 
 @router.get("/{sale_id}", response_model=SaleDetail)
 async def get_sale(sale_id: str, request: Request, session: AsyncSession = Depends(get_db_session)):
-    sale = await get_service(session, request.state.tenant_id).get_sale(sale_id)
+    sale = await get_service(session).get_sale(sale_id)
     return SaleDetail(**sale.__dict__, items=sale.items, receipts=sale.receipts, payments=sale.payments, refunds=sale.refunds)
 
 
@@ -75,7 +75,7 @@ async def void_sale(
     session: AsyncSession = Depends(get_db_session),
     current_user=Depends(get_current_user),
 ):
-    sale = await get_service(session, request.state.tenant_id).void_sale(sale_id, current_user.id)
+    sale = await get_service(session).void_sale(sale_id, current_user.id)
     return SaleDetail(**sale.__dict__, items=sale.items, receipts=sale.receipts, payments=sale.payments, refunds=sale.refunds)
 
 
@@ -87,5 +87,5 @@ async def refund_sale(
     session: AsyncSession = Depends(get_db_session),
     current_user=Depends(get_current_user),
 ):
-    sale = await get_service(session, request.state.tenant_id).create_refund(sale_id, payload.model_dump(), current_user.id)
+    sale = await get_service(session).create_refund(sale_id, payload.model_dump(), current_user.id)
     return SaleDetail(**sale.__dict__, items=sale.items, receipts=sale.receipts, payments=sale.payments, refunds=sale.refunds)

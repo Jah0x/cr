@@ -27,7 +27,7 @@ class PaymentStatus(str, enum.Enum):
 
 class Sale(Base):
     __tablename__ = "sales"
-    __table_args__ = (Index("ix_sales_status", "status"), Index("ix_sales_tenant_id", "tenant_id"))
+    __table_args__ = (Index("ix_sales_status", "status"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -35,7 +35,6 @@ class Sale(Base):
     status = Column(Enum(SaleStatus), default=SaleStatus.completed, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False, server_default="0")
     currency = Column(String, default="")
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)
 
     items = relationship("SaleItem", back_populates="sale")
     receipts = relationship("CashReceipt", back_populates="sale")
@@ -48,7 +47,6 @@ class SaleItem(Base):
     __table_args__ = (
         Index("ix_sale_items_sale_id", "sale_id"),
         Index("ix_sale_items_product_id", "product_id"),
-        Index("ix_sale_items_tenant_id", "tenant_id"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -57,7 +55,6 @@ class SaleItem(Base):
     qty = Column(Numeric(12, 3), nullable=False)
     unit_price = Column(Numeric(12, 2), nullable=False)
     line_total = Column(Numeric(12, 2), nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)
 
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product", back_populates="sale_items")
@@ -66,7 +63,7 @@ class SaleItem(Base):
 
 class Payment(Base):
     __tablename__ = "payments"
-    __table_args__ = (Index("ix_payments_status", "status"), Index("ix_payments_tenant_id", "tenant_id"))
+    __table_args__ = (Index("ix_payments_status", "status"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
@@ -76,14 +73,12 @@ class Payment(Base):
     status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending)
     reference = Column(String, default="")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)
 
     sale = relationship("Sale", back_populates="payments")
 
 
 class Refund(Base):
     __tablename__ = "refunds"
-    __table_args__ = (Index("ix_refunds_tenant_id", "tenant_id"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
@@ -91,6 +86,5 @@ class Refund(Base):
     reason = Column(String, default="")
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False)
 
     sale = relationship("Sale", back_populates="refunds")
