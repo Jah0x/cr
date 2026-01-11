@@ -174,6 +174,15 @@ Alembic revisions:
 - `created_at` — timezone-aware creation timestamp.
 - Indexes: `uq_modules_code` unique on `code`.
 
+## features (public)
+- `id` — UUID primary key.
+- `code` — unique feature code.
+- `name` — feature name.
+- `description` — optional feature description.
+- `is_active` — boolean flag, defaults to true.
+- `created_at` — timezone-aware creation timestamp.
+- Indexes: `uq_features_code` unique on `code`.
+
 ## templates (public)
 - `id` — UUID primary key.
 - `name` — unique template name.
@@ -183,20 +192,24 @@ Alembic revisions:
 - `created_at` — timezone-aware creation timestamp.
 - Indexes: `uq_templates_name` unique on `name`.
 
-## tenant_modules (public)
+## tenant_modules (tenant schema)
 - `id` — UUID primary key.
-- `tenant_id` — references `public.tenants.id`, cascade delete.
 - `module_id` — references `public.modules.id`, cascade delete.
 - `is_enabled` — boolean flag, defaults to true.
 - `created_at` — timezone-aware creation timestamp.
-- Indexes: `ix_tenant_modules_tenant_id` on `tenant_id`, `uq_tenant_modules_tenant_module` unique on (`tenant_id`, `module_id`).
+- Indexes: `ix_tenant_modules_module_id` on `module_id`, `uq_tenant_modules_module_id` unique on `module_id`.
 
-## tenant_features (public)
+## tenant_features (tenant schema)
 - `id` — UUID primary key.
-- `tenant_id` — references `public.tenants.id`, cascade delete.
 - `code` — feature code string.
 - `is_enabled` — boolean flag, defaults to true.
 - `created_at` — timezone-aware creation timestamp.
-- Indexes: `ix_tenant_features_tenant_id` on `tenant_id`, `uq_tenant_features_tenant_code` unique on (`tenant_id`, `code`).
+- Indexes: `ix_tenant_features_code` on `code`, `uq_tenant_features_code` unique on `code`.
+
+## tenant_ui_prefs (tenant schema)
+- `id` — UUID primary key.
+- `prefs` — JSONB UI preference toggles.
+- `created_at` — timezone-aware creation timestamp.
+- `updated_at` — timezone-aware update timestamp.
 
 All UUID defaults are generated in the application layer.

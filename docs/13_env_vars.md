@@ -24,5 +24,7 @@
 | `PLATFORM_HOSTS` | Comma-separated hostnames treated as platform admin hosts. | — |
 | `RESERVED_SUBDOMAINS` | Comma-separated tenant codes reserved for special routing. | — |
 | `DEFAULT_TENANT_SLUG` | Default tenant slug used by the frontend. | — |
+| `VITE_API_BASE_URL` | Frontend API base URL override. | `/api/v1` |
+| `VITE_PLATFORM_HOSTS` | Frontend hostnames that should render the platform console. | — |
 
 Legacy `OWNER_EMAIL` and `OWNER_PASSWORD` are accepted as aliases for `FIRST_OWNER_EMAIL` and `FIRST_OWNER_PASSWORD` to keep existing setups working.
