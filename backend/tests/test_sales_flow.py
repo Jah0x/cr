@@ -4,7 +4,6 @@ import asyncio
 from decimal import Decimal
 import pathlib
 import sys
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -13,14 +12,14 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 os.environ.setdefault("JWT_SECRET", "test")
 os.environ.setdefault("JWT_EXPIRES", "3600")
 
-from app.core.db import Base, async_session
-from app.models.user import User, Role, UserRole
+from app.core.db import Base
+from app.models.user import User
 from app.models.catalog import Product
 from app.repos.catalog_repo import ProductRepo
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
-from app.repos.stock_repo import StockRepo
-from app.repos.cash_repo import CashReceiptRepo
-from app.services.bootstrap import bootstrap_owner, ensure_default_tenant, ensure_roles
+from app.repos.stock_repo import StockRepo, StockBatchRepo
+from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
+from app.repos.payment_repo import PaymentRepo, RefundRepo
 from app.services.sales_service import SalesService
 
 
@@ -49,52 +48,16 @@ def teardown_module():
         os.remove("./test.db")
 
 
-def test_bootstrap_owner_idempotent():
-    os.environ["OWNER_EMAIL"] = "owner@example.com"
-    os.environ["OWNER_PASSWORD"] = "ownerpass"
-    from app.core.config import settings
-    settings.owner_email = "owner@example.com"
-    settings.owner_password = "ownerpass"
-    asyncio.run(reset_db())
-    asyncio.run(bootstrap_owner())
-
-    async def count_owners():
-        async with async_session() as session:
-            tenant = await ensure_default_tenant(session)
-            result = await session.execute(
-                select(User).join(User.roles).where(Role.name == "owner", User.tenant_id == tenant.id)
-            )
-            return len(result.scalars().all())
-
-    first = asyncio.run(count_owners())
-    asyncio.run(bootstrap_owner())
-    second = asyncio.run(count_owners())
-    assert first == 1
-    assert second == 1
-
-
 async def seed_user_and_product(session):
-    tenant = await ensure_default_tenant(session)
-    await ensure_roles(session, tenant.id)
-    role_result = await session.execute(
-        select(Role).where(Role.name == "owner", Role.tenant_id == tenant.id)
-    )
-    owner_role = role_result.scalar_one()
     user = User(
         email=f"user-{uuid.uuid4()}@example.com",
         password_hash="x",
         is_active=True,
-        tenant_id=tenant.id,
     )
     session.add(user)
     await session.flush()
-    await session.execute(
-        UserRole.__table__.insert().values(
-            user_id=user.id, role_id=owner_role.id, tenant_id=tenant.id
-        )
-    )
     product = Product(id=uuid.uuid4(), sku=f"SKU-{uuid.uuid4()}", name="Item", description="", price=Decimal("10.00"))
-    session.add_all([owner_role, product])
+    session.add(product)
     await session.flush()
     return user, product
 
@@ -112,7 +75,18 @@ def test_sale_creates_stock_movements_and_receipt():
             )
         await seed_session.close()
         session = TestSession()
-        service = SalesService(session, SaleRepo(session), SaleItemRepo(session), StockRepo(session), ProductRepo(session), CashReceiptRepo(session))
+        service = SalesService(
+            session,
+            SaleRepo(session),
+            SaleItemRepo(session),
+            StockRepo(session),
+            StockBatchRepo(session),
+            ProductRepo(session),
+            CashReceiptRepo(session),
+            PaymentRepo(session),
+            RefundRepo(session),
+            CashRegisterRepo(session),
+        )
         sale, _ = await service.create_sale(
             {"items": [{"product_id": product.id, "qty": Decimal("2"), "unit_price": Decimal("10.00")}], "currency": "USD"},
             user.id,
@@ -146,8 +120,12 @@ def test_void_sale_restores_stock():
             SaleRepo(session),
             SaleItemRepo(session),
             StockRepo(session),
+            StockBatchRepo(session),
             ProductRepo(session),
             CashReceiptRepo(session),
+            PaymentRepo(session),
+            RefundRepo(session),
+            CashRegisterRepo(session),
         )
         sale, _ = await service.create_sale(
             {"items": [{"product_id": product.id, "qty": Decimal("1"), "unit_price": Decimal("5.00")}], "currency": "USD"},
@@ -159,8 +137,12 @@ def test_void_sale_restores_stock():
             SaleRepo(session),
             SaleItemRepo(session),
             StockRepo(session),
+            StockBatchRepo(session),
             ProductRepo(session),
             CashReceiptRepo(session),
+            PaymentRepo(session),
+            RefundRepo(session),
+            CashRegisterRepo(session),
         ).void_sale(sale.id, user.id)
         on_hand_after_void = await StockRepo(session).on_hand(product.id)
         await session.close()

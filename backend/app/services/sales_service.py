@@ -48,146 +48,146 @@ class SalesService:
         product_ids = [item["product_id"] for item in items]
         products = {str(p.id): p for p in await self._fetch_products(product_ids)}
         total_amount = Decimal("0")
-        async with self.session.begin():
-            sale = await self.sale_repo.create({"currency": currency, "created_by_user_id": user_id})
-            for item in items:
-                product = products.get(str(item["product_id"]))
-                if not product:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-                qty = Decimal(item["qty"])
-                unit_price = item.get("unit_price")
-                if unit_price is None:
-                    unit_price = product.price
-                unit_price = Decimal(unit_price)
-                if qty <= 0 or unit_price < 0:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
-                on_hand = await self.stock_repo.on_hand(product.id)
-                if not on_hand >= float(qty):
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
-                line_total = qty * unit_price
-                total_amount += line_total
-                sale_item = await self.item_repo.add(
-                    sale.id,
+        sale = await self.sale_repo.create({"currency": currency, "created_by_user_id": user_id})
+        for item in items:
+            product = products.get(str(item["product_id"]))
+            if not product:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+            qty = Decimal(item["qty"])
+            unit_price = item.get("unit_price")
+            if unit_price is None:
+                unit_price = product.price
+            unit_price = Decimal(unit_price)
+            if qty <= 0 or unit_price < 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
+            on_hand = await self.stock_repo.on_hand(product.id)
+            if not on_hand >= float(qty):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
+            line_total = qty * unit_price
+            total_amount += line_total
+            sale_item = await self.item_repo.add(
+                sale.id,
+                {
+                    "product_id": product.id,
+                    "qty": qty,
+                    "unit_price": unit_price,
+                    "line_total": line_total,
+                },
+            )
+            consumed, remaining = await self.batch_repo.consume_with_fallback(product.id, float(qty))
+            if remaining > 0:
+                remaining_decimal = Decimal(str(remaining))
+                fallback_batch = await self.batch_repo.create(
                     {
                         "product_id": product.id,
-                        "qty": qty,
-                        "unit_price": unit_price,
-                        "line_total": line_total,
-                    },
+                        "quantity": remaining_decimal,
+                        "unit_cost": product.last_purchase_unit_cost,
+                    }
                 )
-                consumed, remaining = await self.batch_repo.consume_with_fallback(product.id, float(qty))
-                if remaining > 0:
-                    remaining_decimal = Decimal(str(remaining))
-                    fallback_batch = await self.batch_repo.create(
-                        {
-                            "product_id": product.id,
-                            "quantity": remaining_decimal,
-                            "unit_cost": product.last_purchase_unit_cost,
-                        }
-                    )
-                    fallback_batch.quantity = Decimal("0")
-                    consumed.append((fallback_batch, remaining))
-                for batch, consumed_qty in consumed:
-                    allocation = SaleItemCostAllocation(
-                        sale_item_id=sale_item.id,
-                        batch_id=batch.id,
-                        quantity=Decimal(str(consumed_qty)),
-                    )
-                    self.session.add(allocation)
+                fallback_batch.quantity = Decimal("0")
+                consumed.append((fallback_batch, remaining))
+            for batch, consumed_qty in consumed:
+                allocation = SaleItemCostAllocation(
+                    sale_item_id=sale_item.id,
+                    batch_id=batch.id,
+                    quantity=Decimal(str(consumed_qty)),
+                )
+                self.session.add(allocation)
+            await self.stock_repo.record_move(
+                {
+                    "product_id": product.id,
+                    "delta_qty": -qty,
+                    "reason": "sale",
+                    "ref_id": sale.id,
+                    "reference": str(sale.id),
+                    "created_by_user_id": user_id,
+                }
+            )
+        sale.total_amount = total_amount
+        await self.session.flush()
+        await self._create_payments(sale.id, payments, currency)
+        register = await self._resolve_cash_register(cash_register_id)
+        receipt = await register.register_sale(sale.id)
+        sale = await self.sale_repo.get(sale.id)
+        return sale, receipt
+
+    async def void_sale(self, sale_id, user_id):
+        sale = await self.sale_repo.get(sale_id)
+        if not sale:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
+        if sale.status == SaleStatus.void:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale already void")
+        for item in sale.items:
+            await self._restore_batches(item, item.qty)
+            await self.stock_repo.record_move(
+                {
+                    "product_id": item.product_id,
+                    "delta_qty": item.qty,
+                    "reason": "void",
+                    "ref_id": sale.id,
+                    "reference": str(sale.id),
+                    "created_by_user_id": user_id,
+                }
+            )
+        sale.status = SaleStatus.void
+        await self.session.flush()
+        register = await self._resolve_cash_register()
+        await register.refund_sale(sale.id)
+        return await self.sale_repo.get(sale.id)
+
+    async def create_refund(self, sale_id, payload: dict, user_id):
+        sale = await self.sale_repo.get(sale_id)
+        if not sale:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
+        items_payload = payload.get("items") or []
+        reason = payload.get("reason", "")
+        amount = Decimal(payload.get("amount") or 0)
+        calculated = Decimal("0")
+        items_map = {str(item.id): item for item in sale.items}
+        if items_payload:
+            for item_data in items_payload:
+                item = items_map.get(str(item_data["sale_item_id"]))
+                if not item:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale item not found")
+                qty = Decimal(item_data["qty"])
+                if qty <= 0 or qty > item.qty:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid quantity")
+                line_refund = (item.line_total / item.qty) * qty
+                calculated += line_refund
+                await self._restore_batches(item, qty)
                 await self.stock_repo.record_move(
                     {
-                        "product_id": product.id,
-                        "delta_qty": -qty,
-                        "reason": "sale",
+                        "product_id": item.product_id,
+                        "delta_qty": qty,
+                        "reason": "refund",
                         "ref_id": sale.id,
                         "reference": str(sale.id),
                         "created_by_user_id": user_id,
                     }
                 )
-            sale.total_amount = total_amount
-            await self.session.flush()
-            await self._create_payments(sale.id, payments, currency)
-            register = await self._resolve_cash_register(cash_register_id)
-            receipt = await register.register_sale(sale.id)
-        sale = await self.sale_repo.get(sale.id)
-        return sale, receipt
-
-    async def void_sale(self, sale_id, user_id):
-        async with self.session.begin():
-            sale = await self.sale_repo.get(sale_id)
-            if not sale:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
-            if sale.status == SaleStatus.void:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale already void")
+        else:
             for item in sale.items:
                 await self._restore_batches(item, item.qty)
                 await self.stock_repo.record_move(
                     {
                         "product_id": item.product_id,
                         "delta_qty": item.qty,
-                        "reason": "void",
+                        "reason": "refund",
                         "ref_id": sale.id,
                         "reference": str(sale.id),
                         "created_by_user_id": user_id,
                     }
                 )
-            sale.status = SaleStatus.void
-            await self.session.flush()
-            register = await self._resolve_cash_register()
-            await register.refund_sale(sale.id)
-        return await self.sale_repo.get(sale.id)
-
-    async def create_refund(self, sale_id, payload: dict, user_id):
-        async with self.session.begin():
-            sale = await self.sale_repo.get(sale_id)
-            if not sale:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
-            items_payload = payload.get("items") or []
-            reason = payload.get("reason", "")
-            amount = Decimal(payload.get("amount") or 0)
-            calculated = Decimal("0")
-            items_map = {str(item.id): item for item in sale.items}
-            if items_payload:
-                for item_data in items_payload:
-                    item = items_map.get(str(item_data["sale_item_id"]))
-                    if not item:
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale item not found")
-                    qty = Decimal(item_data["qty"])
-                    if qty <= 0 or qty > item.qty:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid quantity")
-                    line_refund = (item.line_total / item.qty) * qty
-                    calculated += line_refund
-                    await self._restore_batches(item, qty)
-                    await self.stock_repo.record_move(
-                        {
-                            "product_id": item.product_id,
-                            "delta_qty": qty,
-                            "reason": "refund",
-                            "ref_id": sale.id,
-                            "reference": str(sale.id),
-                            "created_by_user_id": user_id,
-                        }
-                    )
-            else:
-                for item in sale.items:
-                    await self._restore_batches(item, item.qty)
-                    await self.stock_repo.record_move(
-                        {
-                            "product_id": item.product_id,
-                            "delta_qty": item.qty,
-                            "reason": "refund",
-                            "ref_id": sale.id,
-                            "reference": str(sale.id),
-                            "created_by_user_id": user_id,
-                        }
-                    )
-                    calculated += item.line_total
-            refund_amount = calculated if calculated > 0 else amount
-            if refund_amount <= 0:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refund amount required")
-            await self.refund_repo.create(sale.id, {"amount": refund_amount, "reason": reason, "created_by_user_id": user_id})
-            register = await self._resolve_cash_register()
-            await register.refund_sale(sale.id)
+                calculated += item.line_total
+        refund_amount = calculated if calculated > 0 else amount
+        if refund_amount <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refund amount required")
+        await self.refund_repo.create(
+            sale.id,
+            {"amount": refund_amount, "reason": reason, "created_by_user_id": user_id},
+        )
+        register = await self._resolve_cash_register()
+        await register.refund_sale(sale.id)
         return await self.sale_repo.get(sale.id)
 
     async def list_sales(self, status_filter=None, date_from=None, date_to=None):
