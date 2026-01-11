@@ -9,6 +9,7 @@ Alembic revisions:
 - `0006_cash_receipts` — cash receipt records.
 - `0007_sales_cash_registers` — payments, refunds, and cash registers.
 - `0008_tenants` — tenant directory table.
+- `0002_public_platform` — public modules/templates and tenant mapping tables.
 
 ## Tenancy layout
 - `public.tenants` stores the tenant directory.
@@ -162,6 +163,40 @@ Alembic revisions:
 - `status` — enum(`active`,`inactive`), defaults to `active`.
 - `created_at` — timezone-aware creation timestamp, defaults to `now()`.
 - `updated_at` — timezone-aware update timestamp, defaults to `now()`.
-- Indexes: `ix_tenants_status` on `status`.
+- Indexes: `ix_tenants_status` on `status`, `ix_tenants_code` unique on `code`.
+
+## modules (public)
+- `id` — UUID primary key.
+- `code` — unique module code.
+- `name` — module name.
+- `description` — optional module description.
+- `is_active` — boolean flag, defaults to true.
+- `created_at` — timezone-aware creation timestamp.
+- Indexes: `uq_modules_code` unique on `code`.
+
+## templates (public)
+- `id` — UUID primary key.
+- `name` — unique template name.
+- `description` — optional template description.
+- `module_codes` — JSON array of module code strings.
+- `feature_codes` — JSON array of feature code strings.
+- `created_at` — timezone-aware creation timestamp.
+- Indexes: `uq_templates_name` unique on `name`.
+
+## tenant_modules (public)
+- `id` — UUID primary key.
+- `tenant_id` — references `public.tenants.id`, cascade delete.
+- `module_id` — references `public.modules.id`, cascade delete.
+- `is_enabled` — boolean flag, defaults to true.
+- `created_at` — timezone-aware creation timestamp.
+- Indexes: `ix_tenant_modules_tenant_id` on `tenant_id`, `uq_tenant_modules_tenant_module` unique on (`tenant_id`, `module_id`).
+
+## tenant_features (public)
+- `id` — UUID primary key.
+- `tenant_id` — references `public.tenants.id`, cascade delete.
+- `code` — feature code string.
+- `is_enabled` — boolean flag, defaults to true.
+- `created_at` — timezone-aware creation timestamp.
+- Indexes: `ix_tenant_features_tenant_id` on `tenant_id`, `uq_tenant_features_tenant_code` unique on (`tenant_id`, `code`).
 
 All UUID defaults are generated in the application layer.

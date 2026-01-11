@@ -9,6 +9,7 @@ from app.core.db import get_session
 from app.core.security import verify_token
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
+from app.core.config import settings
 from app.services.tenant_service import TenantService
 
 auth_scheme = HTTPBearer(auto_error=False)
@@ -102,3 +103,21 @@ async def get_current_tenant(
     if not tenant:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant not specified")
     return tenant
+
+
+async def require_platform_auth(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+):
+    if not settings.bootstrap_token:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Bootstrap token not configured")
+    platform_hosts = {item.strip().lower() for item in settings.platform_hosts.split(",") if item.strip()}
+    if platform_hosts:
+        host = (request.headers.get("host") or "").split(":", 1)[0].lower()
+        if host not in platform_hosts:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    if credentials.credentials != settings.bootstrap_token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    return True
