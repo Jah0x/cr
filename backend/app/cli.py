@@ -7,9 +7,9 @@ from app.core.config import settings
 from app.core.db import async_session
 from app.core.db_utils import set_search_path
 from app.core.security import hash_password, verify_password
-from app.models.tenant import Tenant
+from app.models.tenant import Tenant, TenantStatus
 from app.models.user import User, Role, UserRole
-from app.services.bootstrap import ensure_default_tenant, ensure_roles, ensure_tenant_schema, seed_platform_defaults
+from app.services.bootstrap import apply_template_by_name, ensure_roles, ensure_tenant_schema, seed_platform_defaults
 from app.services.migrations import run_public_migrations, run_tenant_migrations
 
 
@@ -56,15 +56,24 @@ async def create_owner(tenant_schema: str):
 async def migrate_all():
     await asyncio.to_thread(run_public_migrations)
     await seed_platform_defaults()
-    await ensure_default_tenant()
     async with async_session() as session:
         result = await session.execute(select(Tenant))
         tenants = result.scalars().all()
+        if not tenants:
+            tenant = Tenant(name="Husky", code="husky", status=TenantStatus.active)
+            session.add(tenant)
+            await session.flush()
+            tenants = [tenant]
         for tenant in tenants:
             await ensure_tenant_schema(session, tenant.code)
         await session.commit()
     for tenant in tenants:
         await asyncio.to_thread(run_tenant_migrations, tenant.code)
+    husky_present = any(tenant.code == "husky" for tenant in tenants)
+    if settings.first_owner_email and settings.first_owner_password and husky_present:
+        await create_owner("husky")
+    if husky_present:
+        await apply_template_by_name("husky", "tobacco")
 
 
 def main():
