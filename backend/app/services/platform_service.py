@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select, func
@@ -9,11 +8,12 @@ from app.core.config import settings
 from app.core.db_utils import set_search_path
 from app.core.tenancy import normalize_code, normalize_tenant_slug
 from app.core.security import create_access_token, hash_password
-from app.models.platform import Module, Template, TenantFeature, TenantModule
+from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
 from app.services.bootstrap import ensure_tenant_schema, ensure_roles, ensure_cash_register
 from app.services.migrations import run_tenant_migrations
+from app.services.template_service import apply_template_codes
 
 
 class PlatformService:
@@ -111,47 +111,18 @@ class PlatformService:
         template = await self.session.get(Template, template_id)
         if not template:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-        await set_search_path(self.session, schema)
-        module_codes = list(dict.fromkeys(template.module_codes or []))
-        feature_codes = list(dict.fromkeys(template.feature_codes or []))
-        if module_codes:
-            modules = await self.session.execute(select(Module).where(Module.code.in_(module_codes)))
-            module_map = {module.code: module for module in modules.scalars()}
-            missing = [code for code in module_codes if code not in module_map]
-            if missing:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unknown modules: {', '.join(missing)}",
-                )
-            existing_modules = await self.session.execute(select(TenantModule))
-            existing_map = {row.module_id: row for row in existing_modules.scalars()}
-            for module in module_map.values():
-                existing = existing_map.get(module.id)
-                if existing:
-                    existing.is_enabled = True
-                    continue
-                self.session.add(
-                    TenantModule(
-                        module_id=module.id,
-                        is_enabled=True,
-                        created_at=datetime.now(timezone.utc),
-                    )
-                )
-        if feature_codes:
-            existing_features = await self.session.execute(select(TenantFeature))
-            existing_map = {row.code: row for row in existing_features.scalars()}
-            for code in feature_codes:
-                existing = existing_map.get(code)
-                if existing:
-                    existing.is_enabled = True
-                    continue
-                self.session.add(
-                    TenantFeature(
-                        code=code,
-                        is_enabled=True,
-                        created_at=datetime.now(timezone.utc),
-                    )
-                )
+        missing = await apply_template_codes(
+            self.session,
+            schema=schema,
+            module_codes=template.module_codes,
+            feature_codes=template.feature_codes,
+            validate_modules=True,
+        )
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown modules: {', '.join(missing)}",
+            )
         await set_search_path(self.session, None)
 
     def _tenant_url(self, schema: str) -> str:
