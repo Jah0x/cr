@@ -91,20 +91,21 @@ def test_platform_host_returns_none():
     assert tenant_schema is None
 
 
-def test_reserved_subdomain_rejected_without_mapping():
+def test_reserved_subdomain_returns_none():
     async def scenario():
         async with TestSession() as session:
             service = TenantService(TenantRepo(session))
             request = build_request({"host": "admin.example.com"})
-            with pytest.raises(HTTPException) as exc:
-                await service.resolve_tenant(request)
-            return exc.value.status_code
+            resolved = await service.resolve_tenant(request)
+            return resolved, request.state.tenant, request.state.tenant_schema
 
-    status_code = asyncio.run(scenario())
-    assert status_code == status.HTTP_404_NOT_FOUND
+    resolved, state_tenant, tenant_schema = asyncio.run(scenario())
+    assert resolved is None
+    assert state_tenant is None
+    assert tenant_schema is None
 
 
-def test_reserved_subdomain_allows_explicit_mapping():
+def test_reserved_subdomain_ignores_explicit_mapping():
     async def scenario():
         async with TestSession() as session:
             async with session.begin():
@@ -113,10 +114,12 @@ def test_reserved_subdomain_allows_explicit_mapping():
             service = TenantService(TenantRepo(session))
             request = build_request({"host": "admin.example.com"})
             resolved = await service.resolve_tenant(request)
-            return tenant, resolved
+            return tenant, resolved, request.state.tenant, request.state.tenant_schema
 
-    tenant, resolved = asyncio.run(scenario())
-    assert resolved.id == tenant.id
+    tenant, resolved, state_tenant, tenant_schema = asyncio.run(scenario())
+    assert resolved is None
+    assert state_tenant is None
+    assert tenant_schema is None
 
 
 def test_unknown_tenant_host_rejected():

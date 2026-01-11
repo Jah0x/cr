@@ -2,8 +2,6 @@ import os
 import asyncio
 import pathlib
 import sys
-import pytest
-from fastapi import HTTPException
 from starlette.requests import Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -80,23 +78,19 @@ def test_ready_with_tenant_host():
     assert result == {"status": "ready"}
 
 
-def test_ready_rejects_reserved_subdomain_without_mapping():
+def test_ready_allows_reserved_subdomain_without_mapping():
     async def scenario():
         async with TestSession() as session:
-            with pytest.raises(HTTPException) as exc:
-                await readiness_check(session, build_request({"host": "admin.example.com"}), None)
-            return exc.value
+            return await readiness_check(session, build_request({"host": "admin.example.com"}), None)
 
-    error = asyncio.run(scenario())
-    assert error.status_code == 404
+    result = asyncio.run(scenario())
+    assert result == {"status": "ready"}
 
 
-def test_ready_missing_tenant():
+def test_ready_missing_tenant_host():
     async def scenario():
         async with TestSession() as session:
-            with pytest.raises(HTTPException) as exc:
-                await readiness_check(session, build_request({"host": "delta.example.com"}), None)
-            return exc.value
+            return await readiness_check(session, build_request({"host": "delta.example.com"}), None)
 
-    error = asyncio.run(scenario())
-    assert error.status_code == 404
+    result = asyncio.run(scenario())
+    assert result == {"status": "ready"}

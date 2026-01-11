@@ -5,7 +5,7 @@ Base path: `/api/v1`
 ## Health
 - **GET /health** — public liveness probe.
 - **GET /health/z** — public liveness probe alias.
-- **GET /health/ready** — readiness probe hitting the database; accepts an optional tenant hint via `X-Tenant-ID`, `X-Tenant-Code`/`X-Tenant`, or `tenant` query. When a tenant is provided it validates the tenant is active and migrations are applied for that schema before returning `{ "status": "ready" }`; without a tenant it only checks base connectivity.
+- **GET /health/ready** — readiness probe hitting the database; returns `{ "status": "ready" }` when base connectivity and migrations are healthy.
 - **GET /healthz** — root liveness alias.
 - **GET /readyz** — root readiness alias with DB check.
 
@@ -22,11 +22,14 @@ Notes: registration is not public; owners provision accounts.
 - **POST /users/{user_id}/roles** — replace roles. Payload: `{ "roles": ["owner"|"admin"|"cashier"] }`.
 
 ## Tenant settings
-- Access: authenticated users for read; `owner` for updates.
+- Access: `owner` only.
 - **GET /tenant/settings** — list module toggles, feature flags, and UI preferences for the current tenant.
 - **PATCH /tenant/settings/modules/{code}** — enable/disable a module for the tenant. Payload: `{ "is_enabled": bool }`.
+- **DELETE /tenant/settings/modules/{code}** — reset module override for the tenant.
 - **PATCH /tenant/settings/features/{code}** — enable/disable a feature flag for the tenant. Payload: `{ "is_enabled": bool }`.
+- **DELETE /tenant/settings/features/{code}** — reset feature override for the tenant.
 - **PUT /tenant/settings/ui-prefs** — update UI preference toggles (requires `ui_prefs` feature). Payload: `{ "prefs": { "<key>": bool } }`.
+- **DELETE /tenant/settings/ui-prefs** — reset UI preferences to defaults (requires `ui_prefs` feature).
 
 ## Catalog (owner, admin)
 ### Categories

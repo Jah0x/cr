@@ -71,6 +71,23 @@ class TenantSettingsService:
             "ui_prefs": ui_prefs,
         }
 
+    def _build_module_setting(self, module: Module, is_enabled: bool):
+        return {
+            "code": module.code,
+            "name": module.name,
+            "description": module.description,
+            "is_active": module.is_active,
+            "is_enabled": is_enabled,
+        }
+
+    def _build_feature_setting(self, feature: dict, is_enabled: bool):
+        return {
+            "code": feature["code"],
+            "name": feature["name"],
+            "description": feature["description"],
+            "is_enabled": is_enabled,
+        }
+
     async def update_module(self, code: str, is_enabled: bool):
         module = await self.session.scalar(select(Module).where(Module.code == code))
         if not module:
@@ -88,13 +105,18 @@ class TenantSettingsService:
                 is_enabled=is_enabled,
             )
             self.session.add(tenant_module)
-        return {
-            "code": module.code,
-            "name": module.name,
-            "description": module.description,
-            "is_active": module.is_active,
-            "is_enabled": tenant_module.is_enabled,
-        }
+        return self._build_module_setting(module, tenant_module.is_enabled)
+
+    async def delete_module(self, code: str):
+        module = await self.session.scalar(select(Module).where(Module.code == code))
+        if not module:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+        tenant_module = await self.session.scalar(
+            select(TenantModule).where(TenantModule.module_id == module.id)
+        )
+        if tenant_module:
+            await self.session.delete(tenant_module)
+        return self._build_module_setting(module, True)
 
     async def update_feature(self, code: str, is_enabled: bool):
         feature = next((item for item in AVAILABLE_FEATURES if item["code"] == code), None)
@@ -111,12 +133,18 @@ class TenantSettingsService:
                 is_enabled=is_enabled,
             )
             self.session.add(tenant_feature)
-        return {
-            "code": code,
-            "name": feature["name"],
-            "description": feature["description"],
-            "is_enabled": tenant_feature.is_enabled,
-        }
+        return self._build_feature_setting(feature, tenant_feature.is_enabled)
+
+    async def delete_feature(self, code: str):
+        feature = next((item for item in AVAILABLE_FEATURES if item["code"] == code), None)
+        if not feature:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feature not found")
+        tenant_feature = await self.session.scalar(
+            select(TenantFeature).where(TenantFeature.code == code)
+        )
+        if tenant_feature:
+            await self.session.delete(tenant_feature)
+        return self._build_feature_setting(feature, True)
 
     async def update_ui_prefs(self, prefs: dict[str, bool]):
         current = await self.session.scalar(
@@ -134,6 +162,14 @@ class TenantSettingsService:
             )
             self.session.add(current)
         return merged
+
+    async def delete_ui_prefs(self):
+        current = await self.session.scalar(
+            select(TenantUIPreference)
+        )
+        if current:
+            await self.session.delete(current)
+        return DEFAULT_UI_PREFS.copy()
 
     async def _load_ui_prefs(self):
         current = await self.session.scalar(
