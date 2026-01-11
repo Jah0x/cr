@@ -2,21 +2,17 @@ import uuid
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
+from app.core.db_utils import set_search_path
 from app.core.security import verify_token
-from app.core.tenancy import build_search_path
 from app.models.platform import Module, TenantFeature, TenantModule
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
 from app.core.config import settings
 from app.services.tenant_service import TenantService
-
-async def set_search_path(session: AsyncSession, schema: str | None):
-    await session.execute(text(build_search_path(schema)))
-
 
 auth_scheme = HTTPBearer(auto_error=False)
 

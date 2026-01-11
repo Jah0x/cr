@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select, text
 
 from app.core.config import settings
-from app.core.db_utils import quote_ident, validate_schema_name
-from app.core.tenancy import build_search_path, normalize_tenant_slug
+from app.core.db_utils import quote_ident, set_search_path, validate_schema_name
+from app.core.tenancy import normalize_tenant_slug
 from app.core.db import async_session
 from app.core.security import hash_password
 from app.models.platform import Module, Template, TenantFeature, TenantModule
@@ -32,7 +32,7 @@ async def ensure_tenant_schema(session, schema: str):
 
 async def bootstrap_tenant_owner(schema: str, email: str, password: str):
     async with async_session() as session:
-        await session.execute(text(build_search_path(schema)))
+        await set_search_path(session, schema)
         count_result = await session.execute(select(func.count(User.id)))
         if count_result.scalar_one() > 0:
             return
@@ -159,11 +159,11 @@ async def seed_platform_defaults():
 async def apply_template_by_name(schema: str, template_name: str):
     schema = normalize_tenant_slug(schema)
     async with async_session() as session:
-        await session.execute(text(build_search_path(None)))
+        await set_search_path(session, None)
         template = await session.scalar(select(Template).where(Template.name == template_name))
         if not template:
             return
-        await session.execute(text(build_search_path(schema)))
+        await set_search_path(session, schema)
         module_codes = list(dict.fromkeys(template.module_codes or []))
         feature_codes = list(dict.fromkeys(template.feature_codes or []))
         if module_codes:

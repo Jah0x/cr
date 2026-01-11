@@ -3,7 +3,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db_session, set_search_path
+from app.core.db_utils import set_search_path
+from app.core.deps import get_db_session
 
 router = APIRouter(prefix="/health", tags=["health"])
 
