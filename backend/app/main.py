@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.core.deps import get_db_session
 from app.api import auth, health, catalog, purchasing, stock, sales, users
 from app.api.health import readiness_check
-from app.services.bootstrap import bootstrap_owner
+from app.services.bootstrap import bootstrap_first_tenant, bootstrap_platform
 
 app = FastAPI(title="Retail POS", version="0.1.0")
 app.add_middleware(
@@ -31,7 +31,8 @@ app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup_event():
-    await bootstrap_owner()
+    await bootstrap_platform()
+    await bootstrap_first_tenant()
 
 
 @app.get("/healthz")

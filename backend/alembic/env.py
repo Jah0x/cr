@@ -26,22 +26,58 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def _get_option(name: str, default: str | None = None) -> str | None:
+    value = config.get_main_option(name)
+    if value:
+        return value
+    return default
+
+
+def _quote_identifier(value: str) -> str:
+    escaped = value.replace('"', '""')
+    return f'"{escaped}"'
+
+
 def run_migrations_offline() -> None:
-    context.configure(
-        url=settings.database_url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        compare_type=True,
-        compare_server_default=True,
-        dialect_opts={"paramstyle": "named"},
-    )
+    schema = _get_option("schema")
+    configure_opts = {
+        "url": settings.database_url,
+        "target_metadata": target_metadata,
+        "literal_binds": True,
+        "compare_type": True,
+        "compare_server_default": True,
+        "dialect_opts": {"paramstyle": "named"},
+        "version_table": _get_option("version_table", "alembic_version"),
+    }
+    version_table_schema = _get_option("version_table_schema")
+    if version_table_schema:
+        configure_opts["version_table_schema"] = version_table_schema
+    if schema:
+        configure_opts["include_schemas"] = True
+
+    context.configure(**configure_opts)
 
     with context.begin_transaction():
         context.run_migrations()
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True, compare_server_default=True)
+    schema = _get_option("schema")
+    if schema:
+        connection.exec_driver_sql(f"SET search_path TO {_quote_identifier(schema)}")
+    configure_opts = {
+        "connection": connection,
+        "target_metadata": target_metadata,
+        "compare_type": True,
+        "compare_server_default": True,
+        "version_table": _get_option("version_table", "alembic_version"),
+    }
+    version_table_schema = _get_option("version_table_schema")
+    if version_table_schema:
+        configure_opts["version_table_schema"] = version_table_schema
+    if schema:
+        configure_opts["include_schemas"] = True
+    context.configure(**configure_opts)
 
     with context.begin_transaction():
         context.run_migrations()
