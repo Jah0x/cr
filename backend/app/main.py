@@ -40,5 +40,5 @@ async def healthz():
 
 
 @app.get("/readyz")
-async def readyz(request: Request, tenant: str | None = None, session: AsyncSession = Depends(get_db_session)):
-    return await readiness_check(session, request, tenant)
+async def readyz(request: Request, session: AsyncSession = Depends(get_db_session)):
+    return await readiness_check(session, request)
