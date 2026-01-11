@@ -12,6 +12,7 @@ import PlatformLoginPage from './pages/PlatformLoginPage'
 import PlatformTenantsPage from './pages/PlatformTenantsPage'
 import PlatformTenantCreatePage from './pages/PlatformTenantCreatePage'
 import TenantSettingsPage from './pages/TenantSettingsPage'
+import FinancePage from './pages/FinancePage'
 
 const queryClient = new QueryClient()
 const platformHosts = (import.meta.env.VITE_PLATFORM_HOSTS ?? '')
@@ -41,6 +42,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route element={<TenantLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/pos" element={<PosPage />} />
+              <Route path="/finance" element={<FinancePage />} />
               <Route path="/settings" element={<TenantSettingsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/login" />} />

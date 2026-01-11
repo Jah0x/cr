@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.deps import get_db_session
-from app.api import auth, health, catalog, purchasing, stock, sales, users, platform, tenant_settings, reports
+from app.api import auth, health, catalog, purchasing, stock, sales, users, platform, tenant_settings, reports, finance
 from app.api.health import readiness_check
 
 app = FastAPI(title="Retail POS", version="0.1.0")
@@ -28,6 +28,7 @@ api_router.include_router(users.router)
 api_router.include_router(platform.router)
 api_router.include_router(tenant_settings.router)
 api_router.include_router(reports.router)
+api_router.include_router(finance.router)
 app.include_router(api_router)
 
 

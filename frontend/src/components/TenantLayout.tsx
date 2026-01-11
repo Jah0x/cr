@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTenantSettings } from '../api/tenantSettings'
 
-const adminModules = ['catalog', 'purchasing', 'stock', 'sales', 'reports', 'users']
+const adminModules = ['catalog', 'purchasing', 'stock', 'sales', 'reports', 'users', 'finance']
 
 export default function TenantLayout() {
   const location = useLocation()
@@ -16,6 +16,7 @@ export default function TenantLayout() {
 
   const showAdmin = isLoading || adminModules.some((code) => isModuleEnabled(code))
   const showPos = isLoading || isModuleEnabled('pos')
+  const showFinance = isLoading || isModuleEnabled('finance')
 
   const compactNav = data?.ui_prefs?.compact_nav ?? false
 
@@ -40,6 +41,7 @@ export default function TenantLayout() {
         <span style={{ fontWeight: 700 }}>Tenant Console</span>
         {showAdmin && <Link style={linkStyle('/admin')} to="/admin">Admin</Link>}
         {showPos && <Link style={linkStyle('/pos')} to="/pos">POS</Link>}
+        {showFinance && <Link style={linkStyle('/finance')} to="/finance">Finance</Link>}
         <Link style={linkStyle('/settings')} to="/settings">Settings</Link>
       </nav>
       <Outlet />

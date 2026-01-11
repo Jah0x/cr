@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 
 from app.models.purchasing import PurchaseStatus
@@ -93,6 +95,7 @@ class PurchasingService:
                     "quantity": item.quantity,
                     "unit_cost": item.unit_cost,
                     "purchase_item_id": item.id,
+                    "created_at": datetime.now(timezone.utc),
                 }
             )
             product = await self.product_repo.get(item.product_id)

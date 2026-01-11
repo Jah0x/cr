@@ -4,8 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.sales import PaymentProvider, PaymentStatus, SaleStatus
+from app.models.stock import SaleItemCostAllocation
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
-from app.repos.stock_repo import StockRepo
+from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
@@ -19,6 +20,7 @@ class SalesService:
         sale_repo: SaleRepo,
         item_repo: SaleItemRepo,
         stock_repo: StockRepo,
+        batch_repo: StockBatchRepo,
         product_repo: ProductRepo,
         receipt_repo: CashReceiptRepo,
         payment_repo: PaymentRepo,
@@ -29,6 +31,7 @@ class SalesService:
         self.sale_repo = sale_repo
         self.item_repo = item_repo
         self.stock_repo = stock_repo
+        self.batch_repo = batch_repo
         self.product_repo = product_repo
         self.receipt_repo = receipt_repo
         self.payment_repo = payment_repo
@@ -63,7 +66,7 @@ class SalesService:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
                 line_total = qty * unit_price
                 total_amount += line_total
-                await self.item_repo.add(
+                sale_item = await self.item_repo.add(
                     sale.id,
                     {
                         "product_id": product.id,
@@ -72,6 +75,25 @@ class SalesService:
                         "line_total": line_total,
                     },
                 )
+                consumed, remaining = await self.batch_repo.consume_with_fallback(product.id, float(qty))
+                if remaining > 0:
+                    remaining_decimal = Decimal(str(remaining))
+                    fallback_batch = await self.batch_repo.create(
+                        {
+                            "product_id": product.id,
+                            "quantity": remaining_decimal,
+                            "unit_cost": product.last_purchase_unit_cost,
+                        }
+                    )
+                    fallback_batch.quantity = Decimal("0")
+                    consumed.append((fallback_batch, remaining))
+                for batch, consumed_qty in consumed:
+                    allocation = SaleItemCostAllocation(
+                        sale_item_id=sale_item.id,
+                        batch_id=batch.id,
+                        quantity=Decimal(str(consumed_qty)),
+                    )
+                    self.session.add(allocation)
                 await self.stock_repo.record_move(
                     {
                         "product_id": product.id,
@@ -98,6 +120,7 @@ class SalesService:
             if sale.status == SaleStatus.void:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale already void")
             for item in sale.items:
+                await self._restore_batches(item, item.qty)
                 await self.stock_repo.record_move(
                     {
                         "product_id": item.product_id,
@@ -134,6 +157,7 @@ class SalesService:
                         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid quantity")
                     line_refund = (item.line_total / item.qty) * qty
                     calculated += line_refund
+                    await self._restore_batches(item, qty)
                     await self.stock_repo.record_move(
                         {
                             "product_id": item.product_id,
@@ -146,6 +170,7 @@ class SalesService:
                     )
             else:
                 for item in sale.items:
+                    await self._restore_batches(item, item.qty)
                     await self.stock_repo.record_move(
                         {
                             "product_id": item.product_id,
@@ -214,3 +239,26 @@ class SalesService:
             if active:
                 register = active[0]
         return get_cash_register(self.receipt_repo, register)
+
+    async def _restore_batches(self, sale_item, qty: Decimal):
+        if not sale_item.product_id:
+            return
+        qty = Decimal(qty)
+        if qty <= 0:
+            return
+        if sale_item.allocations:
+            ratio = qty / sale_item.qty if sale_item.qty else Decimal("0")
+            for allocation in sale_item.allocations:
+                restore_qty = Decimal(allocation.quantity) * ratio
+                if allocation.batch:
+                    allocation.batch.quantity = Decimal(allocation.batch.quantity) + restore_qty
+        else:
+            product = await self.product_repo.get(sale_item.product_id)
+            unit_cost = product.last_purchase_unit_cost if product else Decimal("0")
+            await self.batch_repo.create(
+                {
+                    "product_id": sale_item.product_id,
+                    "quantity": qty,
+                    "unit_cost": unit_cost,
+                }
+            )

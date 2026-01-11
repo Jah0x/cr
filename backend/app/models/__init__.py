@@ -5,6 +5,7 @@ from app.models.purchasing import Supplier, PurchaseInvoice, PurchaseItem
 from app.models.stock import StockMove, StockBatch, SaleItemCostAllocation
 from app.models.sales import Sale, SaleItem
 from app.models.cash import CashReceipt
+from app.models.finance import Expense, ExpenseCategory
 from app.models.tenant import Tenant, TenantStatus
 from app.models.platform import Feature, Module, Template, TenantModule, TenantFeature, TenantUIPreference
 
@@ -26,6 +27,8 @@ __all__ = [
     "Sale",
     "SaleItem",
     "CashReceipt",
+    "Expense",
+    "ExpenseCategory",
     "Tenant",
     "TenantStatus",
     "Module",

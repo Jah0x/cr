@@ -98,6 +98,11 @@ async def seed_platform_defaults():
             "name": "Reports",
             "description": "Reporting and analytics.",
         },
+        {
+            "code": "finance",
+            "name": "Finance",
+            "description": "Expense tracking and profitability.",
+        },
     ]
     templates = [
         {
@@ -109,8 +114,8 @@ async def seed_platform_defaults():
         {
             "name": "tobacco",
             "description": "Tobacco shop defaults.",
-            "module_codes": ["catalog", "stock", "sales", "pos", "users", "reports"],
-            "feature_codes": ["reports", "ui_prefs"],
+            "module_codes": ["catalog", "purchasing", "stock", "sales", "pos", "users", "reports", "finance"],
+            "feature_codes": ["reports", "ui_prefs", "pos.age_confirm"],
         },
         {
             "name": "ecom",
@@ -130,6 +135,10 @@ async def seed_platform_defaults():
         module_map = {module.code: module for module in existing_modules.scalars()}
         for module in modules:
             if module["code"] in module_map:
+                existing = module_map[module["code"]]
+                existing.name = module["name"]
+                existing.description = module["description"]
+                existing.is_active = True
                 continue
             session.add(
                 Module(
@@ -143,6 +152,10 @@ async def seed_platform_defaults():
         template_map = {template.name: template for template in existing_templates.scalars()}
         for template in templates:
             if template["name"] in template_map:
+                existing = template_map[template["name"]]
+                existing.description = template["description"]
+                existing.module_codes = template["module_codes"]
+                existing.feature_codes = template["feature_codes"]
                 continue
             session.add(
                 Template(
