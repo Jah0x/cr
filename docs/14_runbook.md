@@ -2,7 +2,7 @@
 
 ## Setup
 1. Start PostgreSQL locally or with Docker: `docker compose up -d db` from repo root.
-2. Populate environment variables from `docs/13_env_vars.md` (minimum: `DATABASE_URL`, `JWT_SECRET`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`).
+2. Populate environment variables from `docs/13_env_vars.md` (minimum: `DATABASE_URL`, `JWT_SECRET`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`). For platform-only admin APIs set `BOOTSTRAP_TOKEN`.
 3. Install backend dependencies: `cd backend && poetry install`.
 4. Apply migrations: `cd backend && poetry run alembic upgrade head`.
 5. Launch API: `cd backend && poetry run uvicorn app.main:app --host $APP_HOST --port $APP_PORT`.
@@ -19,6 +19,10 @@ Bootstrap creates the first owner and all roles automatically on startup if the 
 - Readiness with DB check: `GET /readyz` or `/api/v1/health/ready`; supply `X-Tenant-ID`, `X-Tenant-Code`/`X-Tenant`, or `tenant` query to verify readiness for a specific tenant schema and migrations.
 - Login: `POST /api/v1/auth/login` with owner credentials to obtain bearer token.
 - Authenticated echo: `GET /api/v1/auth/me`.
+
+## Platform admin
+- Platform-only routes live under `/api/v1/platform` and require `Authorization: Bearer <BOOTSTRAP_TOKEN>`.
+- Use platform endpoints to create tenants, modules, and templates, and to apply templates to tenants.
 
 ## Operational notes
 - Roles: owner manages users and cash registers; admin handles catalog, stock, purchasing; cashier handles sales.

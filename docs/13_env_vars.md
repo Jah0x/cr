@@ -17,8 +17,12 @@
 | `ALLOW_NEGATIVE_STOCK` | Allow selling below zero stock. | `False` |
 | `FIRST_OWNER_EMAIL` | Bootstrap owner email used when no users exist. | — |
 | `FIRST_OWNER_PASSWORD` | Bootstrap owner password used when no users exist. | — |
-| `BOOTSTRAP_TOKEN` | Reserved token for future bootstrap flows. | — |
+| `BOOTSTRAP_TOKEN` | Bootstrap token for platform-only admin APIs. | — |
 | `CASH_REGISTER_PROVIDER` | Active cash register provider key (e.g., `mock`). | `mock` |
 | `DEFAULT_CASH_REGISTER_ID` | Prefer a specific register ID when multiple are configured. | — |
+| `ROOT_DOMAIN` | Root domain used to compose tenant URLs and resolve subdomains. | — |
+| `PLATFORM_HOSTS` | Comma-separated hostnames treated as platform admin hosts. | — |
+| `RESERVED_SUBDOMAINS` | Comma-separated tenant codes reserved for special routing. | — |
+| `DEFAULT_TENANT_SLUG` | Default tenant slug used by the frontend. | — |
 
 Legacy `OWNER_EMAIL` and `OWNER_PASSWORD` are accepted as aliases for `FIRST_OWNER_EMAIL` and `FIRST_OWNER_PASSWORD` to keep existing setups working.
