@@ -27,7 +27,7 @@ class TenantService:
         host = (request.headers.get("host") or "").split(":", 1)[0].lower().strip()
         if not host:
             return None
-        if host in {"localhost", "127.0.0.1"}:
+        if host in {"localhost", "127.0.0.1"} or host.endswith(".localhost"):
             if settings.default_tenant_slug and is_valid_tenant_slug(settings.default_tenant_slug):
                 return normalize_tenant_slug(settings.default_tenant_slug)
             return None
@@ -52,7 +52,7 @@ class TenantService:
         if len(parts) != 2:
             return None
         subdomain = parts[0]
-        if subdomain in reserved_subdomains:
+        if "." in subdomain or subdomain in reserved_subdomains:
             return None
         if not is_valid_tenant_slug(subdomain):
             return None
