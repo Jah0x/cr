@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select, text
 
 from app.core.config import settings
+from app.core.db_utils import quote_ident, validate_schema_name
 from app.core.tenancy import build_search_path, normalize_tenant_slug
 from app.core.db import async_session
 from app.core.security import hash_password
@@ -24,7 +25,8 @@ async def ensure_roles(session):
 
 
 async def ensure_tenant_schema(session, schema: str):
-    safe_schema = f'\"{schema.replace(\"\\\"\", \"\\\"\\\"\")}\"'
+    validate_schema_name(schema)
+    safe_schema = quote_ident(schema)
     await session.execute(text(f"CREATE SCHEMA IF NOT EXISTS {safe_schema}"))
 
 
