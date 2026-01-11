@@ -6,7 +6,7 @@ from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import hash_password
+from app.core.security import create_access_token, hash_password
 from app.models.platform import Module, Template, TenantFeature, TenantModule
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
@@ -32,22 +32,23 @@ class PlatformService:
         template_id: str | None = None,
     ):
         schema = code.lower()
-        await ensure_tenant_schema(self.session, schema)
         existing = await self.session.scalar(select(Tenant).where(Tenant.code == schema))
         if existing:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tenant code already exists")
         tenant = Tenant(name=name, code=schema, status=TenantStatus.active)
         self.session.add(tenant)
         await self.session.flush()
+        await ensure_tenant_schema(self.session, schema)
         await asyncio.to_thread(run_tenant_migrations, schema)
-        await self._bootstrap_owner(schema, owner_email, owner_password)
         await self._seed_template(schema, template_id)
+        owner_token = await self._bootstrap_owner(schema, owner_email, owner_password, tenant.id)
         tenant_url = self._tenant_url(schema)
         return {
             "tenant": tenant,
             "tenant_url": tenant_url,
             "owner_email": owner_email,
             "owner_password": owner_password,
+            "owner_token": owner_token,
         }
 
     async def apply_template(self, tenant_id: str, template_id: str):
@@ -82,19 +83,24 @@ class PlatformService:
         await self.session.flush()
         return template
 
-    async def _bootstrap_owner(self, schema: str, email: str, password: str):
+    async def _bootstrap_owner(self, schema: str, email: str, password: str, tenant_id):
         await self.session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
-        existing = await self.session.execute(select(func.count(User.id)))
-        if existing.scalar_one() == 0:
-            await ensure_roles(self.session)
-            owner_role = await self.session.scalar(select(Role).where(Role.name == "owner"))
+        user = await self.session.scalar(select(User).where(User.email == email))
+        await ensure_roles(self.session)
+        owner_role = await self.session.scalar(select(Role).where(Role.name == "owner"))
+        if not user:
             user = User(email=email, password_hash=hash_password(password), is_active=True)
             self.session.add(user)
             await self.session.flush()
+        existing_role = await self.session.scalar(
+            select(UserRole).where(UserRole.user_id == user.id, UserRole.role_id == owner_role.id)
+        )
+        if not existing_role:
             await self.session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
-            await ensure_cash_register(self.session)
-            await self.session.flush()
+        await ensure_cash_register(self.session)
+        await self.session.flush()
         await self.session.execute(text("SET LOCAL search_path TO public"))
+        return create_access_token(str(user.id), ["owner"], tenant_id)
 
     async def _seed_template(self, schema: str, template_id: str | None):
         if not template_id:

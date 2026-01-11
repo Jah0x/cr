@@ -9,7 +9,7 @@ export default function PlatformTenantCreatePage() {
   const [ownerEmail, setOwnerEmail] = useState('')
   const [ownerPassword, setOwnerPassword] = useState('')
   const [templateId, setTemplateId] = useState('')
-  const [result, setResult] = useState<{ tenant_url?: string } | null>(null)
+  const [result, setResult] = useState<{ tenant_url?: string; owner_token?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent) => {
@@ -51,7 +51,15 @@ export default function PlatformTenantCreatePage() {
       </form>
       {error && <p style={{ color: '#dc2626' }}>{error}</p>}
       {result?.tenant_url && (
-        <p style={{ marginTop: 12 }}>Tenant URL: <a href={result.tenant_url}>{result.tenant_url}</a></p>
+        <p style={{ marginTop: 12 }}>
+          Tenant URL: <a href={result.tenant_url}>{result.tenant_url}</a>
+        </p>
+      )}
+      {result?.owner_token && (
+        <div style={{ marginTop: 12 }}>
+          <div>Owner token:</div>
+          <code style={{ display: 'block', wordBreak: 'break-all' }}>{result.owner_token}</code>
+        </div>
       )}
     </div>
   )

@@ -45,6 +45,7 @@ async def create_tenant(payload: PlatformTenantCreate, session: AsyncSession = D
         tenant_url=result["tenant_url"],
         owner_email=result["owner_email"],
         owner_password=result["owner_password"],
+        owner_token=result["owner_token"],
     )
 
 
