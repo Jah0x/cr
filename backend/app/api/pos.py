@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_tenant, get_current_user, get_db_session
+from app.core.deps import get_current_tenant, get_current_user, get_db_session, require_module
 from app.schemas.sales import SaleCreate, SaleOut, SaleItemCreate, SaleItemUpdate, SaleDetail, PaymentCreate, PaymentOut
 from app.services.sales_service import SalesService
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.services.payment_providers import PaymentGateway
 
-router = APIRouter(prefix="/pos", tags=["pos"], dependencies=[Depends(get_current_user), Depends(get_current_tenant)])
+router = APIRouter(
+    prefix="/pos",
+    tags=["pos"],
+    dependencies=[Depends(get_current_user), Depends(get_current_tenant), Depends(require_module("pos"))],
+)
 
 
 def get_service(session: AsyncSession):

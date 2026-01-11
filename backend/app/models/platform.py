@@ -59,3 +59,17 @@ class TenantFeature(Base):
     code = Column(String, nullable=False)
     is_enabled = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class TenantUIPreference(Base):
+    __tablename__ = "tenant_ui_prefs"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="uq_tenant_ui_prefs_tenant"),
+        {"schema": "public"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("public.tenants.id", ondelete="CASCADE"), nullable=False)
+    prefs = Column(JSONB, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)

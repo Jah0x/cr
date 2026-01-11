@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
+import { useTenantSettings } from '../api/tenantSettings'
 
 type Category = { id: string; name: string }
 type Brand = { id: string; name: string }
@@ -8,6 +9,7 @@ type Product = { id: string; name: string; price: number }
 type Supplier = { id: string; name: string }
 
 export default function AdminDashboard() {
+  const { data: tenantSettings } = useTenantSettings()
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [lines, setLines] = useState<ProductLine[]>([])
@@ -114,6 +116,9 @@ export default function AdminDashboard() {
     setReports(res.data)
   }
 
+  const reportsEnabled =
+    tenantSettings?.features.find((feature) => feature.code === 'reports')?.is_enabled ?? true
+
   return (
     <div style={{ padding: 24 }}>
       <h2>Admin</h2>
@@ -182,17 +187,19 @@ export default function AdminDashboard() {
             ))}
           </ul>
         </div>
-        <div style={{ background: '#fff', padding: 12 }}>
-          <h3>Reports</h3>
-          <button onClick={loadReports}>Load Summary</button>
-          {reports && (
-            <div>
-              <p>Total sales: {reports.total_sales}</p>
-              <p>Total purchases: {reports.total_purchases}</p>
-              <p>Gross margin: {reports.gross_margin}</p>
-            </div>
-          )}
-        </div>
+        {reportsEnabled && (
+          <div style={{ background: '#fff', padding: 12 }}>
+            <h3>Reports</h3>
+            <button onClick={loadReports}>Load Summary</button>
+            {reports && (
+              <div>
+                <p>Total sales: {reports.total_sales}</p>
+                <p>Total purchases: {reports.total_purchases}</p>
+                <p>Gross margin: {reports.gross_margin}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

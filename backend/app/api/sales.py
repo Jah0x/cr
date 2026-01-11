@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_tenant, get_db_session, get_current_user, require_roles
+from app.core.deps import get_current_tenant, get_db_session, require_roles, require_module
 from app.models.sales import SaleStatus
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo
@@ -15,7 +15,11 @@ from app.services.sales_service import SalesService
 router = APIRouter(
     prefix="/sales",
     tags=["sales"],
-    dependencies=[Depends(require_roles({"owner", "cashier"})), Depends(get_current_tenant)],
+    dependencies=[
+        Depends(require_roles({"owner", "cashier"})),
+        Depends(get_current_tenant),
+        Depends(require_module("sales")),
+    ],
 )
 
 

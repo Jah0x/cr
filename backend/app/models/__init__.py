@@ -6,7 +6,7 @@ from app.models.stock import StockMove, StockBatch, SaleItemCostAllocation
 from app.models.sales import Sale, SaleItem
 from app.models.cash import CashReceipt
 from app.models.tenant import Tenant, TenantStatus
-from app.models.platform import Module, Template, TenantModule, TenantFeature
+from app.models.platform import Module, Template, TenantModule, TenantFeature, TenantUIPreference
 
 __all__ = [
     "Base",
@@ -32,4 +32,5 @@ __all__ = [
     "Template",
     "TenantModule",
     "TenantFeature",
+    "TenantUIPreference",
 ]

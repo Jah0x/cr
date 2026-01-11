@@ -22,7 +22,9 @@ Bootstrap creates the first owner and all roles automatically on startup if the 
 
 ## Platform admin
 - Platform-only routes live under `/api/v1/platform` and require `Authorization: Bearer <BOOTSTRAP_TOKEN>`.
+- Platform routes are additionally restricted to hosts in `PLATFORM_HOSTS`; align the frontend with `VITE_PLATFORM_HOSTS` so the UI renders the platform console on the same hostnames.
 - Use platform endpoints to create tenants, modules, and templates, and to apply templates to tenants.
+- Tenant module/feature toggles live under `/api/v1/tenant/settings` and are enforced across catalog, purchasing, stock, sales, POS, users, and reports.
 
 ## Operational notes
 - Roles: owner manages users and cash registers; admin handles catalog, stock, purchasing; cashier handles sales.

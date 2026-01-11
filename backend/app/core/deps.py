@@ -2,11 +2,12 @@ import uuid
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.security import verify_token
+from app.models.platform import Module, TenantFeature, TenantModule
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
 from app.core.config import settings
@@ -90,6 +91,48 @@ def require_roles(allowed_roles: set[str]):
         if not role_names.intersection(allowed):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
         return current_user
+
+    return _checker
+
+
+def require_module(code: str):
+    async def _checker(
+        tenant=Depends(get_current_tenant),
+        session: AsyncSession = Depends(get_db_session),
+    ):
+        result = await session.execute(select(Module).where(Module.code == code))
+        module = result.scalar_one_or_none()
+        if not module:
+            return True
+        if not module.is_active:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
+        tenant_module = await session.scalar(
+            select(TenantModule).where(
+                TenantModule.tenant_id == tenant.id,
+                TenantModule.module_id == module.id,
+            )
+        )
+        if tenant_module and not tenant_module.is_enabled:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module disabled")
+        return True
+
+    return _checker
+
+
+def require_feature(code: str):
+    async def _checker(
+        tenant=Depends(get_current_tenant),
+        session: AsyncSession = Depends(get_db_session),
+    ):
+        tenant_feature = await session.scalar(
+            select(TenantFeature).where(
+                TenantFeature.tenant_id == tenant.id,
+                TenantFeature.code == code,
+            )
+        )
+        if tenant_feature and not tenant_feature.is_enabled:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Feature disabled")
+        return True
 
     return _checker
 

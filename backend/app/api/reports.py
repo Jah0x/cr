@@ -1,11 +1,20 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db_session, get_current_user
+from app.core.deps import get_db_session, get_current_user, get_current_tenant, require_feature, require_module
 from app.services.reports_service import ReportsService
 from app.schemas.reports import SummaryReport, GroupReport, TopProductReport
 
-router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/reports",
+    tags=["reports"],
+    dependencies=[
+        Depends(get_current_user),
+        Depends(get_current_tenant),
+        Depends(require_module("reports")),
+        Depends(require_feature("reports")),
+    ],
+)
 
 
 def get_service(session: AsyncSession):
