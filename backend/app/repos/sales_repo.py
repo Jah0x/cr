@@ -2,7 +2,9 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from app.models.sales import Sale, SaleItem
+from app.models.stock import SaleItemCostAllocation
 
 
 class SaleRepo:
@@ -17,7 +19,12 @@ class SaleRepo:
 
     async def get(self, sale_id) -> Optional[Sale]:
         stmt = select(Sale).where(Sale.id == sale_id).options(
-            selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments), selectinload(Sale.refunds)
+            selectinload(Sale.items)
+            .selectinload(SaleItem.allocations)
+            .selectinload(SaleItemCostAllocation.batch),
+            selectinload(Sale.receipts),
+            selectinload(Sale.payments),
+            selectinload(Sale.refunds),
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
@@ -25,7 +32,13 @@ class SaleRepo:
     async def list(self, status_filter=None, date_from=None, date_to=None) -> List[Sale]:
         stmt = (
             select(Sale)
-            .options(selectinload(Sale.items), selectinload(Sale.receipts), selectinload(Sale.payments))
+            .options(
+                selectinload(Sale.items)
+                .selectinload(SaleItem.allocations)
+                .selectinload(SaleItemCostAllocation.batch),
+                selectinload(Sale.receipts),
+                selectinload(Sale.payments),
+            )
         )
         if status_filter:
             stmt = stmt.where(Sale.status == status_filter)

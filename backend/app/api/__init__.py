@@ -1,4 +1,4 @@
-from app.api import auth, health, catalog, purchasing, stock, sales, platform, tenant_settings, reports
+from app.api import auth, health, catalog, purchasing, stock, sales, platform, tenant_settings, reports, finance
 
 __all__ = [
     "auth",
@@ -10,4 +10,5 @@ __all__ = [
     "platform",
     "tenant_settings",
     "reports",
+    "finance",
 ]

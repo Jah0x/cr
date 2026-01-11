@@ -1,9 +1,11 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db_session, get_current_user, get_current_tenant, require_feature, require_module
 from app.services.reports_service import ReportsService
-from app.schemas.reports import SummaryReport, GroupReport, TopProductReport
+from app.schemas.reports import SummaryReport, GroupReport, TopProductReport, PnlReport
 
 router = APIRouter(
     prefix="/reports",
@@ -24,6 +26,15 @@ def get_service(session: AsyncSession):
 @router.get("/summary", response_model=SummaryReport)
 async def summary(session: AsyncSession = Depends(get_db_session)):
     return await get_service(session).summary()
+
+
+@router.get("/pnl", response_model=PnlReport)
+async def pnl(
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    session: AsyncSession = Depends(get_db_session),
+):
+    return await get_service(session).pnl(date_from, date_to)
 
 
 @router.get("/by-category", response_model=list[GroupReport])

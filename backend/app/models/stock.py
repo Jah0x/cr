@@ -31,6 +31,7 @@ class StockBatch(Base):
     quantity = Column(Numeric(12, 3), nullable=False)
     unit_cost = Column(Numeric(12, 2), nullable=False)
     purchase_item_id = Column(UUID(as_uuid=True), ForeignKey("purchase_items.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     product = relationship("Product")
     purchase_item = relationship("PurchaseItem")

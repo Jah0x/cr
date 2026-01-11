@@ -65,7 +65,7 @@ class StockBatchRepo:
         batches = await self.session.execute(
             select(StockBatch)
             .where(StockBatch.product_id == product_id, StockBatch.quantity > 0)
-            .order_by(StockBatch.id)
+            .order_by(StockBatch.created_at, StockBatch.id)
         )
         remaining = quantity
         consumed = []
@@ -79,3 +79,20 @@ class StockBatchRepo:
         if remaining > 0:
             raise ValueError("Insufficient stock")
         return consumed
+
+    async def consume_with_fallback(self, product_id, quantity: float) -> tuple[list[tuple[StockBatch, float]], float]:
+        batches = await self.session.execute(
+            select(StockBatch)
+            .where(StockBatch.product_id == product_id, StockBatch.quantity > 0)
+            .order_by(StockBatch.created_at, StockBatch.id)
+        )
+        remaining = quantity
+        consumed: list[tuple[StockBatch, float]] = []
+        for batch in batches.scalars():
+            if remaining <= 0:
+                break
+            take = min(float(batch.quantity), remaining)
+            batch.quantity = float(batch.quantity) - take
+            remaining -= take
+            consumed.append((batch, take))
+        return consumed, remaining

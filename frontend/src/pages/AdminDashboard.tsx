@@ -118,6 +118,9 @@ export default function AdminDashboard() {
 
   const reportsEnabled =
     tenantSettings?.features.find((feature) => feature.code === 'reports')?.is_enabled ?? true
+  const reportsModuleEnabled =
+    tenantSettings?.modules.find((module) => module.code === 'reports')?.is_enabled ?? true
+  const showReports = reportsEnabled && reportsModuleEnabled
 
   return (
     <div style={{ padding: 24 }}>
@@ -187,7 +190,7 @@ export default function AdminDashboard() {
             ))}
           </ul>
         </div>
-        {reportsEnabled && (
+        {showReports && (
           <div style={{ background: '#fff', padding: 12 }}>
             <h3>Reports</h3>
             <button onClick={loadReports}>Load Summary</button>

@@ -2,7 +2,7 @@
 
 1. Скопируйте `.env.example` в `.env` и задайте минимум `DATABASE_URL` (postgresql+asyncpg), `JWT_SECRET`, `JWT_EXPIRES`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`, `CASH_REGISTER_PROVIDER`.
 2. Установите зависимости: `poetry install`.
-3. Примените миграции: `poetry run alembic upgrade head`.
+3. Примените миграции: `poetry run python -m app.cli migrate-all`.
 4. Стартуйте API: `poetry run uvicorn app.main:app --reload`.
 
 Docker: `docker-compose up --build backend` поднимет Postgres и API, переменные окружения задаются в `.env`.
