@@ -56,6 +56,7 @@ class PlatformTenantCreateResponse(BaseModel):
     tenant_url: str
     owner_email: EmailStr
     owner_password: str
+    owner_token: str
 
 
 class PlatformTemplateApply(BaseModel):
