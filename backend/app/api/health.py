@@ -3,7 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db_session, resolve_tenant_with_schema
+from app.core.deps import get_db_session, set_search_path
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -26,7 +26,9 @@ async def _assert_migrations(session: AsyncSession):
 
 
 async def readiness_check(session: AsyncSession, request: Request):
-    await resolve_tenant_with_schema(request, session, allow_public=True)
+    request.state.tenant = None
+    request.state.tenant_schema = None
+    await set_search_path(session, None)
     await session.execute(text("SELECT 1"))
     await _assert_migrations(session)
     return {"status": "ready"}

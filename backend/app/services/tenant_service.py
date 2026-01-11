@@ -23,12 +23,13 @@ class TenantService:
         return tenant
 
     def _tenant_code_from_host(self, request: Request):
-        host = (request.headers.get("host") or "").split(":", 1)[0].lower()
+        host = (request.headers.get("host") or "").split(":", 1)[0].lower().strip()
         if not host:
             return None
         platform_hosts = {item for item in self._split_csv(settings.platform_hosts)}
         if host in platform_hosts:
             return None
+        reserved_subdomains = {item for item in self._split_csv(settings.reserved_subdomains)}
         root_domain = settings.root_domain.lower().strip(".")
         if root_domain:
             if host == root_domain:
@@ -36,16 +37,17 @@ class TenantService:
             suffix = f".{root_domain}"
             if host.endswith(suffix):
                 subdomain = host[: -len(suffix)]
-                if not subdomain:
+                if not subdomain or subdomain in reserved_subdomains:
                     return None
-                if subdomain in self._split_csv(settings.reserved_subdomains):
-                    return subdomain
                 return subdomain
             return None
         parts = host.split(".")
         if len(parts) < 2:
             return None
-        return parts[0]
+        subdomain = parts[0]
+        if subdomain in reserved_subdomains:
+            return None
+        return subdomain
 
     def _split_csv(self, value: str):
         return [item.strip().lower() for item in value.split(",") if item.strip()]

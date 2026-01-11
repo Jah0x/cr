@@ -13,24 +13,28 @@ from app.repos.user_repo import UserRepo
 from app.core.config import settings
 from app.services.tenant_service import TenantService
 
-auth_scheme = HTTPBearer(auto_error=False)
-
-
-async def get_db_session() -> AsyncSession:
-    async for session in get_session():
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
 async def set_search_path(session: AsyncSession, schema: str | None):
     if schema:
         await session.execute(text("SET LOCAL search_path TO :schema, public"), {"schema": schema})
     else:
         await session.execute(text("SET LOCAL search_path TO public"))
+
+
+auth_scheme = HTTPBearer(auto_error=False)
+
+
+async def get_db_session(request: Request | None = None) -> AsyncSession:
+    async for session in get_session():
+        try:
+            if request:
+                tenant_schema = getattr(request.state, "tenant_schema", None)
+                if tenant_schema:
+                    await set_search_path(session, tenant_schema)
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def resolve_tenant_with_schema(
@@ -47,7 +51,6 @@ async def resolve_tenant_with_schema(
         request.state.tenant_schema = schema
         return tenant
     if allow_public:
-        request.state.tenant_schema = "public"
         await set_search_path(session, None)
     return None
 
