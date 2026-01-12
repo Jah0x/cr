@@ -6,7 +6,7 @@ from sqlalchemy.sql import Select
 from app.models.purchasing import PurchaseInvoice, PurchaseStatus, PurchaseItem
 from app.models.sales import Sale, SaleStatus, SaleItem
 from app.models.catalog import Product, Category, Brand
-from app.models.stock import SaleItemCostAllocation, StockBatch
+from app.models.stock import SaleItemCostAllocation, StockBatch, StockMove
 from app.models.finance import Expense
 from app.schemas.reports import SummaryReport, GroupReport, TopProductReport, PnlReport
 
@@ -69,10 +69,10 @@ class ReportsService:
 
     async def by_category(self):
         result = await self.session.execute(
-            select(Category.name, func.coalesce(func.sum(SaleItem.quantity * SaleItem.unit_price), 0))
+            select(Category.name, func.coalesce(func.sum(SaleItem.line_total), 0))
             .join(Product, Product.category_id == Category.id)
             .join(SaleItem, SaleItem.product_id == Product.id)
-            .join(Sale)
+            .join(Sale, Sale.id == SaleItem.sale_id)
             .where(Sale.status == SaleStatus.completed)
             .group_by(Category.name)
         )
@@ -80,10 +80,10 @@ class ReportsService:
 
     async def by_brand(self):
         result = await self.session.execute(
-            select(Brand.name, func.coalesce(func.sum(SaleItem.quantity * SaleItem.unit_price), 0))
+            select(Brand.name, func.coalesce(func.sum(SaleItem.line_total), 0))
             .join(Product, Product.brand_id == Brand.id)
             .join(SaleItem, SaleItem.product_id == Product.id)
-            .join(Sale)
+            .join(Sale, Sale.id == SaleItem.sale_id)
             .where(Sale.status == SaleStatus.completed)
             .group_by(Brand.name)
         )
@@ -91,18 +91,22 @@ class ReportsService:
 
     async def top_products(self, limit: int = 5):
         result = await self.session.execute(
-            select(Product.id, Product.name, func.coalesce(func.sum(SaleItem.quantity), 0))
+            select(Product.id, Product.name, func.coalesce(func.sum(SaleItem.qty), 0))
             .join(SaleItem, SaleItem.product_id == Product.id)
-            .join(Sale)
+            .join(Sale, Sale.id == SaleItem.sale_id)
             .where(Sale.status == SaleStatus.completed)
             .group_by(Product.id, Product.name)
-            .order_by(func.sum(SaleItem.quantity).desc())
+            .order_by(func.sum(SaleItem.qty).desc())
             .limit(limit)
         )
         return [TopProductReport(product_id=str(row[0]), name=row[1], total=row[2]) for row in result.all()]
 
     async def stock_alerts(self, threshold: float):
+        on_hand = func.coalesce(func.sum(StockMove.delta_qty), 0)
         result = await self.session.execute(
-            select(Product.id, Product.name, func.coalesce(func.sum(SaleItem.quantity), 0)).join(SaleItem, SaleItem.product_id == Product.id)
+            select(Product.id, Product.name, on_hand)
+            .outerjoin(StockMove, StockMove.product_id == Product.id)
+            .group_by(Product.id, Product.name)
+            .having(on_hand <= threshold)
         )
-        return [TopProductReport(product_id=str(row[0]), name=row[1], total=row[2]) for row in result.all() if row[2] <= threshold]
+        return [TopProductReport(product_id=str(row[0]), name=row[1], total=row[2]) for row in result.all()]
