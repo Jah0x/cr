@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import ENUM, UUID
 
 revision = "0001_public_base"
 down_revision = None
-branch_labels = ("public",)
+branch_labels = None
 depends_on = None
 
 

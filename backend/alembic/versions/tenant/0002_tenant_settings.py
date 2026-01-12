@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 revision = "0002_tenant_settings"
 down_revision = "0001_tenant_base"
-branch_labels = ("tenant",)
+branch_labels = None
 depends_on = None
 
 
