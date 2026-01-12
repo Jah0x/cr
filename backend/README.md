@@ -5,7 +5,12 @@
 3. Примените миграции: `poetry run python -m app.cli migrate-all`.
 4. Стартуйте API: `poetry run uvicorn app.main:app --reload`.
 
-Docker: `docker-compose up --build backend` поднимет Postgres и API, переменные окружения задаются в `.env`.
+Запуск в k8s:
+
+1. Соберите образы backend и базы данных/прочих сервисов (если есть) и опубликуйте их в реестре.
+2. Задайте переменные окружения через Secret/ConfigMap: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES`, `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`, `CASH_REGISTER_PROVIDER`.
+3. Примените миграции отдельной Job: `python -m app.cli migrate-all`.
+4. Откройте сервисы через Ingress (или другой ingress-контроллер) и настройте маршрутизацию на API.
 
 Bootstrap владельца: при старте приложения, если таблица пользователей пуста и заданы `FIRST_OWNER_EMAIL`/`FIRST_OWNER_PASSWORD`, создаётся владелец и роли. Повторный запуск не создаёт новых пользователей. Одновременно создаётся активная касса типа `CASH_REGISTER_PROVIDER`, если касс ещё нет.
 
