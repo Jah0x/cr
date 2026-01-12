@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import ENUM, UUID
 
 revision = "0001_tenant_base"
 down_revision = None
-branch_labels = ("tenant",)
+branch_labels = None
 depends_on = None
 
 purchase_status_enum = ENUM("draft", "posted", "void", name="purchasestatus", create_type=False)

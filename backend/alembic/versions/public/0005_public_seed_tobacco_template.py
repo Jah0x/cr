@@ -9,7 +9,7 @@ from alembic import op
 
 revision = "0005_public_seed_tobacco_template"
 down_revision = "0004_public_features"
-branch_labels = ("public",)
+branch_labels = None
 depends_on = None
 
 MODULE_CODES = (

@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 revision = "0004_public_features"
 down_revision = "0003_public_tenant_ui_prefs"
-branch_labels = ("public",)
+branch_labels = None
 depends_on = None
 
 
