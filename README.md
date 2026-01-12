@@ -33,6 +33,20 @@ The frontend defaults to using `/api/v1` for API requests. You can override this
 VITE_API_BASE_URL=/api/v1
 ```
 
+## Frontend runtime configuration
+
+The frontend attempts to load `/config.json` at startup (no cache) for runtime overrides. This is useful for configuring platform/tenant hosts without rebuilding the image. Example:
+
+```json
+{
+  "platformHosts": ["crm.securesoft.dev"],
+  "rootDomain": "securesoft.dev",
+  "apiBase": "/api/v1"
+}
+```
+
+In Kubernetes, provide this file via a ConfigMap and mount it at `/usr/share/nginx/html/config.json` inside the frontend container.
+
 ### Check services
 
 * Health: `http://localhost/api/v1/health`
