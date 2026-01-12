@@ -7,8 +7,8 @@ Create Date: 2025-09-27 00:30:00.000000
 
 from alembic import op
 
-revision = "0005_public_seed_tobacco_template"
-down_revision = "0004_public_features"
+revision = "0005"
+down_revision = "0004"
 branch_labels = None
 depends_on = None
 
