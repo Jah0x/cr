@@ -1,4 +1,5 @@
 import uuid
+from typing import AsyncGenerator
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -17,13 +18,12 @@ from app.services.tenant_service import TenantService
 auth_scheme = HTTPBearer(auto_error=False)
 
 
-async def get_db_session(request: Request | None = None) -> AsyncSession:
+async def get_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
     async for session in get_session():
         try:
-            if request:
-                tenant_schema = getattr(request.state, "tenant_schema", None)
-                if tenant_schema:
-                    await set_search_path(session, tenant_schema)
+            tenant_schema = getattr(request.state, "tenant_schema", None)
+            if tenant_schema:
+                await set_search_path(session, tenant_schema)
             yield session
             await session.commit()
         except Exception:
