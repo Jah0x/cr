@@ -44,6 +44,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push migrator (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.migrator
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_OWNER }}/crm-migrator:latest
+            ghcr.io/${{ env.IMAGE_OWNER }}/crm-migrator:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build (PR)
         if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v5
@@ -52,5 +65,16 @@ jobs:
           file: ./backend/Dockerfile
           push: false
           tags: pr-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build migrator (PR)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.migrator
+          push: false
+          tags: pr-migrator-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

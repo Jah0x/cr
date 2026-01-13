@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
     database_url: str = Field(alias="DATABASE_URL")
+    alembic_ini_path: str = Field(default="alembic.ini", alias="ALEMBIC_INI_PATH")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_expires_seconds: int = Field(default=3600, alias="JWT_EXPIRES")
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
@@ -33,6 +34,10 @@ class Settings(BaseSettings):
     default_tenant_slug: str | None = Field(default=None, alias="DEFAULT_TENANT_SLUG")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+
+    @property
+    def ALEMBIC_INI_PATH(self) -> str:
+        return self.alembic_ini_path
 
 
 settings = Settings()

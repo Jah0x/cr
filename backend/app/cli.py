@@ -93,7 +93,7 @@ def main():
     elif args.command == "migrate-all":
         try:
             asyncio.run(migrate_all())
-        except ValueError as exc:
+        except Exception as exc:
             sys.stderr.write(f"{exc}\n")
             sys.exit(1)
     else:

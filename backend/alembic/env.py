@@ -18,7 +18,8 @@ from app.core.db import Base
 from app import models
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -41,7 +42,7 @@ def _quote_identifier(value: str) -> str:
 def run_migrations_offline() -> None:
     schema = _get_option("schema")
     configure_opts = {
-        "url": settings.database_url,
+        "url": _get_option("sqlalchemy.url", settings.database_url),
         "target_metadata": target_metadata,
         "literal_binds": True,
         "compare_type": True,
@@ -85,7 +86,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 def run_migrations_online() -> None:
     section = config.get_section(config.config_ini_section) or {}
-    section["sqlalchemy.url"] = settings.database_url
+    section["sqlalchemy.url"] = _get_option("sqlalchemy.url", settings.database_url)
     connectable = async_engine_from_config(section, prefix="sqlalchemy.", poolclass=pool.NullPool)
 
     async def run_async_migrations() -> None:
