@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.text(
             """
             INSERT INTO public.tenant_settings (tenant_id, settings, updated_at)
-            SELECT id, :settings::jsonb, now()
+            SELECT id, CAST(:settings AS jsonb), now()
             FROM public.tenants
             ON CONFLICT (tenant_id) DO NOTHING;
             """
@@ -57,8 +57,7 @@ def upgrade() -> None:
                 updated_at = now()
             WHERE settings = '{}'::jsonb;
             """
-        ),
-        {"settings": settings_json},
+        ).bindparams(settings=settings_json)
     )
 
 
