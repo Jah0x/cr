@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 revision = "0003_tenant_finance_and_batches"
 down_revision = "0002_tenant_settings"
-branch_labels = ("tenant",)
+branch_labels = None
 depends_on = None
 
 
