@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.platform import Module, TenantFeature, TenantModule, TenantUIPreference
+from app.repos.tenant_settings_repo import TenantSettingsRepo
 
 
 AVAILABLE_FEATURES = [
@@ -25,12 +27,23 @@ DEFAULT_UI_PREFS = {
     "show_help": True,
 }
 
+DEFAULT_TOBACCO_HIERARCHY_SETTINGS = {
+    "catalog_hierarchy": {
+        "levels": [
+            {"code": "manufacturer", "title": "Производитель", "enabled": True},
+            {"code": "model", "title": "Модель", "enabled": True},
+            {"code": "flavor", "title": "Вкус", "enabled": True},
+        ]
+    }
+}
+
 
 class TenantSettingsService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.tenant_settings_repo = TenantSettingsRepo(session)
 
-    async def get_settings(self):
+    async def get_settings(self, tenant_id):
         modules = await self.session.execute(select(Module))
         modules = modules.scalars().all()
         tenant_modules = await self.session.execute(select(TenantModule))
@@ -65,10 +78,12 @@ class TenantSettingsService:
             )
 
         ui_prefs = await self._load_ui_prefs()
+        tenant_settings = await self._load_tenant_settings(tenant_id)
         return {
             "modules": module_settings,
             "features": feature_settings,
             "ui_prefs": ui_prefs,
+            "settings": tenant_settings,
         }
 
     def _build_module_setting(self, module: Module, is_enabled: bool):
@@ -171,6 +186,15 @@ class TenantSettingsService:
             await self.session.delete(current)
         return DEFAULT_UI_PREFS.copy()
 
+    async def update_tenant_settings(self, tenant_id, patch: dict[str, Any]):
+        settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
+        current_settings = settings_row.settings or {}
+        merged = self._deep_merge(current_settings, patch)
+        settings_row.settings = merged
+        settings_row.updated_at = datetime.now(timezone.utc)
+        await self.session.flush()
+        return merged
+
     async def _load_ui_prefs(self):
         current = await self.session.scalar(
             select(TenantUIPreference)
@@ -178,3 +202,16 @@ class TenantSettingsService:
         if not current:
             return DEFAULT_UI_PREFS.copy()
         return {**DEFAULT_UI_PREFS, **(current.prefs or {})}
+
+    async def _load_tenant_settings(self, tenant_id):
+        settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
+        return settings_row.settings or {}
+
+    def _deep_merge(self, base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+        merged = dict(base)
+        for key, value in patch.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = self._deep_merge(merged[key], value)
+            else:
+                merged[key] = value
+        return merged

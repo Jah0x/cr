@@ -76,3 +76,16 @@ class TenantUIPreference(Base):
     prefs = Column(JSONB, nullable=False, default=dict)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class TenantSettings(Base):
+    __tablename__ = "tenant_settings"
+    __table_args__ = ({"schema": "public"},)
+
+    tenant_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("public.tenants.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    settings = Column(JSONB, nullable=False, default=dict)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
