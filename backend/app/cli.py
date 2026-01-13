@@ -4,13 +4,13 @@ import sys
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.db import async_session
+from app.core.db import async_session, engine
 from app.core.db_utils import set_search_path
 from app.core.security import hash_password, verify_password
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import User, Role, UserRole
 from app.services.bootstrap import apply_template_by_name, ensure_roles, ensure_tenant_schema, seed_platform_defaults
-from app.services.migrations import run_public_migrations, run_tenant_migrations
+from app.services.migrations import run_public_migrations, run_tenant_migrations, verify_public_migrations
 
 
 async def create_owner(tenant_schema: str):
@@ -55,6 +55,7 @@ async def create_owner(tenant_schema: str):
 
 async def migrate_all():
     await asyncio.to_thread(run_public_migrations)
+    await verify_public_migrations(engine)
     await seed_platform_defaults()
     async with async_session() as session:
         result = await session.execute(select(Tenant))
