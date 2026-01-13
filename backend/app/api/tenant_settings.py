@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +9,7 @@ from app.schemas.tenant_settings import (
     TenantFeatureUpdate,
     TenantModuleSetting,
     TenantModuleUpdate,
+    TenantSettingsPayload,
     TenantSettingsResponse,
     TenantUIPrefs,
     TenantUIPrefsUpdate,
@@ -20,9 +23,27 @@ def get_service(session: AsyncSession):
     return TenantSettingsService(session)
 
 
-@router.get("", response_model=TenantSettingsResponse, dependencies=[Depends(require_roles({"owner"})), Depends(get_current_tenant)])
+@router.get(
+    "",
+    response_model=TenantSettingsResponse,
+    dependencies=[Depends(require_roles({"owner", "admin"})), Depends(get_current_tenant)],
+)
 async def get_settings(session: AsyncSession = Depends(get_db_session), tenant=Depends(get_current_tenant)):
-    return await get_service(session).get_settings()
+    return await get_service(session).get_settings(tenant.id)
+
+
+@router.patch(
+    "",
+    response_model=TenantSettingsPayload,
+    dependencies=[Depends(require_roles({"owner", "admin"})), Depends(get_current_tenant)],
+)
+async def update_settings(
+    payload: dict[str, Any],
+    session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
+):
+    settings = await get_service(session).update_tenant_settings(tenant.id, payload)
+    return {"settings": settings}
 
 
 @router.patch(

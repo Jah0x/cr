@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,8 +18,17 @@ from app.schemas.catalog import (
     ProductUpdate,
     ProductOut,
 )
+from app.schemas.catalog_hierarchy import (
+    CatalogHierarchyResponse,
+    CatalogNodeCreate,
+    CatalogNodeOut,
+    CatalogNodeUpdate,
+)
 from app.services.catalog_service import CatalogService
 from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo
+from app.repos.catalog_nodes_repo import CatalogNodeRepo
+from app.repos.tenant_settings_repo import TenantSettingsRepo
+from app.services.catalog_hierarchy_service import CatalogHierarchyService
 
 router = APIRouter(
     prefix="",
@@ -39,10 +50,66 @@ def get_catalog_service(session: AsyncSession):
     )
 
 
+def get_catalog_hierarchy_service(session: AsyncSession):
+    return CatalogHierarchyService(
+        CatalogNodeRepo(session),
+        TenantSettingsRepo(session),
+    )
+
+
 @router.get("/categories", response_model=list[CategoryOut])
 async def list_categories(request: Request, session: AsyncSession = Depends(get_db_session)):
     service = get_catalog_service(session)
     return await service.list_categories()
+
+
+@router.get("/catalog/hierarchy", response_model=CatalogHierarchyResponse)
+async def get_catalog_hierarchy(session: AsyncSession = Depends(get_db_session), tenant=Depends(get_current_tenant)):
+    service = get_catalog_hierarchy_service(session)
+    return await service.get_hierarchy(tenant.id)
+
+
+@router.get("/catalog/nodes", response_model=list[CatalogNodeOut])
+async def list_catalog_nodes(
+    parent_id: uuid.UUID | None = None,
+    level_code: str | None = None,
+    session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
+):
+    service = get_catalog_hierarchy_service(session)
+    return await service.list_nodes(parent_id=parent_id, level_code=level_code)
+
+
+@router.post("/catalog/nodes", response_model=CatalogNodeOut)
+async def create_catalog_node(
+    payload: CatalogNodeCreate,
+    session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
+):
+    service = get_catalog_hierarchy_service(session)
+    return await service.create_node(payload.model_dump())
+
+
+@router.patch("/catalog/nodes/{node_id}", response_model=CatalogNodeOut)
+async def update_catalog_node(
+    node_id: uuid.UUID,
+    payload: CatalogNodeUpdate,
+    session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
+):
+    service = get_catalog_hierarchy_service(session)
+    return await service.update_node(node_id, payload.model_dump(exclude_unset=True))
+
+
+@router.delete("/catalog/nodes/{node_id}")
+async def delete_catalog_node(
+    node_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
+):
+    service = get_catalog_hierarchy_service(session)
+    await service.delete_node(node_id)
+    return {"detail": "deleted"}
 
 
 @router.post("/categories", response_model=CategoryOut)

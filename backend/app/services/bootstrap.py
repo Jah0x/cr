@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 from sqlalchemy import func, select, text
 
 from app.core.config import settings
@@ -12,6 +13,8 @@ from app.models.user import Role, User, UserRole
 from app.models.cash import CashRegister
 from app.services.migrations import run_public_migrations, run_tenant_migrations, verify_public_migrations
 from app.services.template_service import apply_template_codes
+from app.repos.tenant_settings_repo import TenantSettingsRepo
+from app.services.tenant_settings_service import DEFAULT_TOBACCO_HIERARCHY_SETTINGS
 
 
 async def ensure_roles(session):
@@ -191,6 +194,17 @@ async def apply_template_by_name(schema: str, template_name: str):
             module_codes=template.module_codes,
             feature_codes=template.feature_codes,
         )
+        tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
+        if tenant and template_name == "tobacco":
+            settings_repo = TenantSettingsRepo(session)
+            settings_row = await settings_repo.get_or_create(tenant.id)
+            current_settings = settings_row.settings or {}
+            if "catalog_hierarchy" not in current_settings:
+                settings_row.settings = {
+                    **current_settings,
+                    **DEFAULT_TOBACCO_HIERARCHY_SETTINGS,
+                }
+                settings_row.updated_at = datetime.now(timezone.utc)
         await session.commit()
 
 

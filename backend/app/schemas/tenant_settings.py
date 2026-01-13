@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
 
@@ -26,6 +26,7 @@ class TenantSettingsResponse(BaseModel):
     modules: List[TenantModuleSetting]
     features: List[TenantFeatureSetting]
     ui_prefs: Dict[str, bool]
+    settings: Dict[str, Any]
 
 
 class TenantModuleUpdate(BaseModel):
@@ -38,3 +39,7 @@ class TenantFeatureUpdate(BaseModel):
 
 class TenantUIPrefsUpdate(BaseModel):
     prefs: Dict[str, bool]
+
+
+class TenantSettingsPayload(BaseModel):
+    settings: Dict[str, Any]
