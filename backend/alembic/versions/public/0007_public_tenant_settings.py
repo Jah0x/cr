@@ -53,11 +53,12 @@ def upgrade() -> None:
         sa.text(
             """
             UPDATE public.tenant_settings
-            SET settings = :settings::jsonb,
+            SET settings = CAST(:settings AS jsonb),
                 updated_at = now()
             WHERE settings = '{}'::jsonb;
             """
-        ).bindparams(settings=settings_json)
+        ),
+        {"settings": settings_json},
     )
 
 
