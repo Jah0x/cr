@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import make_url
 
 from alembic import command
 from alembic.config import Config
@@ -27,7 +26,8 @@ def _alembic_config(
 ) -> Config:
     config = Config(str(ALEMBIC_INI_PATH))
     config.set_main_option("script_location", str(SCRIPT_LOCATION))
-    config.set_main_option("sqlalchemy.url", settings.database_url)
+    sync_url = make_sync_database_url(settings.database_url)
+    config.set_main_option("sqlalchemy.url", sync_url)
     config.set_main_option("version_locations", str(version_locations))
     config.set_main_option("version_table", version_table)
     if schema:
@@ -47,6 +47,23 @@ def run_public_migrations() -> None:
     command.upgrade(config, "head")
 
 
+async def verify_public_migrations(engine) -> None:
+    async with engine.connect() as conn:
+        res = await conn.execute(
+            text(
+                """
+                select
+                    to_regclass('public.alembic_version') as alembic,
+                    to_regclass('public.modules') as modules
+                """
+            )
+        )
+        row = res.mappings().first()
+
+    if not row or not row["alembic"] or not row["modules"]:
+        raise RuntimeError(f"Alembic migration failed: tables not created: {row}")
+
+
 def run_tenant_migrations(schema: str) -> None:
     _ensure_tenant_version_table(schema)
     config = _alembic_config(
@@ -58,11 +75,18 @@ def run_tenant_migrations(schema: str) -> None:
     command.upgrade(config, "head")
 
 
+def make_sync_database_url(async_url: str) -> str:
+    """
+    Alembic работает только с sync драйвером.
+    Преобразует postgresql+asyncpg -> postgresql+psycopg
+    """
+    if "+asyncpg" in async_url:
+        return async_url.replace("+asyncpg", "+psycopg")
+    return async_url
+
+
 def _sync_database_url() -> str:
-    url = make_url(settings.database_url)
-    if url.drivername.endswith("+asyncpg"):
-        url = url.set(drivername="postgresql+psycopg")
-    return str(url)
+    return make_sync_database_url(settings.database_url)
 
 
 def _ensure_tenant_version_table(schema: str) -> None:

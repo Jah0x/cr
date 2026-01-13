@@ -4,13 +4,13 @@ from sqlalchemy import func, select, text
 from app.core.config import settings
 from app.core.db_utils import quote_ident, set_search_path, validate_schema_name
 from app.core.tenancy import normalize_tenant_slug
-from app.core.db import async_session
+from app.core.db import async_session, engine
 from app.core.security import hash_password
 from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
 from app.models.cash import CashRegister
-from app.services.migrations import run_public_migrations, run_tenant_migrations
+from app.services.migrations import run_public_migrations, run_tenant_migrations, verify_public_migrations
 from app.services.template_service import apply_template_codes
 
 
@@ -62,6 +62,15 @@ async def provision_tenant(schema: str, name: str, *, owner_email: str | None = 
 
 
 async def seed_platform_defaults():
+    async with async_session() as session:
+        res = await session.execute(
+            text(
+                "select 1 from information_schema.tables "
+                "where table_schema='public' limit 1"
+            )
+        )
+        if not res.first():
+            raise RuntimeError("Public schema is empty — migrations not applied")
     modules = [
         {
             "code": "catalog",
@@ -208,6 +217,7 @@ async def ensure_default_tenant() -> bool:
 
 async def bootstrap_platform():
     await asyncio.to_thread(run_public_migrations)
+    await verify_public_migrations(engine)
     await seed_platform_defaults()
 
 
