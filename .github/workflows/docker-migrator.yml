@@ -1,16 +1,26 @@
-name: Build and publish backend image
+name: Build and publish migrator image
 
 on:
   push:
     branches:
       - main
     paths:
-      - "backend/**"
-      - ".github/workflows/docker-build.yml"
-    paths-ignore:
-      - "backend/Dockerfile.migrator"
+      - "backend/alembic/**"
+      - "backend/alembic.ini"
       - "backend/app/migrator_cli.py"
+      - "backend/Dockerfile.migrator"
+      - "backend/pyproject.toml"
+      - "backend/poetry.lock"
+      - ".github/workflows/docker-migrator.yml"
   pull_request:
+    paths:
+      - "backend/alembic/**"
+      - "backend/alembic.ini"
+      - "backend/app/migrator_cli.py"
+      - "backend/Dockerfile.migrator"
+      - "backend/pyproject.toml"
+      - "backend/poetry.lock"
+      - ".github/workflows/docker-migrator.yml"
 
 permissions:
   contents: read
@@ -42,11 +52,11 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/Dockerfile.migrator
           push: true
           tags: |
-            ghcr.io/${{ env.IMAGE_OWNER }}/crm-backend:latest
-            ghcr.io/${{ env.IMAGE_OWNER }}/crm-backend:${{ github.sha }}
+            ghcr.io/${{ env.IMAGE_OWNER }}/crm-migrator:latest
+            ghcr.io/${{ env.IMAGE_OWNER }}/crm-migrator:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -55,8 +65,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/Dockerfile.migrator
           push: false
-          tags: pr-${{ github.sha }}
+          tags: pr-migrator-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
