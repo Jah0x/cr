@@ -1,5 +1,7 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, EmailStr
+from pydantic import Field, EmailStr, model_validator
 
 
 class Settings(BaseSettings):
@@ -8,7 +10,7 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, alias="APP_PORT")
     database_url: str = Field(alias="DATABASE_URL")
     alembic_ini_path: str = Field(default="alembic.ini", alias="ALEMBIC_INI_PATH")
-    jwt_secret: str = Field(alias="JWT_SECRET")
+    jwt_secret: str | None = Field(default=None, alias="JWT_SECRET")
     jwt_expires_seconds: int = Field(default=3600, alias="JWT_EXPIRES")
     cors_origins: str = Field(default="http://localhost:5173", alias="CORS_ORIGINS")
     costing_method: str = Field(default="LAST_PURCHASE", alias="COSTING_METHOD")
@@ -34,6 +36,17 @@ class Settings(BaseSettings):
     default_tenant_slug: str | None = Field(default=None, alias="DEFAULT_TENANT_SLUG")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+
+    @model_validator(mode="after")
+    def _ensure_jwt_secret(self) -> "Settings":
+        if os.getenv("MIGRATOR_ONLY") == "1":
+            if not self.jwt_secret:
+                self.jwt_secret = "migrator-placeholder"
+            return self
+
+        if not self.jwt_secret:
+            raise ValueError("JWT_SECRET is required unless MIGRATOR_ONLY=1")
+        return self
 
     @property
     def ALEMBIC_INI_PATH(self) -> str:
