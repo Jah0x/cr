@@ -10,7 +10,7 @@ Frontend: React + Vite + React Query.
 3. Create Kubernetes Deployments for backend and frontend, plus Services and an Ingress (or Gateway) for routing.
 4. Configure the backend with the required environment variables (see below).
 5. Run database migrations as a one-off Job or `kubectl exec` using:
-   `python -m app.cli migrate-all` (full backend) or `python -m app.migrator_cli` (public-only migrator).
+   `python -m app.cli migrate-all` (full backend) or `python -m app.migrator.main` (public-only migrator).
 6. Roll out the backend and frontend Deployments.
 
 ### Required environment variables
@@ -31,7 +31,7 @@ Frontend: React + Vite + React Query.
 
 ### Migrator command
 
-`python -m app.migrator_cli`
+`python -m app.migrator.main`
 
 ## Frontend API base URL
 
