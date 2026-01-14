@@ -7,7 +7,7 @@ on:
     paths:
       - "backend/alembic/**"
       - "backend/alembic.ini"
-      - "backend/app/migrator_cli.py"
+      - "backend/app/migrator/**"
       - "backend/Dockerfile.migrator"
       - "backend/pyproject.toml"
       - "backend/poetry.lock"
@@ -16,7 +16,7 @@ on:
     paths:
       - "backend/alembic/**"
       - "backend/alembic.ini"
-      - "backend/app/migrator_cli.py"
+      - "backend/app/migrator/**"
       - "backend/Dockerfile.migrator"
       - "backend/pyproject.toml"
       - "backend/poetry.lock"
