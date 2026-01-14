@@ -20,7 +20,7 @@ def _make_sync_database_url(async_url: str) -> str:
 
 def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
     alembic_ini_path = base_dir / "alembic.ini"
-    script_location = base_dir / "migrator_alembic"
+    script_location = base_dir / "alembic"
     public_versions = base_dir / "alembic" / "versions" / "public"
     config = Config(str(alembic_ini_path))
     config.set_main_option("script_location", str(script_location))
