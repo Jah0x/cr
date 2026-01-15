@@ -1,9 +1,11 @@
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from alembic import command
 from alembic.config import Config
+from sqlalchemy import create_engine, text
 
 
 def _normalize_database_url(database_url: str) -> str:
@@ -16,7 +18,7 @@ def _normalize_database_url(database_url: str) -> str:
 
 def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
     alembic_ini_path = base_dir / "alembic.ini"
-    script_location = base_dir / "alembic"
+    script_location = base_dir / "migrator_alembic"
     public_versions = base_dir / "alembic" / "versions" / "public"
     config = Config(str(alembic_ini_path))
     config.set_main_option("script_location", str(script_location))
@@ -28,10 +30,52 @@ def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
     return config
 
 
+def _mask_database_url(database_url: str) -> str:
+    split = urlsplit(database_url)
+    if not split.netloc or "@" not in split.netloc:
+        return database_url
+    userinfo, hostinfo = split.netloc.rsplit("@", 1)
+    username = userinfo.split(":", 1)[0]
+    masked_netloc = f"{username}:***@{hostinfo}"
+    return urlunsplit((split.scheme, masked_netloc, split.path, split.query, split.fragment))
+
+
+def _post_migration_check(database_url: str) -> None:
+    sync_url = _normalize_database_url(database_url)
+    engine = create_engine(sync_url)
+    try:
+        with engine.connect() as conn:
+            info_row = conn.execute(
+                text("select current_database(), current_user, inet_server_addr(), inet_server_port()")
+            ).one()
+            check_row = conn.execute(
+                text(
+                    """
+                    select
+                        to_regclass('public.alembic_version') as alembic_version,
+                        to_regclass('public.tenants') as tenants,
+                        to_regclass('public.modules') as modules
+                    """
+                )
+            ).mappings().one()
+    finally:
+        engine.dispose()
+
+    missing = [key for key, value in check_row.items() if value is None]
+    if missing:
+        masked_url = _mask_database_url(sync_url)
+        sys.stderr.write(
+            "Post-migration check failed. Database info: "
+            f"db={info_row[0]}, user={info_row[1]}, addr={info_row[2]}, port={info_row[3]}. "
+            f"Missing tables: {', '.join(missing)}. URL={masked_url}\n"
+        )
+        sys.exit(1)
+
+
 def main() -> None:
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = os.getenv("DATABASE_URL") or os.getenv("DATABASE_DSN")
     if not database_url:
-        sys.stderr.write("DATABASE_URL is required to run migrations.\n")
+        sys.stderr.write("DATABASE_URL or DATABASE_DSN is required to run migrations.\n")
         sys.exit(1)
 
     base_dir = Path(__file__).resolve().parents[2]
@@ -39,6 +83,7 @@ def main() -> None:
 
     try:
         command.upgrade(config, "head")
+        _post_migration_check(database_url)
     except Exception as exc:
         sys.stderr.write(f"Migration failed: {exc}\n")
         sys.exit(1)
