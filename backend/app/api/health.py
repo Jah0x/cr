@@ -3,6 +3,7 @@ import os
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db_session
@@ -49,8 +50,40 @@ async def _check_db_connection() -> None:
         await conn.close()
 
 
+async def _assert_migrations(session: AsyncSession) -> None:
+    result = await session.execute(
+        text(
+            """
+            select
+                to_regclass('public.alembic_version') as alembic_version,
+                to_regclass('public.tenants') as tenants,
+                to_regclass('public.modules') as modules
+            """
+        )
+    )
+    row = result.mappings().first()
+    alembic_ok = row and row["alembic_version"]
+    tenants_ok = row and row["tenants"]
+    modules_ok = row and row["modules"]
+    if not alembic_ok:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"status": "not_ready", "reason": "migrations_not_applied"},
+        )
+    if not tenants_ok or not modules_ok:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "not_ready",
+                "reason": "public_schema_not_initialized",
+                "details": "public schema is not initialized (missing public.tenants/public.modules)",
+            },
+        )
+
+
 async def readiness_check(_session: AsyncSession, _request: Request, _: object | None = None):
     await _check_db_connection()
+    await _assert_migrations(_session)
     return {"status": "ready"}
 
 
