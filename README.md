@@ -33,6 +33,33 @@ Frontend: React + Vite + React Query.
 
 `python -m app.migrator.main`
 
+### Kubernetes Job (migrations)
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: crm-migrator
+  namespace: crm
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrator
+          image: ghcr.io/your-org/crm-migrator:latest
+          imagePullPolicy: Always
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: crm-database
+                  key: DATABASE_URL
+          command: ["python", "-m", "app.migrator.main"]
+```
+
 ## Frontend API base URL
 
 The frontend defaults to using `/api/v1` for API requests. You can override this at build time by setting `VITE_API_BASE_URL`.
