@@ -3,11 +3,8 @@ import os
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db_utils import set_search_path
 from app.core.deps import get_db_session
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -22,13 +19,6 @@ async def health():
 @router.get("/z")
 async def healthz():
     return {"status": "ok"}
-
-
-async def _assert_migrations(session: AsyncSession):
-    try:
-        await session.execute(text("SELECT version_num FROM alembic_version LIMIT 1"))
-    except SQLAlchemyError:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Migrations not applied")
 
 
 def get_ready_dsn() -> str:
@@ -59,13 +49,8 @@ async def _check_db_connection() -> None:
         await conn.close()
 
 
-async def readiness_check(session: AsyncSession, request: Request, _: object | None = None):
+async def readiness_check(_session: AsyncSession, _request: Request, _: object | None = None):
     await _check_db_connection()
-    request.state.tenant = None
-    request.state.tenant_schema = None
-    await set_search_path(session, None)
-    await session.execute(text("SELECT 1"))
-    await _assert_migrations(session)
     return {"status": "ready"}
 
 
