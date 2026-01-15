@@ -98,7 +98,7 @@ def run_migrations_online() -> None:
     connectable = async_engine_from_config(section, prefix="sqlalchemy.", poolclass=pool.NullPool)
 
     async def run_async_migrations() -> None:
-        async with connectable.connect() as connection:
+        async with connectable.begin() as connection:
             await connection.run_sync(do_run_migrations)
 
         await connectable.dispose()
