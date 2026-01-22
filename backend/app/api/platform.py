@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, EmailStr
 
-from app.core.deps import get_db_session, require_platform_auth
+from app.core.config import settings
+from app.core.deps import get_db_session, require_platform_auth, require_platform_host
+from app.core.security import create_platform_token
 from app.schemas.platform import (
     PlatformModuleCreate,
     PlatformModuleResponse,
@@ -12,9 +15,26 @@ from app.schemas.platform import (
     PlatformTenantCreateResponse,
     PlatformTenantResponse,
 )
+from app.schemas.user import TokenOut
 from app.services.platform_service import PlatformService
 
 router = APIRouter(prefix="/platform", tags=["platform"], dependencies=[Depends(require_platform_auth)])
+auth_router = APIRouter(prefix="/platform/auth", tags=["platform"], dependencies=[Depends(require_platform_host)])
+
+
+class PlatformLoginPayload(BaseModel):
+    email: EmailStr
+    password: str
+
+
+@auth_router.post("/login", response_model=TokenOut)
+async def login(payload: PlatformLoginPayload) -> TokenOut:
+    if not settings.first_owner_email or not settings.first_owner_password:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Platform auth not configured")
+    if payload.email != settings.first_owner_email or payload.password != settings.first_owner_password:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    token = create_platform_token(subject=payload.email, roles=["owner"])
+    return TokenOut(access_token=token)
 
 
 @router.get("/tenants", response_model=list[PlatformTenantResponse])
@@ -34,7 +54,6 @@ async def create_tenant(payload: PlatformTenantCreate, session: AsyncSession = D
         code=payload.code,
         template_id=payload.template_id,
         owner_email=payload.owner_email,
-        owner_password=payload.owner_password,
     )
     tenant = result["tenant"]
     return PlatformTenantCreateResponse(
@@ -44,8 +63,7 @@ async def create_tenant(payload: PlatformTenantCreate, session: AsyncSession = D
         status=tenant.status.value,
         tenant_url=result["tenant_url"],
         owner_email=result["owner_email"],
-        owner_password=result["owner_password"],
-        owner_token=result["owner_token"],
+        invite_url=result["invite_url"],
     )
 
 
