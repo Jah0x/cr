@@ -1,4 +1,3 @@
-import asyncio
 import os
 import sys
 from pathlib import Path
@@ -6,18 +5,9 @@ from urllib.parse import urlsplit, urlunsplit
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine, text
 
-
-def _normalize_database_url(database_url: str) -> str:
-    if database_url.startswith("postgresql+asyncpg://"):
-        return database_url
-    if database_url.startswith("postgres://"):
-        return database_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    if database_url.startswith("postgresql://"):
-        return database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    return database_url
+from app.core.db_urls import normalize_migration_database_url
 
 
 def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
@@ -26,7 +16,7 @@ def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
     public_versions = "alembic/versions/public"
     config = Config(str(alembic_ini_path))
     config.set_main_option("script_location", str(script_location))
-    config.set_main_option("sqlalchemy.url", _normalize_database_url(database_url))
+    config.set_main_option("sqlalchemy.url", normalize_migration_database_url(database_url))
     config.set_main_option("version_locations", str(public_versions))
     config.set_main_option("version_table", "alembic_version")
     config.set_main_option("schema", "public")
@@ -44,16 +34,16 @@ def _mask_database_url(database_url: str) -> str:
     return urlunsplit((split.scheme, masked_netloc, split.path, split.query, split.fragment))
 
 
-async def _post_migration_check(database_url: str) -> None:
-    async_url = _normalize_database_url(database_url)
-    engine = create_async_engine(async_url)
+def _post_migration_check(database_url: str) -> None:
+    sync_url = normalize_migration_database_url(database_url)
+    engine = create_engine(sync_url)
     try:
-        async with engine.connect() as conn:
-            info_row = (
-                await conn.execute(text("select current_database(), current_user, current_schema()"))
+        with engine.connect() as conn:
+            info_row = conn.execute(
+                text("select current_database(), current_user, current_schema()")
             ).one()
             check_row = (
-                await conn.execute(
+                conn.execute(
                     text(
                         """
                         select
@@ -66,11 +56,11 @@ async def _post_migration_check(database_url: str) -> None:
                 )
             ).mappings().one()
     finally:
-        await engine.dispose()
+        engine.dispose()
 
     missing = [key for key, value in check_row.items() if value is None]
     if missing:
-        masked_url = _mask_database_url(async_url)
+        masked_url = _mask_database_url(sync_url)
         message = (
             "Post-migration check failed. Database info: "
             f"db={info_row[0]}, user={info_row[1]}, schema={info_row[2]}. "
@@ -90,7 +80,7 @@ def main() -> None:
 
     try:
         command.upgrade(config, "head")
-        asyncio.run(_post_migration_check(database_url))
+        _post_migration_check(database_url)
     except Exception as exc:
         sys.stderr.write(f"Migration failed: {exc}\n")
         sys.exit(1)
