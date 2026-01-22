@@ -94,13 +94,20 @@ Notes: registration is not public; owners provision accounts.
 ## Cash registers (owner)
 - Bootstraps one active mock register if none exist. Future endpoints will manage registers; current provider selection uses `CASH_REGISTER_PROVIDER` or the active DB record.
 
-## Platform (bootstrap token, platform host only)
-Auth: `Authorization: Bearer <BOOTSTRAP_TOKEN>`.
+## Platform (platform host only)
+Auth: `Authorization: Bearer <platform JWT>` (fallback: `BOOTSTRAP_TOKEN`).
+
+### Platform auth
+- **POST /platform/auth/login** — login with `FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`. Payload: `{ "email": string, "password": string }`. Response: `{ "access_token": string, "token_type": "bearer" }`.
 
 ### Tenants
 - **GET /platform/tenants** — list tenants.
-- **POST /platform/tenants** — create tenant. Payload: `{ "name": string, "code": string, "template_id"?: uuid, "owner_email": string, "owner_password": string }`. Response: `{ "id": uuid, "name": string, "code": string, "status": "active"|"inactive", "tenant_url": string, "owner_email": string, "owner_password": string }`.
+- **POST /platform/tenants** — create tenant. Payload: `{ "name": string, "code": string, "template_id"?: uuid, "owner_email": string }`. Response: `{ "id": uuid, "name": string, "code": string, "status": "active"|"inactive", "tenant_url": string, "owner_email": string, "invite_url": string }`.
 - **POST /platform/tenants/{tenant_id}/apply-template** — apply template. Payload: `{ "template_id": uuid }`.
+
+### Tenant invite auth
+- **GET /auth/invite-info?token=** — validate invite token. Response: `{ "email": string, "tenant_code": string }`.
+- **POST /auth/register-invite** — register invited owner. Payload: `{ "token": string, "password": string }`. Response: `{ "access_token": string, "token_type": "bearer" }`.
 
 ### Modules
 - **GET /platform/modules** — list modules.

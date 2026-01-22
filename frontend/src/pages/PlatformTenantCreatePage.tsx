@@ -7,21 +7,21 @@ export default function PlatformTenantCreatePage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
-  const [ownerPassword, setOwnerPassword] = useState('')
   const [templateId, setTemplateId] = useState('')
-  const [result, setResult] = useState<{ tenant_url?: string; owner_token?: string } | null>(null)
+  const [result, setResult] = useState<{ tenant_url?: string; invite_url?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
     setResult(null)
+    setCopied(false)
     try {
       const res = await api.post('/platform/tenants', {
         name,
         code,
         owner_email: ownerEmail,
-        owner_password: ownerPassword,
         template_id: templateId || null
       })
       setResult(res.data)
@@ -37,12 +37,6 @@ export default function PlatformTenantCreatePage() {
         <input placeholder="Tenant name" value={name} onChange={(event) => setName(event.target.value)} />
         <input placeholder="Tenant code" value={code} onChange={(event) => setCode(event.target.value)} />
         <input placeholder="Owner email" value={ownerEmail} onChange={(event) => setOwnerEmail(event.target.value)} />
-        <input
-          placeholder="Owner password"
-          type="password"
-          value={ownerPassword}
-          onChange={(event) => setOwnerPassword(event.target.value)}
-        />
         <input placeholder="Template id (optional)" value={templateId} onChange={(event) => setTemplateId(event.target.value)} />
         <div style={{ display: 'flex', gap: 12 }}>
           <button type="submit">Create</button>
@@ -55,10 +49,22 @@ export default function PlatformTenantCreatePage() {
           Tenant URL: <a href={result.tenant_url}>{result.tenant_url}</a>
         </p>
       )}
-      {result?.owner_token && (
+      {result?.invite_url && (
         <div style={{ marginTop: 12 }}>
-          <div>Owner token:</div>
-          <code style={{ display: 'block', wordBreak: 'break-all' }}>{result.owner_token}</code>
+          <div>Invite URL:</div>
+          <code style={{ display: 'block', wordBreak: 'break-all' }}>{result.invite_url}</code>
+          <button
+            type="button"
+            onClick={async () => {
+              if (result.invite_url) {
+                await navigator.clipboard.writeText(result.invite_url)
+                setCopied(true)
+              }
+            }}
+            style={{ marginTop: 8 }}
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
         </div>
       )}
     </div>

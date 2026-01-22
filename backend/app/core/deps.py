@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.db_utils import set_search_path
-from app.core.security import verify_token
+from app.core.security import verify_platform_token, verify_token
 from app.models.platform import Module, TenantFeature, TenantModule
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
@@ -135,19 +135,41 @@ async def get_current_tenant(
     return tenant
 
 
+def _get_platform_hosts() -> set[str]:
+    return {item.strip().lower() for item in settings.platform_hosts.split(",") if item.strip()}
+
+
+def _require_platform_hosts(request: Request) -> None:
+    platform_hosts = _get_platform_hosts()
+    if not platform_hosts:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Platform hosts not configured",
+        )
+    host = (request.headers.get("host") or "").split(":", 1)[0].lower()
+    if host not in platform_hosts:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+async def require_platform_host(request: Request) -> bool:
+    _require_platform_hosts(request)
+    return True
+
+
 async def require_platform_auth(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
 ):
-    if not settings.bootstrap_token:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Bootstrap token not configured")
-    platform_hosts = {item.strip().lower() for item in settings.platform_hosts.split(",") if item.strip()}
-    if platform_hosts:
-        host = (request.headers.get("host") or "").split(":", 1)[0].lower()
-        if host not in platform_hosts:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    _require_platform_hosts(request)
+    if not settings.bootstrap_token and not (settings.first_owner_email and settings.first_owner_password):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Platform auth not configured")
     if not credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    if credentials.credentials != settings.bootstrap_token:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    token = credentials.credentials
+    if settings.bootstrap_token and token == settings.bootstrap_token:
+        return True
+    try:
+        verify_platform_token(token)
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return True

@@ -13,6 +13,7 @@ import PlatformTenantsPage from './pages/PlatformTenantsPage'
 import PlatformTenantCreatePage from './pages/PlatformTenantCreatePage'
 import TenantSettingsPage from './pages/TenantSettingsPage'
 import FinancePage from './pages/FinancePage'
+import RegisterPage from './pages/RegisterPage'
 import { loadRuntimeConfig } from './config/runtimeConfig'
 
 const queryClient = new QueryClient()
@@ -27,7 +28,7 @@ const bootstrap = async () => {
   const platformHosts =
     runtimePlatformHosts && runtimePlatformHosts.length > 0 ? runtimePlatformHosts : platformHostsFromEnv
   const currentHost = window.location.hostname.toLowerCase()
-  const isPlatformHost = platformHosts.includes(currentHost) || currentHost.startsWith('platform.')
+  const isPlatformHost = platformHosts.includes(currentHost)
   const hostMode: 'platform' | 'tenant' = isPlatformHost ? 'platform' : 'tenant'
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -46,6 +47,7 @@ const bootstrap = async () => {
           ) : (
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route element={<TenantLayout />}>
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/pos" element={<PosPage />} />

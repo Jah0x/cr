@@ -8,5 +8,5 @@
 - Cash registers are modular: business logic consumes an abstract interface; a mock provider is default and registers are stored in `cash_registers` to allow future pluggable providers without altering services.
 - Sales are transactional: item creation, stock deductions, payments, and receipt registration happen in a single DB transaction; refunds/voids always append stock history and receipts.
 - Tenant resolution is centralized in a FastAPI dependency that derives the tenant from the request host subdomain after excluding platform hosts and reserved subdomains; inactive tenants are rejected early and the resolved tenant id is stored on `request.state`.
-- Platform-only provisioning uses a bootstrap token (`BOOTSTRAP_TOKEN`) to gate admin routes for creating tenants and applying templates; modules, templates, and tenant-module/feature mappings live in the public schema.
+- Platform-only provisioning uses platform-scoped JWTs (fallback: `BOOTSTRAP_TOKEN`) to gate admin routes for creating tenants and applying templates; modules, templates, and tenant-module/feature mappings live in the public schema.
 - Host-based mode detection drives the UX: platform hosts render the platform console, tenant hosts render tenant routes, and backend module/feature toggles enforce visibility + access across UI and APIs.

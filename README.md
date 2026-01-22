@@ -17,13 +17,13 @@ Frontend: React + Vite + React Query.
 
 * `DATABASE_URL`
 * `JWT_SECRET`
-* `ROOT_DOMAIN`
-* `PLATFORM_HOSTS`
-* `RESERVED_SUBDOMAINS`
+* `ROOT_DOMAIN` (e.g. `securesoft.dev`)
+* `PLATFORM_HOSTS` (e.g. `crm.securesoft.dev`)
+* `RESERVED_SUBDOMAINS` (e.g. `crm,platform,www,api`)
 * `DEFAULT_TENANT_SLUG`
 * `FIRST_OWNER_EMAIL`
 * `FIRST_OWNER_PASSWORD`
-* `BOOTSTRAP_TOKEN`
+* `BOOTSTRAP_TOKEN` (optional fallback for platform auth)
 
 ### Migrator environment variables
 
@@ -81,6 +81,15 @@ The frontend attempts to load `/config.json` at startup (no cache) for runtime o
 ```
 
 In Kubernetes, provide this file via a ConfigMap and mount it at `/usr/share/nginx/html/config.json` inside the frontend container.
+
+You can also set `VITE_PLATFORM_HOSTS` at build time to the same host list (comma-separated). Platform UI is enabled only for hosts listed in `platformHosts`/`VITE_PLATFORM_HOSTS`.
+
+## Platform/auth endpoints
+
+* `POST /api/v1/platform/auth/login` — login with the configured platform owner email/password.
+* `POST /api/v1/platform/tenants` — returns `tenant_url` and `invite_url` for first-user registration.
+* `GET /api/v1/auth/invite-info` — validates invite token for tenant registration.
+* `POST /api/v1/auth/register-invite` — completes tenant owner registration and returns a tenant JWT.
 
 ### Check services
 

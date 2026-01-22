@@ -1,17 +1,19 @@
 import asyncio
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db_utils import set_search_path
 from app.core.tenancy import normalize_code, normalize_tenant_slug
-from app.core.security import create_access_token, hash_password
+from app.models.invitation import TenantInvitation
 from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
-from app.models.user import Role, User, UserRole
-from app.services.bootstrap import ensure_tenant_schema, ensure_roles, ensure_cash_register
+from app.services.bootstrap import ensure_tenant_schema
 from app.services.migrations import run_tenant_migrations
 from app.services.template_service import apply_template_codes
 
@@ -30,7 +32,6 @@ class PlatformService:
         name: str,
         code: str,
         owner_email: str,
-        owner_password: str,
         template_id: str | None = None,
     ):
         schema = normalize_tenant_slug(code)
@@ -41,16 +42,22 @@ class PlatformService:
         self.session.add(tenant)
         await self.session.flush()
         await ensure_tenant_schema(self.session, schema)
-        await asyncio.to_thread(run_tenant_migrations, schema)
+        await self.session.commit()
+        try:
+            await asyncio.to_thread(run_tenant_migrations, schema)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Tenant migrations failed: {exc}",
+            ) from exc
         await self._seed_template(schema, template_id)
-        owner_token = await self._bootstrap_owner(schema, owner_email, owner_password, tenant.id)
+        invite_url = await self._create_invite(schema, tenant.id, owner_email)
         tenant_url = self._tenant_url(schema)
         return {
             "tenant": tenant,
             "tenant_url": tenant_url,
             "owner_email": owner_email,
-            "owner_password": owner_password,
-            "owner_token": owner_token,
+            "invite_url": invite_url,
         }
 
     async def apply_template(self, tenant_id: str, template_id: str):
@@ -85,24 +92,21 @@ class PlatformService:
         await self.session.flush()
         return template
 
-    async def _bootstrap_owner(self, schema: str, email: str, password: str, tenant_id):
-        await set_search_path(self.session, schema)
-        user = await self.session.scalar(select(User).where(User.email == email))
-        await ensure_roles(self.session)
-        owner_role = await self.session.scalar(select(Role).where(Role.name == "owner"))
-        if not user:
-            user = User(email=email, password_hash=hash_password(password), is_active=True)
-            self.session.add(user)
-            await self.session.flush()
-        existing_role = await self.session.scalar(
-            select(UserRole).where(UserRole.user_id == user.id, UserRole.role_id == owner_role.id)
-        )
-        if not existing_role:
-            await self.session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
-        await ensure_cash_register(self.session)
-        await self.session.flush()
+    async def _create_invite(self, schema: str, tenant_id, owner_email: str) -> str:
         await set_search_path(self.session, None)
-        return create_access_token(str(user.id), ["owner"], tenant_id)
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        invitation = TenantInvitation(
+            tenant_id=tenant_id,
+            email=owner_email,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
+        self.session.add(invitation)
+        await self.session.flush()
+        tenant_url = self._tenant_url(schema)
+        return f"{tenant_url}/register?token={raw_token}"
 
     async def _seed_template(self, schema: str, template_id: str | None):
         if not template_id:

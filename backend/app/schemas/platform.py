@@ -57,7 +57,6 @@ class PlatformTenantCreate(BaseModel):
     code: str = Field(min_length=2)
     template_id: str | None = None
     owner_email: EmailStr
-    owner_password: str = Field(min_length=8)
 
     @field_validator("code")
     @classmethod
@@ -72,8 +71,7 @@ class PlatformTenantCreateResponse(BaseModel):
     status: str
     tenant_url: str
     owner_email: EmailStr
-    owner_password: str
-    owner_token: str
+    invite_url: str
 
 
 class PlatformTemplateApply(BaseModel):
