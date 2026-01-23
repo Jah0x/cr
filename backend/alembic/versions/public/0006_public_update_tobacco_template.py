@@ -9,7 +9,7 @@ from alembic import op
 
 revision = "public_0007"
 down_revision = "public_0006"
-branch_labels = ("public",)
+branch_labels = None
 depends_on = None
 
 MODULE_CODES = [
