@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from pathlib import Path
@@ -5,9 +6,12 @@ from urllib.parse import urlsplit, urlunsplit
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 
 from app.core.db_urls import normalize_migration_database_url
+
+logger = logging.getLogger(__name__)
 
 
 def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
@@ -70,6 +74,17 @@ def _post_migration_check(database_url: str) -> None:
         raise RuntimeError(message)
 
 
+def run_public_migrations(config: Config, database_url: str) -> None:
+    script = ScriptDirectory.from_config(config)
+    if not script.get_revisions("head"):
+        raise RuntimeError("No alembic revisions found for public schema")
+
+    logger.info("Running public alembic upgrade to head")
+    command.upgrade(config, "public@head")
+    logger.info("Public migrations completed")
+    _post_migration_check(database_url)
+
+
 def main() -> None:
     database_url = os.getenv("DATABASE_URL") or os.getenv("DATABASE_DSN")
     if not database_url:
@@ -80,8 +95,7 @@ def main() -> None:
     config = _build_alembic_config(base_dir, database_url)
 
     try:
-        command.upgrade(config, "public@head")
-        _post_migration_check(database_url)
+        run_public_migrations(config, database_url)
     except Exception as exc:
         sys.stderr.write(f"Migration failed: {exc}\n")
         sys.exit(1)
