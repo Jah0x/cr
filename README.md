@@ -33,6 +33,11 @@ Frontend: React + Vite + React Query.
 
 `python -m app.migrator.main`
 
+### Public migrations behavior
+
+* Public migrations are applied via `alembic upgrade head` (no branch labels).
+* Alembic branches are not used for public migrations; `versions/public` is treated as the public migration source.
+
 ### Kubernetes Job (migrations)
 
 ```yaml

@@ -76,11 +76,20 @@ def _post_migration_check(database_url: str) -> None:
 
 def run_public_migrations(config: Config, database_url: str) -> None:
     script = ScriptDirectory.from_config(config)
-    if not script.get_revisions("head"):
+    script_location = config.get_main_option("script_location")
+    version_locations = config.get_main_option("version_locations")
+    logger.info("Alembic script_location=%s", script_location)
+    logger.info("Alembic version_locations=%s", version_locations)
+    public_revisions = script.get_revisions("head")
+    logger.info(
+        "Public revisions: %s",
+        [revision.revision for revision in public_revisions],
+    )
+    if not public_revisions:
         raise RuntimeError("No alembic revisions found for public schema")
 
     logger.info("Running public alembic upgrade to head")
-    command.upgrade(config, "public@head")
+    command.upgrade(config, "head")
     logger.info("Public migrations completed")
     _post_migration_check(database_url)
 
