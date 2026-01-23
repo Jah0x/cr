@@ -1,8 +1,16 @@
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import create_engine, pool
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from app.core.db_urls import normalize_migration_database_url
 
 config = context.config
 
@@ -25,10 +33,14 @@ def _quote_identifier(value: str) -> str:
 
 
 def _get_database_url() -> str:
-    url = _get_option("sqlalchemy.url") or os.getenv("DATABASE_URL")
+    url = (
+        _get_option("sqlalchemy.url")
+        or os.getenv("DATABASE_URL")
+        or os.getenv("DATABASE_DSN")
+    )
     if not url:
-        raise RuntimeError("DATABASE_URL is required to run migrations.")
-    return url
+        raise RuntimeError("DATABASE_URL or DATABASE_DSN is required to run migrations.")
+    return normalize_migration_database_url(url)
 
 
 def run_migrations_offline() -> None:
