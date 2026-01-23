@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, EmailStr, model_validator
@@ -19,12 +20,8 @@ class Settings(BaseSettings):
     discount_max_amount_line: float = Field(default=0, alias="DISCOUNT_MAX_AMOUNT_LINE")
     discount_max_amount_receipt: float = Field(default=0, alias="DISCOUNT_MAX_AMOUNT_RECEIPT")
     allow_negative_stock: bool = Field(default=False, alias="ALLOW_NEGATIVE_STOCK")
-    first_owner_email: EmailStr | None = Field(
-        default=None, alias="FIRST_OWNER_EMAIL", validation_alias="OWNER_EMAIL"
-    )
-    first_owner_password: str | None = Field(
-        default=None, alias="FIRST_OWNER_PASSWORD", validation_alias="OWNER_PASSWORD"
-    )
+    first_owner_email: EmailStr | None = Field(default=None, env="FIRST_OWNER_EMAIL")
+    first_owner_password: str | None = Field(default=None, env="FIRST_OWNER_PASSWORD")
     bootstrap_token: str | None = Field(default=None, alias="BOOTSTRAP_TOKEN")
     auto_migrate_on_startup: bool = Field(default=False, alias="AUTO_MIGRATE_ON_STARTUP")
     auto_bootstrap_on_startup: bool = Field(default=False, alias="AUTO_BOOTSTRAP_ON_STARTUP")
@@ -53,4 +50,6 @@ class Settings(BaseSettings):
         return self.alembic_ini_path
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

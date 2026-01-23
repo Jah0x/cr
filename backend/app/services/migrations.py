@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, text
 from alembic import command
 from alembic.config import Config
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.db_urls import normalize_migration_database_url
 
 
@@ -18,6 +18,7 @@ def _alembic_config(
     version_table: str,
     version_table_schema: str | None,
 ) -> Config:
+    settings = get_settings()
     alembic_ini_path = Path(settings.ALEMBIC_INI_PATH)
     script_location = alembic_ini_path.parent / "alembic"
     config = Config(str(alembic_ini_path))
@@ -34,6 +35,7 @@ def _alembic_config(
 
 
 def run_public_migrations() -> None:
+    settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
     public_versions = root / "alembic" / "versions" / "public"
     config = _alembic_config(
@@ -78,6 +80,7 @@ async def verify_public_migrations(engine) -> None:
 
 def run_tenant_migrations(schema: str) -> None:
     _ensure_tenant_version_table(schema)
+    settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
     tenant_versions = root / "alembic" / "versions" / "tenant"
     config = _alembic_config(
@@ -90,6 +93,7 @@ def run_tenant_migrations(schema: str) -> None:
 
 
 def _sync_database_url() -> str:
+    settings = get_settings()
     return normalize_migration_database_url(settings.database_url)
 
 
@@ -125,6 +129,7 @@ def _ensure_tenant_version_table(schema: str) -> None:
         ).scalar()
     engine.dispose()
     if has_tables and not has_version_table:
+        settings = get_settings()
         root = Path(settings.ALEMBIC_INI_PATH).parent
         tenant_versions = root / "alembic" / "versions" / "tenant"
         config = _alembic_config(

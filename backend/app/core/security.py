@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import JWTError, jwt
 
-from app.core.config import settings
+from app.core.config import get_settings
 
 
 def create_access_token(
@@ -14,6 +14,7 @@ def create_access_token(
 ) -> str:
     if not tenant_id:
         raise ValueError("tenant_id is required")
+    settings = get_settings()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(seconds=settings.jwt_expires_seconds))
     to_encode = {
         "sub": subject,
@@ -26,6 +27,7 @@ def create_access_token(
 
 
 def verify_token(token: str) -> dict:
+    settings = get_settings()
     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     sub = payload.get("sub")
     tenant_id = payload.get("tenant_id")
@@ -39,6 +41,7 @@ def create_platform_token(
     roles: list[str],
     expires_delta: timedelta | None = None,
 ) -> str:
+    settings = get_settings()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(seconds=settings.jwt_expires_seconds))
     to_encode = {
         "sub": subject,
@@ -51,6 +54,7 @@ def create_platform_token(
 
 
 def verify_platform_token(token: str) -> dict:
+    settings = get_settings()
     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     sub = payload.get("sub")
     scope = payload.get("scope")
