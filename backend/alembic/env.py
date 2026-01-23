@@ -35,9 +35,13 @@ def _quote_identifier(value: str) -> str:
 
 
 def _get_database_url() -> str:
-    url = _get_option("sqlalchemy.url") or os.getenv("DATABASE_URL")
+    url = (
+        _get_option("sqlalchemy.url")
+        or os.getenv("DATABASE_URL")
+        or os.getenv("DATABASE_DSN")
+    )
     if not url:
-        raise RuntimeError("DATABASE_URL is required to run migrations.")
+        raise RuntimeError("DATABASE_URL or DATABASE_DSN is required to run migrations.")
     return normalize_migration_database_url(url)
 
 
