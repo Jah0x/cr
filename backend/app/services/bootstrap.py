@@ -2,11 +2,11 @@ import asyncio
 from datetime import datetime, timezone
 from sqlalchemy import func, select, text
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.db_utils import quote_ident, set_search_path, validate_schema_name
 from app.core.tenancy import normalize_tenant_slug
-from app.core.db import async_session, engine
-from app.core.security import hash_password
+from app.core.db import get_engine, get_sessionmaker
+from app.core.security import hash_password, verify_password
 from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
@@ -33,7 +33,8 @@ async def ensure_tenant_schema(session, schema: str):
 
 
 async def bootstrap_tenant_owner(schema: str, email: str, password: str):
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         await set_search_path(session, schema)
         count_result = await session.execute(select(func.count(User.id)))
         if count_result.scalar_one() > 0:
@@ -50,7 +51,8 @@ async def bootstrap_tenant_owner(schema: str, email: str, password: str):
 
 
 async def provision_tenant(schema: str, name: str, *, owner_email: str | None = None, owner_password: str | None = None):
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         schema = normalize_tenant_slug(schema)
         await ensure_tenant_schema(session, schema)
         tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
@@ -65,7 +67,8 @@ async def provision_tenant(schema: str, name: str, *, owner_email: str | None = 
 
 
 async def seed_platform_defaults():
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         res = await session.execute(
             text(
                 "select 1 from information_schema.tables "
@@ -142,7 +145,8 @@ async def seed_platform_defaults():
             "feature_codes": ["reports", "ui_prefs"],
         },
     ]
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         existing_modules = await session.execute(select(Module))
         module_map = {module.code: module for module in existing_modules.scalars()}
         for module in modules:
@@ -182,7 +186,8 @@ async def seed_platform_defaults():
 
 async def apply_template_by_name(schema: str, template_name: str):
     schema = normalize_tenant_slug(schema)
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         await set_search_path(session, None)
         template = await session.scalar(select(Template).where(Template.name == template_name))
         if not template:
@@ -209,6 +214,7 @@ async def apply_template_by_name(schema: str, template_name: str):
 
 
 async def bootstrap_first_tenant():
+    settings = get_settings()
     await provision_tenant(
         "husky",
         "Husky",
@@ -219,7 +225,9 @@ async def bootstrap_first_tenant():
 
 
 async def ensure_default_tenant() -> bool:
-    async with async_session() as session:
+    settings = get_settings()
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         tenant_count = await session.scalar(select(func.count(Tenant.id)))
     if tenant_count and tenant_count > 0:
         return False
@@ -231,14 +239,49 @@ async def ensure_default_tenant() -> bool:
 
 async def bootstrap_platform():
     await asyncio.to_thread(run_public_migrations)
-    await verify_public_migrations(engine)
+    await verify_public_migrations(get_engine())
     await seed_platform_defaults()
 
 
 async def ensure_cash_register(session):
+    settings = get_settings()
     existing = await session.execute(select(func.count(CashRegister.id)))
     if existing.scalar_one() > 0:
         return
     register = CashRegister(name="Default", type=settings.cash_register_provider, config={}, is_active=True)
     session.add(register)
     await session.flush()
+
+
+async def ensure_platform_owner() -> bool:
+    settings = get_settings()
+    if not settings.first_owner_email or not settings.first_owner_password:
+        return False
+    tenant_slug = settings.default_tenant_slug or "husky"
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        await set_search_path(session, None)
+        tenant = await session.scalar(select(Tenant).where(Tenant.code == tenant_slug))
+        if not tenant:
+            return False
+        await set_search_path(session, tenant_slug)
+        await ensure_roles(session)
+        owner_role = await session.scalar(select(Role).where(Role.name == "owner"))
+        user = await session.scalar(select(User).where(User.email == settings.first_owner_email))
+        if not user:
+            user = User(
+                email=settings.first_owner_email,
+                password_hash=hash_password(settings.first_owner_password),
+                is_active=True,
+            )
+            session.add(user)
+            await session.flush()
+        if not verify_password(settings.first_owner_password, user.password_hash):
+            user.password_hash = hash_password(settings.first_owner_password)
+        role_link = await session.scalar(
+            select(UserRole).where(UserRole.user_id == user.id, UserRole.role_id == owner_role.id)
+        )
+        if not role_link:
+            await session.execute(UserRole.__table__.insert().values(user_id=user.id, role_id=owner_role.id))
+        await session.commit()
+    return True

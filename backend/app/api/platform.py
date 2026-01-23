@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, EmailStr
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.deps import get_db_session, require_platform_auth, require_platform_host
 from app.core.security import create_platform_token
 from app.schemas.platform import (
@@ -29,8 +29,9 @@ class PlatformLoginPayload(BaseModel):
 
 @auth_router.post("/login", response_model=TokenOut)
 async def login(payload: PlatformLoginPayload) -> TokenOut:
+    settings = get_settings()
     if not settings.first_owner_email or not settings.first_owner_password:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Platform auth not configured")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Platform auth not configured")
     if payload.email != settings.first_owner_email or payload.password != settings.first_owner_password:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_platform_token(subject=payload.email, roles=["owner"])

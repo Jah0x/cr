@@ -12,7 +12,7 @@ from app.core.security import verify_platform_token, verify_token
 from app.models.platform import Module, TenantFeature, TenantModule
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
-from app.core.config import settings
+from app.core.config import get_settings
 from app.services.tenant_service import TenantService
 
 auth_scheme = HTTPBearer(auto_error=False)
@@ -136,6 +136,7 @@ async def get_current_tenant(
 
 
 def _get_platform_hosts() -> set[str]:
+    settings = get_settings()
     return {item.strip().lower() for item in settings.platform_hosts.split(",") if item.strip()}
 
 
@@ -161,6 +162,7 @@ async def require_platform_auth(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
 ):
     _require_platform_hosts(request)
+    settings = get_settings()
     if not settings.bootstrap_token and not (settings.first_owner_email and settings.first_owner_password):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Platform auth not configured")
     if not credentials:

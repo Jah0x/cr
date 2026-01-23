@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Request, status
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.tenancy import is_valid_tenant_slug, normalize_tenant_slug
 from app.models.tenant import TenantStatus
 from app.repos.tenant_repo import TenantRepo
@@ -24,6 +24,7 @@ class TenantService:
         return tenant
 
     def _tenant_code_from_host(self, request: Request):
+        settings = get_settings()
         host = (request.headers.get("host") or "").split(":", 1)[0].lower().strip()
         if not host:
             return None

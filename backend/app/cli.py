@@ -3,8 +3,8 @@ import asyncio
 import sys
 from sqlalchemy import select
 
-from app.core.config import settings
-from app.core.db import async_session, engine
+from app.core.config import get_settings
+from app.core.db import get_engine, get_sessionmaker
 from app.core.db_utils import set_search_path
 from app.core.security import hash_password, verify_password
 from app.models.tenant import Tenant, TenantStatus
@@ -14,11 +14,13 @@ from app.services.migrations import run_public_migrations, run_tenant_migrations
 
 
 async def create_owner(tenant_schema: str):
+    settings = get_settings()
     email = settings.first_owner_email
     password = settings.first_owner_password
     if not email or not password:
         raise ValueError("FIRST_OWNER_EMAIL and FIRST_OWNER_PASSWORD are required")
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         await ensure_tenant_schema(session, tenant_schema)
         await set_search_path(session, tenant_schema)
         role_result = await session.execute(select(Role).where(Role.name == "owner"))
@@ -55,9 +57,10 @@ async def create_owner(tenant_schema: str):
 
 async def migrate_all():
     await asyncio.to_thread(run_public_migrations)
-    await verify_public_migrations(engine)
+    await verify_public_migrations(get_engine())
     await seed_platform_defaults()
-    async with async_session() as session:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
         result = await session.execute(select(Tenant))
         tenants = result.scalars().all()
         if not tenants:
@@ -71,6 +74,7 @@ async def migrate_all():
     for tenant in tenants:
         await asyncio.to_thread(run_tenant_migrations, tenant.code)
     husky_present = any(tenant.code == "husky" for tenant in tenants)
+    settings = get_settings()
     if settings.first_owner_email and settings.first_owner_password and husky_present:
         await create_owner("husky")
     if husky_present:

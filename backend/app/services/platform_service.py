@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.db_utils import set_search_path
 from app.core.tenancy import normalize_code, normalize_tenant_slug
 from app.models.invitation import TenantInvitation
@@ -130,6 +130,7 @@ class PlatformService:
         await set_search_path(self.session, None)
 
     def _tenant_url(self, schema: str) -> str:
+        settings = get_settings()
         root_domain = settings.root_domain.strip(".")
         if root_domain:
             return f"https://{schema}.{root_domain}"

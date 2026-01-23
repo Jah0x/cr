@@ -2,7 +2,7 @@ from decimal import Decimal
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.models.sales import PaymentProvider, PaymentStatus, SaleStatus
 from app.models.stock import SaleItemCostAllocation
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
@@ -229,6 +229,7 @@ class SalesService:
             )
 
     async def _resolve_cash_register(self, cash_register_id=None):
+        settings = get_settings()
         register = None
         if cash_register_id:
             register = await self.cash_register_repo.get_by_id(cash_register_id)
