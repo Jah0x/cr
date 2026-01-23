@@ -1,7 +1,7 @@
 """Add public features and remove tenant-scoped tables.
 
-Revision ID: 0004_public_features
-Revises: 0003_public_tenant_ui_prefs
+Revision ID: public_0005
+Revises: public_0004
 Create Date: 2025-09-27 00:20:00.000000
 """
 
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
-revision = "0004"
-down_revision = "0003"
-branch_labels = None
+revision = "public_0005"
+down_revision = "public_0004"
+branch_labels = ("public",)
 depends_on = None
 
 

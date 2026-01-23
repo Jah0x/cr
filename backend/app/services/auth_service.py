@@ -12,8 +12,10 @@ class AuthService:
 
     async def login(self, email: str, password: str, tenant_id):
         user = await self.user_repo.get_by_email(email)
-        if not user or not verify_password(password, user.password_hash):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        if not verify_password(password, user.password_hash):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid password")
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
         user.last_login_at = datetime.now(timezone.utc)

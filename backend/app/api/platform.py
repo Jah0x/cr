@@ -1,5 +1,8 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from pydantic import BaseModel, EmailStr
 
 from app.core.config import get_settings
@@ -18,6 +21,8 @@ from app.schemas.platform import (
 from app.schemas.user import TokenOut
 from app.services.platform_service import PlatformService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/platform", tags=["platform"], dependencies=[Depends(require_platform_auth)])
 auth_router = APIRouter(prefix="/platform/auth", tags=["platform"], dependencies=[Depends(require_platform_host)])
 
@@ -28,12 +33,33 @@ class PlatformLoginPayload(BaseModel):
 
 
 @auth_router.post("/login", response_model=TokenOut)
-async def login(payload: PlatformLoginPayload) -> TokenOut:
+async def login(payload: PlatformLoginPayload, session: AsyncSession = Depends(get_db_session)) -> TokenOut:
     settings = get_settings()
     if not settings.first_owner_email or not settings.first_owner_password:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Platform auth not configured")
-    if payload.email != settings.first_owner_email or payload.password != settings.first_owner_password:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        detail = "Platform auth not configured: missing FIRST_OWNER_EMAIL/FIRST_OWNER_PASSWORD"
+        logger.error(detail)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+    row = (
+        await session.execute(
+            text(
+                """
+                select
+                    to_regclass('public.users') as users,
+                    to_regclass('public.roles') as roles,
+                    to_regclass('public.user_roles') as user_roles
+                """
+            )
+        )
+    ).mappings().one()
+    missing = [name for name, value in row.items() if value is None]
+    if missing:
+        detail = f"Platform auth not configured: missing public tables {', '.join(missing)}"
+        logger.error(detail)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+    if payload.email != settings.first_owner_email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if payload.password != settings.first_owner_password:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid password")
     token = create_platform_token(subject=payload.email, roles=["owner"])
     return TokenOut(access_token=token)
 

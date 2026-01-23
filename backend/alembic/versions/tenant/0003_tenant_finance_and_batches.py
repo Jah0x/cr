@@ -1,7 +1,7 @@
 """Add finance tables and stock batch timestamps.
 
-Revision ID: 0003_tenant_finance_and_batches
-Revises: 0002_tenant_settings
+Revision ID: tenant_0003
+Revises: tenant_0002
 Create Date: 2025-09-27 01:00:00.000000
 """
 
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
-revision = "0003_tenant_finance_and_batches"
-down_revision = "0002_tenant_settings"
-branch_labels = None
+revision = "tenant_0003"
+down_revision = "tenant_0002"
+branch_labels = ("tenant",)
 depends_on = None
 
 

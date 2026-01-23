@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
@@ -13,7 +14,7 @@ from app.core.db_urls import normalize_migration_database_url
 
 def _alembic_config(
     *,
-    version_locations: Path,
+    version_locations: list[Path],
     schema: str | None,
     version_table: str,
     version_table_schema: str | None,
@@ -25,7 +26,7 @@ def _alembic_config(
     config.set_main_option("script_location", str(script_location))
     sync_url = normalize_migration_database_url(settings.database_url)
     config.set_main_option("sqlalchemy.url", sync_url)
-    config.set_main_option("version_locations", str(version_locations))
+    config.set_main_option("version_locations", os.pathsep.join(str(path) for path in version_locations))
     config.set_main_option("version_table", version_table)
     if schema:
         config.set_main_option("schema", schema)
@@ -38,13 +39,14 @@ def run_public_migrations() -> None:
     settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
     public_versions = root / "alembic" / "versions" / "public"
+    tenant_versions = root / "alembic" / "versions" / "tenant"
     config = _alembic_config(
-        version_locations=public_versions,
+        version_locations=[public_versions, tenant_versions],
         schema="public",
         version_table="alembic_version",
         version_table_schema="public",
     )
-    command.upgrade(config, "head")
+    command.upgrade(config, "public@head")
 
 
 async def verify_public_migrations(engine) -> None:
@@ -82,14 +84,15 @@ def run_tenant_migrations(schema: str) -> None:
     _ensure_tenant_version_table(schema)
     settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
+    public_versions = root / "alembic" / "versions" / "public"
     tenant_versions = root / "alembic" / "versions" / "tenant"
     config = _alembic_config(
-        version_locations=tenant_versions,
+        version_locations=[public_versions, tenant_versions],
         schema=schema,
         version_table="alembic_version_tenant",
         version_table_schema=schema,
     )
-    command.upgrade(config, "head")
+    command.upgrade(config, "tenant@head")
 
 
 def _sync_database_url() -> str:
@@ -131,11 +134,12 @@ def _ensure_tenant_version_table(schema: str) -> None:
     if has_tables and not has_version_table:
         settings = get_settings()
         root = Path(settings.ALEMBIC_INI_PATH).parent
+        public_versions = root / "alembic" / "versions" / "public"
         tenant_versions = root / "alembic" / "versions" / "tenant"
         config = _alembic_config(
-            version_locations=tenant_versions,
+            version_locations=[public_versions, tenant_versions],
             schema=schema,
             version_table=version_table,
             version_table_schema=schema,
         )
-        command.stamp(config, "head")
+        command.stamp(config, "tenant@head")

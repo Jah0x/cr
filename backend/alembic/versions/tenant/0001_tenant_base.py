@@ -1,6 +1,6 @@
 """Tenant schema baseline.
 
-Revision ID: 0001_tenant_base
+Revision ID: tenant_0001
 Revises:
 Create Date: 2025-09-27 00:00:00.000000
 """
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 
-revision = "0001_tenant_base"
+revision = "tenant_0001"
 down_revision = None
-branch_labels = None
+branch_labels = ("tenant",)
 depends_on = None
 
 purchase_status_enum = ENUM("draft", "posted", "void", name="purchasestatus", create_type=False)
