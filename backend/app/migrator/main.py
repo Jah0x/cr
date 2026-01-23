@@ -13,12 +13,12 @@ from app.core.db_urls import normalize_migration_database_url
 def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
     alembic_ini_path = base_dir / "alembic.ini"
     script_location = base_dir / "alembic"
-    public_versions = "alembic/versions/public"
-    tenant_versions = "alembic/versions/tenant"
+    public_versions = "versions/public"
+    tenant_versions = "versions/tenant"
     config = Config(str(alembic_ini_path))
     config.set_main_option("script_location", str(script_location))
     config.set_main_option("sqlalchemy.url", normalize_migration_database_url(database_url))
-    config.set_main_option("version_locations", f"{public_versions}{os.pathsep}{tenant_versions}")
+    config.set_main_option("version_locations", f"{public_versions}{tenant_versions}")
     config.set_main_option("version_table", "alembic_version")
     config.set_main_option("schema", "public")
     config.set_main_option("version_table_schema", "public")
