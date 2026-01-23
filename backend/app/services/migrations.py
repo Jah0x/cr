@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
@@ -26,7 +25,10 @@ def _alembic_config(
     config.set_main_option("script_location", str(script_location))
     sync_url = normalize_migration_database_url(settings.database_url)
     config.set_main_option("sqlalchemy.url", sync_url)
-    config.set_main_option("version_locations", os.pathsep.join(str(path) for path in version_locations))
+    config.set_main_option(
+        "version_locations",
+        " ".join(str(path) for path in version_locations),
+    )
     config.set_main_option("version_table", version_table)
     if schema:
         config.set_main_option("schema", schema)

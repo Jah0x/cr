@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 def _build_alembic_config(base_dir: Path, database_url: str) -> Config:
     alembic_ini_path = base_dir / "alembic.ini"
     script_location = base_dir / "alembic"
-    public_versions = "versions/public"
-    tenant_versions = "versions/tenant"
+    public_versions = script_location / "versions" / "public"
+    tenant_versions = script_location / "versions" / "tenant"
     config = Config(str(alembic_ini_path))
     config.set_main_option("script_location", str(script_location))
     config.set_main_option("sqlalchemy.url", normalize_migration_database_url(database_url))
-    config.set_main_option("version_locations", f"{public_versions}{tenant_versions}")
+    config.set_main_option("version_locations", f"{public_versions} {tenant_versions}")
     config.set_main_option("version_table", "alembic_version")
     config.set_main_option("schema", "public")
     config.set_main_option("version_table_schema", "public")
@@ -55,7 +55,10 @@ def _post_migration_check(database_url: str) -> None:
                             to_regclass('public.alembic_version') as alembic_version,
                             to_regclass('public.tenants') as tenants,
                             to_regclass('public.modules') as modules,
-                            to_regclass('public.tenant_settings') as tenant_settings
+                            to_regclass('public.tenant_settings') as tenant_settings,
+                            to_regclass('public.users') as users,
+                            to_regclass('public.roles') as roles,
+                            to_regclass('public.user_roles') as user_roles
                         """
                     )
                 )
@@ -80,7 +83,7 @@ def run_public_migrations(config: Config, database_url: str) -> None:
     version_locations = config.get_main_option("version_locations")
     logger.info("Alembic script_location=%s", script_location)
     logger.info("Alembic version_locations=%s", version_locations)
-    public_revisions = script.get_revisions("head")
+    public_revisions = script.get_revisions("public@head")
     logger.info(
         "Public revisions: %s",
         [revision.revision for revision in public_revisions],
@@ -89,12 +92,13 @@ def run_public_migrations(config: Config, database_url: str) -> None:
         raise RuntimeError("No alembic revisions found for public schema")
 
     logger.info("Running public alembic upgrade to head")
-    command.upgrade(config, "head")
+    command.upgrade(config, "public@head")
     logger.info("Public migrations completed")
     _post_migration_check(database_url)
 
 
 def main() -> None:
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     database_url = os.getenv("DATABASE_URL") or os.getenv("DATABASE_DSN")
     if not database_url:
         sys.stderr.write("DATABASE_URL or DATABASE_DSN is required to run migrations.\n")
