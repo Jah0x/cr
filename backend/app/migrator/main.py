@@ -104,7 +104,13 @@ def main() -> None:
         sys.stderr.write("DATABASE_URL or DATABASE_DSN is required to run migrations.\n")
         sys.exit(1)
 
-    base_dir = Path("/app")
+    base_dir = Path(__file__).resolve().parents[2]
+    alembic_ini_path = base_dir / "alembic.ini"
+    versions_path = base_dir / "alembic" / "versions"
+    if not alembic_ini_path.is_file():
+        raise FileNotFoundError(f"alembic.ini not found at {alembic_ini_path}")
+    if not versions_path.is_dir():
+        raise FileNotFoundError(f"alembic versions directory not found at {versions_path}")
     config = _build_alembic_config(base_dir, database_url)
 
     try:
