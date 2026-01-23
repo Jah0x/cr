@@ -1,6 +1,6 @@
 """Public schema baseline.
 
-Revision ID: 0001_public_base
+Revision ID: public_0001
 Revises:
 Create Date: 2025-09-27 00:00:00.000000
 """
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 
-revision = "0001"
+revision = "public_0001"
 down_revision = None
-branch_labels = None
+branch_labels = ("public",)
 depends_on = None
 
 

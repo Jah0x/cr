@@ -1,7 +1,7 @@
 """Tenant settings tables.
 
-Revision ID: 0002_tenant_settings
-Revises: 0001_tenant_base
+Revision ID: tenant_0002
+Revises: tenant_0001
 Create Date: 2025-09-27 00:20:00.000000
 """
 
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
-revision = "0002_tenant_settings"
-down_revision = "0001_tenant_base"
-branch_labels = None
+revision = "tenant_0002"
+down_revision = "tenant_0001"
+branch_labels = ("tenant",)
 depends_on = None
 
 

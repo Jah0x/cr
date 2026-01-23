@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -13,9 +14,11 @@ from app.core.tenancy import normalize_code, normalize_tenant_slug
 from app.models.invitation import TenantInvitation
 from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
-from app.services.bootstrap import ensure_tenant_schema
+from app.services.bootstrap import bootstrap_tenant_owner, ensure_tenant_roles, ensure_tenant_schema
 from app.services.migrations import run_tenant_migrations
 from app.services.template_service import apply_template_codes
+
+logger = logging.getLogger(__name__)
 
 
 class PlatformService:
@@ -41,15 +44,27 @@ class PlatformService:
         tenant = Tenant(name=name, code=schema, status=TenantStatus.active)
         self.session.add(tenant)
         await self.session.flush()
+        logger.info("Creating tenant schema '%s'", schema)
         await ensure_tenant_schema(self.session, schema)
         await self.session.commit()
         try:
+            logger.info("Running tenant migrations for '%s'", schema)
             await asyncio.to_thread(run_tenant_migrations, schema)
+            logger.info("Tenant migrations completed for '%s'", schema)
         except Exception as exc:
+            logger.exception("Tenant migrations failed for '%s'", schema)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Tenant migrations failed: {exc}",
             ) from exc
+        settings = get_settings()
+        if settings.first_owner_password:
+            logger.info("Bootstrapping tenant owner for '%s'", schema)
+            await bootstrap_tenant_owner(schema, owner_email, settings.first_owner_password)
+            logger.info("Tenant owner bootstrap completed for '%s'", schema)
+        else:
+            logger.warning("FIRST_OWNER_PASSWORD not set; creating tenant roles only for '%s'", schema)
+            await ensure_tenant_roles(schema)
         await self._seed_template(schema, template_id)
         invite_url = await self._create_invite(schema, tenant.id, owner_email)
         tenant_url = self._tenant_url(schema)

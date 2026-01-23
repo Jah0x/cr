@@ -1,15 +1,15 @@
 """Seed modules, feature, and tobacco template.
 
-Revision ID: 0005_public_seed_tobacco_template
-Revises: 0004_public_features
+Revision ID: public_0006
+Revises: public_0005
 Create Date: 2025-09-27 00:30:00.000000
 """
 
 from alembic import op
 
-revision = "0005"
-down_revision = "0004"
-branch_labels = None
+revision = "public_0006"
+down_revision = "public_0005"
+branch_labels = ("public",)
 depends_on = None
 
 MODULE_CODES = (

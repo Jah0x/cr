@@ -1,7 +1,7 @@
 """Add catalog hierarchy nodes and product mapping.
 
-Revision ID: 0004_tenant_catalog_nodes
-Revises: 0003_tenant_finance_and_batches
+Revision ID: tenant_0004
+Revises: tenant_0003
 Create Date: 2025-10-02 00:00:00.000000
 """
 
@@ -13,9 +13,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
-revision = "0004_tenant_catalog_nodes"
-down_revision = "0003_tenant_finance_and_batches"
-branch_labels = None
+revision = "tenant_0004"
+down_revision = "tenant_0003"
+branch_labels = ("tenant",)
 depends_on = None
 
 

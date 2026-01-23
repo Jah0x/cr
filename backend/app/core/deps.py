@@ -1,9 +1,10 @@
+import logging
 import uuid
 from typing import AsyncGenerator
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -15,6 +16,7 @@ from app.repos.user_repo import UserRepo
 from app.core.config import get_settings
 from app.services.tenant_service import TenantService
 
+logger = logging.getLogger(__name__)
 auth_scheme = HTTPBearer(auto_error=False)
 
 
@@ -143,13 +145,14 @@ def _get_platform_hosts() -> set[str]:
 def _require_platform_hosts(request: Request) -> None:
     platform_hosts = _get_platform_hosts()
     if not platform_hosts:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Platform hosts not configured",
-        )
+        detail = "Platform hosts not configured"
+        logger.error(detail)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
     host = (request.headers.get("host") or "").split(":", 1)[0].lower()
     if host not in platform_hosts:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+        detail = "Forbidden"
+        logger.warning("Platform host rejected: %s", host)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
 
 async def require_platform_host(request: Request) -> bool:
@@ -157,14 +160,39 @@ async def require_platform_host(request: Request) -> bool:
     return True
 
 
+async def _ensure_platform_auth_ready(session: AsyncSession) -> None:
+    settings = get_settings()
+    if not settings.bootstrap_token and not (settings.first_owner_email and settings.first_owner_password):
+        detail = "Platform auth not configured: missing FIRST_OWNER_EMAIL/FIRST_OWNER_PASSWORD or BOOTSTRAP_TOKEN"
+        logger.error(detail)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+    row = (
+        await session.execute(
+            text(
+                """
+                select
+                    to_regclass('public.users') as users,
+                    to_regclass('public.roles') as roles,
+                    to_regclass('public.user_roles') as user_roles
+                """
+            )
+        )
+    ).mappings().one()
+    missing = [name for name, value in row.items() if value is None]
+    if missing:
+        detail = f"Platform auth not configured: missing public tables {', '.join(missing)}"
+        logger.error(detail)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+
+
 async def require_platform_auth(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    session: AsyncSession = Depends(get_db_session),
 ):
     _require_platform_hosts(request)
+    await _ensure_platform_auth_ready(session)
     settings = get_settings()
-    if not settings.bootstrap_token and not (settings.first_owner_email and settings.first_owner_password):
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Platform auth not configured")
     if not credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     token = credentials.credentials

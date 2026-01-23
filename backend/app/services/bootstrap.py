@@ -26,6 +26,14 @@ async def ensure_roles(session):
     await session.flush()
 
 
+async def ensure_tenant_roles(schema: str) -> None:
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        await set_search_path(session, schema)
+        await ensure_roles(session)
+        await session.commit()
+
+
 async def ensure_tenant_schema(session, schema: str):
     validate_schema_name(schema)
     safe_schema = quote_ident(schema)

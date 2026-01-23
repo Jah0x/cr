@@ -1,15 +1,15 @@
 """Update tobacco template modules and features.
 
-Revision ID: 0006_public_update_tobacco_template
-Revises: 0005_public_seed_tobacco_template
+Revision ID: public_0007
+Revises: public_0006
 Create Date: 2025-09-27 01:05:00.000000
 """
 
 from alembic import op
 
-revision = "0006"
-down_revision = "0005"
-branch_labels = None
+revision = "public_0007"
+down_revision = "public_0006"
+branch_labels = ("public",)
 depends_on = None
 
 MODULE_CODES = [

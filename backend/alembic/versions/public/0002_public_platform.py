@@ -1,7 +1,7 @@
 """Public platform tables.
 
-Revision ID: 0002_public_platform
-Revises: 0001_public_base
+Revision ID: public_0002
+Revises: public_0001
 Create Date: 2025-09-27 00:00:01.000000
 """
 
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
-revision = "0002"
-down_revision = "0001"
-branch_labels = None
+revision = "public_0002"
+down_revision = "public_0001"
+branch_labels = ("public",)
 depends_on = None
 
 

@@ -1,7 +1,7 @@
 """Tenant UI preferences.
 
-Revision ID: 0003_public_tenant_ui_prefs
-Revises: 0002_public_platform
+Revision ID: public_0004
+Revises: public_0003
 Create Date: 2025-09-27 00:10:00.000000
 """
 
@@ -9,9 +9,9 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
-revision = "0003"
-down_revision = "0002"
-branch_labels = None
+revision = "public_0004"
+down_revision = "public_0003"
+branch_labels = ("public",)
 depends_on = None
 
 
