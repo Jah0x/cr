@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -8,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db_utils import set_search_path
 from app.core.deps import get_current_tenant, get_current_user, get_db_session
 from app.core.security import create_access_token, hash_password
+from app.core.tokens import hash_invite_token
 from app.models.invitation import TenantInvitation
 from app.models.user import Role, User, UserRole
 from app.schemas.auth import InviteInfoResponse, InviteRegisterPayload
@@ -41,7 +41,7 @@ async def invite_info(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_hash = hash_invite_token(token)
     await set_search_path(session, None)
     invitation = await session.scalar(select(TenantInvitation).where(TenantInvitation.token_hash == token_hash))
     if not invitation or invitation.tenant_id != tenant.id:
@@ -61,7 +61,7 @@ async def register_invite(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    token_hash = hashlib.sha256(payload.token.encode()).hexdigest()
+    token_hash = hash_invite_token(payload.token)
     await set_search_path(session, None)
     invitation = await session.scalar(select(TenantInvitation).where(TenantInvitation.token_hash == token_hash))
     if not invitation or invitation.tenant_id != tenant.id:
