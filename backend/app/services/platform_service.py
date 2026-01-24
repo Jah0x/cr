@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -12,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.db_utils import set_search_path
+from app.core.tokens import hash_invite_token
 from app.core.tenancy import normalize_code, normalize_tenant_slug, slugify_tenant_name
 from app.models.invitation import TenantInvitation
 from app.models.platform import Module, Template
@@ -270,19 +270,23 @@ class PlatformService:
             .order_by(TenantInvitation.created_at.desc())
         )
         tenant_url = self._tenant_url(schema)
-        if existing and existing.token:
+        if existing:
+            raw_token = secrets.token_urlsafe(32)
+            token_hash = hash_invite_token(raw_token)
+            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+            existing.token_hash = token_hash
+            existing.expires_at = expires_at
             return {
-                "invite_url": f"{tenant_url}/register?token={existing.token}",
-                "expires_at": existing.expires_at.isoformat(),
+                "invite_url": f"{tenant_url}/register?token={raw_token}",
+                "expires_at": expires_at.isoformat(),
             }
         raw_token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        token_hash = hash_invite_token(raw_token)
         expires_at = datetime.now(timezone.utc) + timedelta(days=7)
         invitation = TenantInvitation(
             tenant_id=tenant_id,
             email=email,
             role_name=role_name,
-            token=raw_token,
             token_hash=token_hash,
             expires_at=expires_at,
         )

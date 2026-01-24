@@ -4,7 +4,7 @@ from logging.config import fileConfig
 from pathlib import Path
 
 from alembic import context
-from sqlalchemy import create_engine, pool
+from sqlalchemy import engine_from_config, pool
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 if str(BASE_DIR) not in sys.path:
@@ -41,6 +41,9 @@ def _get_database_url() -> str:
 
 
 def run_migrations_offline() -> None:
+    schema = config.get_main_option("schema", "public")
+    version_table = config.get_main_option("version_table", "alembic_version")
+    version_table_schema = config.get_main_option("version_table_schema", schema)
     configure_opts = {
         "url": _get_database_url(),
         "target_metadata": target_metadata,
@@ -48,8 +51,8 @@ def run_migrations_offline() -> None:
         "compare_type": True,
         "compare_server_default": True,
         "dialect_opts": {"paramstyle": "named"},
-        "version_table": _get_option("version_table", "alembic_version"),
-        "version_table_schema": "public",
+        "version_table": version_table,
+        "version_table_schema": version_table_schema,
         "include_schemas": True,
     }
 
@@ -60,23 +63,32 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    schema = config.get_main_option("schema", "public")
+    version_table = config.get_main_option("version_table", "alembic_version")
+    version_table_schema = config.get_main_option("version_table_schema", schema)
     external_connection = config.attributes.get("connection")
     if external_connection is not None:
         connection = external_connection
         connectable = None
     else:
-        connectable = create_engine(_get_database_url(), poolclass=pool.NullPool)
+        configuration = config.get_section(config.config_ini_section) or {}
+        configuration["sqlalchemy.url"] = _get_database_url()
+        connectable = engine_from_config(configuration, prefix="sqlalchemy.", poolclass=pool.NullPool)
         connection = connectable.connect()
 
     try:
-        connection.exec_driver_sql("SET search_path TO public")
+        if schema == "public":
+            connection.exec_driver_sql("SET search_path TO public")
+        else:
+            quoted_schema = connection.dialect.identifier_preparer.quote(schema)
+            connection.exec_driver_sql(f"SET search_path TO {quoted_schema}, public")
         configure_opts = {
             "connection": connection,
             "target_metadata": target_metadata,
             "compare_type": True,
             "compare_server_default": True,
-            "version_table": _get_option("version_table", "alembic_version"),
-            "version_table_schema": "public",
+            "version_table": version_table,
+            "version_table_schema": version_table_schema,
             "include_schemas": True,
         }
 
