@@ -28,7 +28,9 @@ export function useTenantSettings() {
     queryFn: async () => {
       const res = await api.get<TenantSettingsResponse>('/tenant/settings')
       return res.data
-    }
+    },
+    retry: import.meta.env.DEV ? 0 : 1,
+    staleTime: 30000
   })
 }
 

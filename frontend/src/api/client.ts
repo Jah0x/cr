@@ -3,7 +3,8 @@ import { getApiBase } from '../config/runtimeConfig'
 
 const api = axios.create({
   baseURL: getApiBase(),
-  withCredentials: true
+  withCredentials: true,
+  timeout: 15000
 })
 
 api.interceptors.request.use((config) => {
@@ -15,5 +16,30 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (import.meta.env.DEV) {
+      const status = error?.response?.status ?? 'unknown'
+      const url = error?.config?.url ?? 'unknown'
+      const responseData = error?.response?.data
+      // eslint-disable-next-line no-console
+      console.error('API error', { status, url, response: responseData })
+    }
+
+    const isTimeout = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message ?? '')
+    const isAbort = error?.code === 'ERR_CANCELED'
+
+    if (isTimeout || isAbort) {
+      const reason = isTimeout ? 'Request timed out' : 'Request was cancelled'
+      const normalizedError = new Error(`${reason}. Please try again.`)
+      normalizedError.cause = error
+      return Promise.reject(normalizedError)
+    }
+
+    return Promise.reject(error)
+  }
+)
 
 export default api
