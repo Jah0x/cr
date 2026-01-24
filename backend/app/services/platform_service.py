@@ -162,6 +162,14 @@ class PlatformService:
         status_info = get_tenant_migration_status(tenant.code)
         return {"tenant": tenant, **status_info}
 
+    async def update_tenant(self, tenant_id: str, *, name: str, status: TenantStatus) -> Tenant:
+        tenant = await self._get_tenant(tenant_id)
+        tenant.name = name
+        tenant.status = status
+        tenant.last_error = None if status == TenantStatus.active else tenant.last_error
+        await self.session.flush()
+        return tenant
+
     async def list_domains(self, tenant_id: str):
         await set_search_path(self.session, None)
         result = await self.session.execute(

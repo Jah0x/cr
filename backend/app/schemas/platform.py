@@ -3,6 +3,7 @@ from typing import List
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.tenancy import normalize_code, normalize_tenant_slug
+from app.models.tenant import TenantStatus
 
 
 class PlatformModuleResponse(BaseModel):
@@ -85,6 +86,19 @@ class PlatformTenantStatusResponse(BaseModel):
     schema_exists: bool
     revision: str | None
     head_revision: str | None
+
+
+class PlatformTenantUpdate(BaseModel):
+    name: str = Field(min_length=2)
+    status: TenantStatus
+
+
+class PlatformTenantUpdateResponse(BaseModel):
+    id: str
+    name: str
+    code: str
+    status: str
+    last_error: str | None = None
 
 
 class PlatformTenantDomainCreate(BaseModel):
