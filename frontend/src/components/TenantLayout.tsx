@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTenantSettings } from '../api/tenantSettings'
+import api from '../api/client'
 
 const adminModules = ['catalog', 'purchasing', 'stock', 'sales', 'reports', 'users', 'finance']
 
@@ -9,6 +11,28 @@ export default function TenantLayout() {
   const { t, i18n } = useTranslation()
   const location = useLocation()
   const { data, isLoading } = useTenantSettings()
+  const [isAuthValid, setIsAuthValid] = useState(true)
+  const token = localStorage.getItem('token')
+
+  useEffect(() => {
+    if (!token) return
+
+    let isActive = true
+
+    api
+      .get('/auth/me')
+      .catch((error) => {
+        if (!isActive) return
+        if (error?.response?.status === 401) {
+          localStorage.removeItem('token')
+          setIsAuthValid(false)
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [token])
 
   const isModuleEnabled = (code: string) => {
     if (!data) return true
@@ -36,6 +60,10 @@ export default function TenantLayout() {
     textDecoration: 'none',
     fontWeight: 600
   })
+
+  if (!token || !isAuthValid) {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <div>
