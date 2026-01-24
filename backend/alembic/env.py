@@ -29,11 +29,6 @@ def _get_option(name: str, default: str | None = None) -> str | None:
     return default
 
 
-def _quote_identifier(value: str) -> str:
-    escaped = value.replace('"', '""')
-    return f'"{escaped}"'
-
-
 def _get_database_url() -> str:
     url = (
         _get_option("sqlalchemy.url")
@@ -46,7 +41,6 @@ def _get_database_url() -> str:
 
 
 def run_migrations_offline() -> None:
-    schema = _get_option("schema")
     configure_opts = {
         "url": _get_database_url(),
         "target_metadata": target_metadata,
@@ -55,12 +49,9 @@ def run_migrations_offline() -> None:
         "compare_server_default": True,
         "dialect_opts": {"paramstyle": "named"},
         "version_table": _get_option("version_table", "alembic_version"),
+        "version_table_schema": "public",
+        "include_schemas": True,
     }
-    version_table_schema = _get_option("version_table_schema")
-    if version_table_schema:
-        configure_opts["version_table_schema"] = version_table_schema
-    if schema:
-        configure_opts["include_schemas"] = True
 
     context.configure(**configure_opts)
 
@@ -69,29 +60,34 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    schema = _get_option("schema")
-    connectable = create_engine(_get_database_url(), poolclass=pool.NullPool)
+    external_connection = config.attributes.get("connection")
+    if external_connection is not None:
+        connection = external_connection
+        connectable = None
+    else:
+        connectable = create_engine(_get_database_url(), poolclass=pool.NullPool)
+        connection = connectable.connect()
 
-    with connectable.connect() as connection:
-        if schema:
-            connection.exec_driver_sql(f"SET search_path TO {_quote_identifier(schema)}")
+    try:
+        connection.exec_driver_sql("SET search_path TO public")
         configure_opts = {
             "connection": connection,
             "target_metadata": target_metadata,
             "compare_type": True,
             "compare_server_default": True,
             "version_table": _get_option("version_table", "alembic_version"),
+            "version_table_schema": "public",
+            "include_schemas": True,
         }
-        version_table_schema = _get_option("version_table_schema")
-        if version_table_schema:
-            configure_opts["version_table_schema"] = version_table_schema
-        if schema:
-            configure_opts["include_schemas"] = True
 
         context.configure(**configure_opts)
 
         with context.begin_transaction():
             context.run_migrations()
+    finally:
+        if connectable is not None:
+            connection.close()
+            connectable.dispose()
 
 
 if context.is_offline_mode():
