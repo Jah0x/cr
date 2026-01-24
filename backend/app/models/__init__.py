@@ -8,6 +8,7 @@ from app.models.sales import Sale, SaleItem
 from app.models.cash import CashReceipt
 from app.models.finance import Expense, ExpenseCategory
 from app.models.tenant import Tenant, TenantStatus
+from app.models.tenant_domain import TenantDomain
 from app.models.invitation import TenantInvitation
 from app.models.platform import Feature, Module, Template, TenantModule, TenantFeature, TenantUIPreference, TenantSettings
 
@@ -34,6 +35,7 @@ __all__ = [
     "ExpenseCategory",
     "Tenant",
     "TenantStatus",
+    "TenantDomain",
     "TenantInvitation",
     "Module",
     "Feature",

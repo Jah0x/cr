@@ -50,6 +50,7 @@ class PlatformTenantResponse(BaseModel):
     name: str
     code: str
     status: str
+    last_error: str | None = None
 
 
 class PlatformTenantCreate(BaseModel):
@@ -72,6 +73,60 @@ class PlatformTenantCreateResponse(BaseModel):
     tenant_url: str
     owner_email: EmailStr
     invite_url: str
+
+
+class PlatformTenantStatusResponse(BaseModel):
+    id: str
+    name: str
+    code: str
+    status: str
+    last_error: str | None = None
+    schema: str
+    schema_exists: bool
+    revision: str | None
+    head_revision: str | None
+
+
+class PlatformTenantDomainCreate(BaseModel):
+    domain: str = Field(min_length=3)
+    is_primary: bool = False
+
+
+class PlatformTenantDomainResponse(BaseModel):
+    id: str
+    domain: str
+    is_primary: bool
+    created_at: str
+
+
+class PlatformTenantInviteRequest(BaseModel):
+    email: EmailStr
+    role_name: str = Field(default="owner", min_length=2)
+
+
+class PlatformTenantInviteResponse(BaseModel):
+    invite_url: str
+    expires_at: str
+
+
+class PlatformTenantUserResponse(BaseModel):
+    id: str
+    email: str
+    roles: list[str]
+    is_active: bool
+    created_at: str
+    last_login_at: str | None
+
+
+class PlatformTenantUserCreate(BaseModel):
+    email: EmailStr
+    role_names: list[str]
+    password: str | None = None
+    invite: bool = False
+
+
+class PlatformTenantUserUpdate(BaseModel):
+    is_active: bool
 
 
 class PlatformTemplateApply(BaseModel):

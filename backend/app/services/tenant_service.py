@@ -18,6 +18,11 @@ class TenantService:
         tenant = await self.tenant_repo.get_by_code(tenant_code)
         if not tenant:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+        if tenant.status == TenantStatus.provisioning_failed:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=tenant.last_error or "Tenant provisioning failed",
+            )
         if tenant.status != TenantStatus.active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant inactive")
         self._set_request_state(request, tenant)

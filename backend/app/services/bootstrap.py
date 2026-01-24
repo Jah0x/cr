@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import uuid
 from datetime import datetime, timezone
 from sqlalchemy import func, select, text
 
@@ -15,6 +17,8 @@ from app.services.migrations import run_public_migrations, run_tenant_migrations
 from app.services.template_service import apply_template_codes
 from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.services.tenant_settings_service import DEFAULT_TOBACCO_HIERARCHY_SETTINGS
+
+logger = logging.getLogger(__name__)
 
 
 async def ensure_roles(session):
@@ -59,19 +63,39 @@ async def bootstrap_tenant_owner(schema: str, email: str, password: str):
 
 
 async def provision_tenant(schema: str, name: str, *, owner_email: str | None = None, owner_password: str | None = None):
+    correlation_id = str(uuid.uuid4())
     sessionmaker = get_sessionmaker()
     async with sessionmaker() as session:
         schema = normalize_tenant_slug(schema)
         await ensure_tenant_schema(session, schema)
         tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
         if not tenant:
-            tenant = Tenant(name=name, code=schema, status=TenantStatus.active)
+            tenant = Tenant(name=name, code=schema, status=TenantStatus.inactive)
             session.add(tenant)
             await session.flush()
         await session.commit()
-    await asyncio.to_thread(run_tenant_migrations, schema)
-    if owner_email and owner_password:
-        await bootstrap_tenant_owner(schema, owner_email, owner_password)
+    try:
+        logger.info("Running tenant migrations for '%s' correlation_id=%s", schema, correlation_id)
+        await asyncio.to_thread(run_tenant_migrations, schema)
+        if owner_email and owner_password:
+            await bootstrap_tenant_owner(schema, owner_email, owner_password)
+        else:
+            await ensure_tenant_roles(schema)
+        async with sessionmaker() as session:
+            tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
+            if tenant:
+                tenant.status = TenantStatus.active
+                tenant.last_error = None
+                await session.commit()
+    except Exception as exc:
+        logger.exception("Tenant provisioning failed for '%s' correlation_id=%s", schema, correlation_id)
+        async with sessionmaker() as session:
+            tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
+            if tenant:
+                tenant.status = TenantStatus.provisioning_failed
+                tenant.last_error = str(exc)
+                await session.commit()
+        raise
 
 
 async def seed_platform_defaults():

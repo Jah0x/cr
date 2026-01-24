@@ -10,6 +10,7 @@ from app.core.db import Base
 class TenantStatus(str, enum.Enum):
     active = "active"
     inactive = "inactive"
+    provisioning_failed = "provisioning_failed"
 
 
 class Tenant(Base):
@@ -20,6 +21,7 @@ class Tenant(Base):
     name = Column(String, nullable=False)
     code = Column(String, nullable=False, unique=True)
     status = Column(Enum(TenantStatus), nullable=False, default=TenantStatus.active)
+    last_error = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),

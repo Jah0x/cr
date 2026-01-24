@@ -76,7 +76,10 @@ async def register_invite(
     if user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
     await ensure_roles(session)
-    owner_role = await session.scalar(select(Role).where(Role.name == "owner"))
+    role_name = invitation.role_name or "owner"
+    owner_role = await session.scalar(select(Role).where(Role.name == role_name))
+    if not owner_role:
+        owner_role = await session.scalar(select(Role).where(Role.name == "owner"))
     user = User(email=invitation.email, password_hash=hash_password(payload.password), is_active=True)
     session.add(user)
     await session.flush()

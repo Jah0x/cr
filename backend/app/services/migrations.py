@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from pathlib import Path
+
+from fastapi import HTTPException, status
 
 from sqlalchemy import create_engine, text
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 from app.core.config import get_settings
+from app.core.db_utils import quote_ident
+from app.core.tenancy import normalize_tenant_slug
+from app.models.tenant import TenantStatus
+
+logger = logging.getLogger(__name__)
 from app.core.db_urls import normalize_migration_database_url
 
 
@@ -35,6 +45,112 @@ def _alembic_config(
     if version_table_schema:
         config.set_main_option("version_table_schema", version_table_schema)
     return config
+
+
+def _tenant_script_directory() -> ScriptDirectory:
+    settings = get_settings()
+    root = Path(settings.ALEMBIC_INI_PATH).parent
+    script_location = root / "alembic"
+    public_versions = script_location / "versions" / "public"
+    tenant_versions = script_location / "versions" / "tenant"
+    config = _alembic_config(
+        version_locations=[public_versions, tenant_versions],
+        schema=None,
+        version_table="alembic_version_tenant",
+        version_table_schema=None,
+    )
+    return ScriptDirectory.from_config(config)
+
+
+def get_tenant_head_revision() -> str | None:
+    script = _tenant_script_directory()
+    revisions = script.get_revisions("tenant@head")
+    if not revisions:
+        return None
+    return revisions[0].revision
+
+
+def get_tenant_migration_status(schema: str) -> dict:
+    schema = normalize_tenant_slug(schema)
+    engine = create_engine(_sync_database_url())
+    head_revision = get_tenant_head_revision()
+    with engine.connect() as conn:
+        schema_exists = conn.execute(
+            text(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.schemata
+                    WHERE schema_name = :schema
+                )
+                """
+            ),
+            {"schema": schema},
+        ).scalar()
+        revision = None
+        if schema_exists:
+            version_table = conn.execute(
+                text(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM information_schema.tables
+                        WHERE table_schema = :schema
+                          AND table_name = 'alembic_version_tenant'
+                    )
+                    """
+                ),
+                {"schema": schema},
+            ).scalar()
+            if version_table:
+                safe_schema = quote_ident(schema)
+                revision = conn.execute(
+                    text(f"SELECT version_num FROM {safe_schema}.alembic_version_tenant LIMIT 1")
+                ).scalar()
+    engine.dispose()
+    return {
+        "schema": schema,
+        "schema_exists": bool(schema_exists),
+        "revision": revision,
+        "head_revision": head_revision,
+    }
+
+
+async def ensure_tenant_ready(session, tenant, *, correlation_id: str | None = None) -> None:
+    schema = normalize_tenant_slug(tenant.code)
+    status_info = get_tenant_migration_status(schema)
+    if not status_info["schema_exists"]:
+        detail = f"Tenant schema '{schema}' is missing"
+        logger.error("Tenant schema missing: schema=%s correlation_id=%s", schema, correlation_id)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+    head_revision = status_info["head_revision"]
+    current_revision = status_info["revision"]
+    if head_revision and current_revision != head_revision:
+        logger.info(
+            "Tenant schema %s not at head (current=%s head=%s) correlation_id=%s",
+            schema,
+            current_revision,
+            head_revision,
+            correlation_id,
+        )
+        try:
+            await asyncio.to_thread(run_tenant_migrations, schema)
+            tenant.status = TenantStatus.active
+            tenant.last_error = None
+            await session.flush()
+        except Exception as exc:
+            tenant.status = TenantStatus.provisioning_failed
+            tenant.last_error = str(exc)
+            await session.flush()
+            logger.exception(
+                "Tenant migrations failed for schema=%s correlation_id=%s",
+                schema,
+                correlation_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Tenant migrations failed: {exc}",
+            ) from exc
 
 
 def run_public_migrations() -> None:
