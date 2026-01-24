@@ -67,7 +67,7 @@ spec:
 
 ## Frontend API base URL
 
-The frontend defaults to using `/api/v1` for API requests. You can override this at build time by setting `VITE_API_BASE_URL`.
+The frontend defaults to using `/api/v1` for API requests. In local dev, the frontend sets `VITE_API_BASE_URL=http://localhost:8000/api/v1` (see `frontend/.env.development`) so requests hit the backend directly. You can override this at build time by setting `VITE_API_BASE_URL`.
 
 ```bash
 VITE_API_BASE_URL=/api/v1
