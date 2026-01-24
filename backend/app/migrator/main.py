@@ -42,21 +42,20 @@ def _mask_database_url(database_url: str) -> str:
 def _log_connection_diagnostics(connection: Connection, stage: str) -> None:
     info_row = connection.execute(
         text(
-            "select current_database(), current_user, inet_server_addr(), inet_server_port()"
+            "select current_database(), current_user, current_schema(), inet_server_addr(), inet_server_port()"
         )
     ).one()
     search_path = connection.execute(text("show search_path")).scalar()
-    current_schema = connection.execute(text("select current_schema()")).scalar()
     logger.info(
-        "%s: db=%s user=%s addr=%s port=%s",
+        "%s: db=%s user=%s schema=%s addr=%s port=%s",
         stage,
         info_row[0],
         info_row[1],
         info_row[2],
         info_row[3],
+        info_row[4],
     )
     logger.info("%s: search_path=%s", stage, search_path)
-    logger.info("%s: current_schema=%s", stage, current_schema)
 
 
 def _post_migration_check(connection: Connection, database_url: str) -> None:
@@ -142,8 +141,8 @@ def main() -> None:
                 _log_connection_diagnostics(connection, "Before migrations")
                 config.attributes["connection"] = connection
                 run_public_migrations(config)
-                _log_connection_diagnostics(connection, "After migrations")
                 connection.commit()
+                _log_connection_diagnostics(connection, "After migrations")
         except Exception as exc:
             sys.stderr.write(f"Migration failed: {exc}\n")
             sys.exit(1)
