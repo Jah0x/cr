@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
+import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../utils/apiError'
 
 type Tenant = { id: string; name: string; code: string; status: string; last_error?: string | null }
 type TenantStatus = {
@@ -27,6 +29,7 @@ type TenantUser = {
 }
 
 function TenantCard({ tenant }: { tenant: Tenant }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [tenantName, setTenantName] = useState(tenant.name)
   const [tenantStatus, setTenantStatus] = useState(tenant.status === 'active')
@@ -202,25 +205,27 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontWeight: 600 }}>{tenantName}</div>
-          <div style={{ fontSize: 13, color: '#475569' }}>Code: {tenant.code}</div>
+          <div style={{ fontSize: 13, color: '#475569' }}>
+            {t('platformTenants.codeLabel')}: {tenant.code}
+          </div>
         </div>
         <button type="button" onClick={() => migrateMutation.mutate()} disabled={migrateMutation.isPending}>
-          {migrateMutation.isPending ? 'Migrating...' : 'Migrate tenant'}
+          {migrateMutation.isPending ? t('platformTenants.migrating') : t('platformTenants.migrateTenant')}
         </button>
       </div>
 
       <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
         <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 13, color: '#475569' }}>Tenant name</span>
+          <span style={{ fontSize: 13, color: '#475569' }}>{t('platformTenants.tenantName')}</span>
           <input
             value={tenantName}
             onChange={(event) => setTenantName(event.target.value)}
-            placeholder="Tenant name"
+            placeholder={t('platformTenants.tenantName')}
           />
         </label>
         <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 13, color: '#475569' }}>Tenant code</span>
-          <input value={tenant.code} readOnly title="Tenant code cannot be edited." />
+          <span style={{ fontSize: 13, color: '#475569' }}>{t('platformTenants.tenantCode')}</span>
+          <input value={tenant.code} readOnly title={t('platformTenants.tenantCodeReadOnly')} />
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
@@ -229,7 +234,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
             onChange={(event) => setTenantStatus(event.target.checked)}
           />
           <span style={{ fontSize: 13, color: '#475569' }}>
-            Status: {tenantStatus ? 'active' : 'inactive'}
+            {t('common.status')}: {tenantStatus ? t('platformTenants.statusActive') : t('platformTenants.statusInactive')}
           </span>
         </label>
         <div>
@@ -238,22 +243,22 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
             onClick={() => updateTenantMutation.mutate()}
             disabled={!tenantName || updateTenantMutation.isPending}
           >
-            {updateTenantMutation.isPending ? 'Saving...' : 'Save tenant'}
+            {updateTenantMutation.isPending ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </div>
 
       <div style={{ marginTop: 12, display: 'grid', gap: 4, fontSize: 13 }}>
-        <div>Status: {status?.status ?? tenant.status}</div>
-        <div>Schema: {status?.schema ?? tenant.code}</div>
-        <div>Revision: {status?.revision || '—'}</div>
-        <div>Head: {status?.head_revision || '—'}</div>
-        <div>Schema exists: {status?.schema_exists ? 'Yes' : 'No'}</div>
-        {status?.last_error && <div style={{ color: '#dc2626' }}>Last error: {status.last_error}</div>}
+        <div>{t('common.status')}: {status?.status ?? tenant.status}</div>
+        <div>{t('common.schema')}: {status?.schema ?? tenant.code}</div>
+        <div>{t('common.revision')}: {status?.revision || '—'}</div>
+        <div>{t('common.head')}: {status?.head_revision || '—'}</div>
+        <div>{t('platformTenants.schemaExists')}: {status?.schema_exists ? t('common.yes') : t('common.no')}</div>
+        {status?.last_error && <div style={{ color: '#dc2626' }}>{t('platformTenants.lastError')}: {status.last_error}</div>}
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <h4 style={{ marginBottom: 8 }}>Domains</h4>
+        <h4 style={{ marginBottom: 8 }}>{t('platformTenants.domains')}</h4>
         <div style={{ display: 'grid', gap: 8 }}>
           {domains?.map((domain) => (
             <div
@@ -270,18 +275,18 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
                     onChange={() => setPrimaryDomainMutation.mutate(domain.id)}
                     disabled={setPrimaryDomainMutation.isPending}
                   />
-                  Primary
+                  {t('common.primary')}
                 </label>
               </div>
               <button type="button" onClick={() => deleteDomainMutation.mutate(domain.id)}>
-                Remove
+                {t('common.remove')}
               </button>
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
           <input
-            placeholder="domain.example.com"
+            placeholder={t('platformTenants.domainPlaceholder')}
             value={domainInput}
             onChange={(event) => setDomainInput(event.target.value)}
           />
@@ -291,45 +296,45 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
               checked={domainPrimary}
               onChange={(event) => setDomainPrimary(event.target.checked)}
             />
-            Primary
+            {t('common.primary')}
           </label>
           <button
             type="button"
             onClick={() => createDomainMutation.mutate()}
             disabled={!domainInput || createDomainMutation.isPending}
           >
-            Add domain
+            {t('platformTenants.addDomain')}
           </button>
         </div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <h4 style={{ marginBottom: 8 }}>Invite link</h4>
+        <h4 style={{ marginBottom: 8 }}>{t('platformTenants.inviteLink')}</h4>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input
-            placeholder="email@example.com"
+            placeholder={t('platformTenants.inviteEmailPlaceholder')}
             value={inviteEmail}
             onChange={(event) => setInviteEmail(event.target.value)}
           />
           <input
-            placeholder="role"
+            placeholder={t('platformTenants.rolePlaceholder')}
             value={inviteRole}
             onChange={(event) => setInviteRole(event.target.value)}
           />
           <button type="button" onClick={() => inviteMutation.mutate()} disabled={!inviteEmail}>
-            Generate invite
+            {t('platformTenants.generateInvite')}
           </button>
         </div>
         {inviteResult && (
           <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 13 }}>Expires: {inviteResult.expires_at}</div>
+            <div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {inviteResult.expires_at}</div>
             <code style={{ display: 'block', wordBreak: 'break-all' }}>{inviteResult.invite_url}</code>
           </div>
         )}
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <h4 style={{ marginBottom: 8 }}>Users</h4>
+        <h4 style={{ marginBottom: 8 }}>{t('platformTenants.users')}</h4>
         <div style={{ display: 'grid', gap: 8 }}>
           {users?.map((user) => (
             <div
@@ -345,17 +350,17 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
                   type="button"
                   onClick={() => updateUserMutation.mutate({ userId: user.id, isActive: !user.is_active })}
                 >
-                  {user.is_active ? 'Deactivate' : 'Activate'}
+                  {user.is_active ? t('platformTenants.deactivate') : t('platformTenants.activate')}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm('Delete this user?')) {
+                    if (window.confirm(t('platformTenants.deleteUserConfirm'))) {
                       deleteUserMutation.mutate(user.id)
                     }
                   }}
                 >
-                  Delete
+                  {t('platformTenants.delete')}
                 </button>
               </div>
             </div>
@@ -365,12 +370,12 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
         <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input
-              placeholder="user email"
+              placeholder={t('platformTenants.userEmail')}
               value={userEmail}
               onChange={(event) => setUserEmail(event.target.value)}
             />
             <input
-              placeholder="roles (comma separated)"
+              placeholder={t('platformTenants.rolesPlaceholder')}
               value={userRoles}
               onChange={(event) => setUserRoles(event.target.value)}
             />
@@ -383,7 +388,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
                 checked={userMode === 'password'}
                 onChange={() => setUserMode('password')}
               />
-              Password
+              {t('platformTenants.passwordMode')}
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
@@ -392,11 +397,11 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
                 checked={userMode === 'invite'}
                 onChange={() => setUserMode('invite')}
               />
-              Invite
+              {t('platformTenants.inviteMode')}
             </label>
             {userMode === 'password' && (
               <input
-                placeholder="password"
+                placeholder={t('platformTenants.passwordPlaceholder')}
                 type="password"
                 value={userPassword}
                 onChange={(event) => setUserPassword(event.target.value)}
@@ -414,11 +419,11 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
             }}
             disabled={!userEmail || roleList.length === 0 || (userMode === 'password' && !userPassword)}
           >
-            {userMode === 'invite' ? 'Create invite' : 'Add user'}
+            {userMode === 'invite' ? t('platformTenants.createInvite') : t('platformTenants.addUser')}
           </button>
           {userInviteResult && userMode === 'invite' && (
             <div>
-              <div style={{ fontSize: 13 }}>Expires: {userInviteResult.expires_at}</div>
+              <div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {userInviteResult.expires_at}</div>
               <code style={{ display: 'block', wordBreak: 'break-all' }}>{userInviteResult.invite_url}</code>
             </div>
           )}
@@ -429,6 +434,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
 }
 
 export default function PlatformTenantsPage() {
+  const { t } = useTranslation()
   const { data, isLoading, error } = useQuery({
     queryKey: ['platformTenants'],
     queryFn: async () => {
@@ -440,11 +446,11 @@ export default function PlatformTenantsPage() {
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Tenants</h2>
-        <Link to="/platform/tenants/new">Create tenant</Link>
+        <h2>{t('platformTenants.title')}</h2>
+        <Link to="/platform/tenants/new">{t('platformTenants.createTenant')}</Link>
       </div>
-      {isLoading && <p>Loading tenants...</p>}
-      {error && <p>Unable to load tenants.</p>}
+      {isLoading && <p>{t('platformTenants.loading')}</p>}
+      {error && <p>{getApiErrorMessage(error, t, 'errors.loadTenantsFailed')}</p>}
       <div style={{ display: 'grid', gap: 12 }}>
         {data?.map((tenant) => (
           <TenantCard key={tenant.id} tenant={tenant} />

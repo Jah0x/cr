@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../utils/apiError'
 
 type PaymentMethod = 'cash' | 'card' | 'external'
 
@@ -46,6 +48,7 @@ interface SaleDetail {
 }
 
 export default function PosPage() {
+  const { t } = useTranslation()
   const [products, setProducts] = useState<Product[]>([])
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [payments, setPayments] = useState<PaymentDraft[]>([])
@@ -55,6 +58,11 @@ export default function PosPage() {
   const [paymentReference, setPaymentReference] = useState('')
   const [sale, setSale] = useState<SaleDetail | null>(null)
   const [error, setError] = useState('')
+  const paymentLabels: Record<PaymentMethod, string> = {
+    cash: t('pos.paymentMethodCash'),
+    card: t('pos.paymentMethodCard'),
+    external: t('pos.paymentMethodExternal')
+  }
 
   useEffect(() => {
     api.get('/products').then((res) => setProducts(res.data))
@@ -112,7 +120,7 @@ export default function PosPage() {
   const finalizeSale = async () => {
     setError('')
     if (cartItems.length === 0) {
-      setError('Add items to the cart before finalizing.')
+      setError(t('errors.addItemsBeforeFinalize'))
       return
     }
     const payload = {
@@ -133,16 +141,16 @@ export default function PosPage() {
       setCartItems([])
       setPayments([])
     } catch (e) {
-      setError('Unable to finalize sale.')
+      setError(getApiErrorMessage(e, t, 'errors.finalizeSaleFailed'))
     }
   }
 
   return (
     <div style={{ padding: 24 }}>
-      <h2>POS</h2>
+      <h2>{t('pos.title')}</h2>
       <div style={{ display: 'flex', gap: 16 }}>
         <div style={{ flex: 1 }}>
-          <input placeholder="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input placeholder={t('pos.searchProducts')} value={search} onChange={(e) => setSearch(e.target.value)} />
           <div
             style={{
               display: 'grid',
@@ -164,9 +172,9 @@ export default function PosPage() {
           </div>
         </div>
         <div style={{ width: 360, background: '#fff', padding: 12 }}>
-          <h3>Cart</h3>
+          <h3>{t('pos.cart')}</h3>
           {cartItems.length === 0 ? (
-            <p>No items in cart</p>
+            <p>{t('pos.emptyCart')}</p>
           ) : (
             <div>
               <ul>
@@ -180,56 +188,56 @@ export default function PosPage() {
                         style={{ width: 60 }}
                       />
                       <span>${(item.qty * item.product.price).toFixed(2)}</span>
-                      <button onClick={() => removeItem(item.product.id)}>Remove</button>
+                      <button onClick={() => removeItem(item.product.id)}>{t('pos.remove')}</button>
                     </div>
                   </li>
                 ))}
               </ul>
-              <p>Subtotal: ${subtotal.toFixed(2)}</p>
+              <p>{t('pos.subtotal')}: ${subtotal.toFixed(2)}</p>
             </div>
           )}
-          <h4>Payments</h4>
+          <h4>{t('pos.payments')}</h4>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <input
-              placeholder="Amount"
+              placeholder={t('pos.amount')}
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               style={{ width: 80 }}
             />
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="external">External</option>
+              <option value="cash">{t('pos.paymentMethodCash')}</option>
+              <option value="card">{t('pos.paymentMethodCard')}</option>
+              <option value="external">{t('pos.paymentMethodExternal')}</option>
             </select>
             <input
-              placeholder="Reference"
+              placeholder={t('pos.reference')}
               value={paymentReference}
               onChange={(e) => setPaymentReference(e.target.value)}
               style={{ flex: 1 }}
             />
-            <button onClick={addPayment}>Add</button>
+            <button onClick={addPayment}>{t('pos.addPayment')}</button>
           </div>
           <ul>
             {payments.map((payment, index) => (
               <li key={`${payment.method}-${index}`}>
-                {payment.method} ${payment.amount.toFixed(2)}
+                {paymentLabels[payment.method]} ${payment.amount.toFixed(2)}
                 {payment.reference ? ` (${payment.reference})` : ''}
                 <button onClick={() => removePayment(index)} style={{ marginLeft: 8 }}>
-                  Remove
+                  {t('pos.remove')}
                 </button>
               </li>
             ))}
           </ul>
-          <p>Due: ${totalDue.toFixed(2)}</p>
+          <p>{t('pos.due')}: ${totalDue.toFixed(2)}</p>
           <button onClick={finalizeSale} style={{ marginTop: 12 }}>
-            Finalize Sale
+            {t('pos.finalize')}
           </button>
           {error && <p style={{ color: 'red' }}>{error}</p>}
           {sale && (
             <div style={{ marginTop: 12 }}>
-              <p>Sale {sale.id}</p>
-              <p>Status: {sale.status}</p>
-              <p>Total: ${sale.total_amount}</p>
+              <p>{t('pos.sale')} {sale.id}</p>
+              <p>{t('pos.status')}: {sale.status}</p>
+              <p>{t('pos.total')}: ${sale.total_amount}</p>
             </div>
           )}
         </div>
