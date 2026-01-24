@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+import { useTranslation } from 'react-i18next'
 
 type ExpenseCategory = { id: string; name: string }
 
@@ -30,6 +31,7 @@ const toDateParam = (value: string, endOfDay = false) => {
 }
 
 export default function FinancePage() {
+  const { t } = useTranslation()
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categoryName, setCategoryName] = useState('')
@@ -107,16 +109,16 @@ export default function FinancePage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h2>Finance</h2>
+      <h2>{t('finance.title')}</h2>
       <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
         <div style={{ background: '#fff', padding: 12 }}>
-          <h3>Expense Categories</h3>
+          <h3>{t('finance.expenseCategories')}</h3>
           <input
-            placeholder="Category name"
+            placeholder={t('finance.categoryName')}
             value={categoryName}
             onChange={(event) => setCategoryName(event.target.value)}
           />
-          <button onClick={createCategory}>Add Category</button>
+          <button onClick={createCategory}>{t('finance.addCategory')}</button>
           <ul>
             {categories.map((category) => (
               <li key={category.id}>{category.name}</li>
@@ -124,11 +126,11 @@ export default function FinancePage() {
           </ul>
         </div>
         <div style={{ background: '#fff', padding: 12 }}>
-          <h3>Log Expense</h3>
+          <h3>{t('finance.logExpense')}</h3>
           <input type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
-          <input placeholder="Amount" value={amount} onChange={(event) => setAmount(event.target.value)} />
+          <input placeholder={t('finance.amount')} value={amount} onChange={(event) => setAmount(event.target.value)} />
           <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-            <option value="">Category</option>
+            <option value="">{t('finance.category')}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -136,19 +138,19 @@ export default function FinancePage() {
             ))}
           </select>
           <input
-            placeholder="Payment method"
+            placeholder={t('finance.paymentMethod')}
             value={paymentMethod}
             onChange={(event) => setPaymentMethod(event.target.value)}
           />
-          <input placeholder="Note" value={note} onChange={(event) => setNote(event.target.value)} />
-          <button onClick={createExpense}>Save Expense</button>
+          <input placeholder={t('finance.note')} value={note} onChange={(event) => setNote(event.target.value)} />
+          <button onClick={createExpense}>{t('finance.saveExpense')}</button>
         </div>
         <div style={{ background: '#fff', padding: 12 }}>
-          <h3>P&L Summary</h3>
+          <h3>{t('finance.pnlSummary')}</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => setQuickRange(1)}>Today</button>
-            <button type="button" onClick={() => setQuickRange(7)}>Week</button>
-            <button type="button" onClick={() => setQuickRange(30)}>Month</button>
+            <button type="button" onClick={() => setQuickRange(1)}>{t('finance.today')}</button>
+            <button type="button" onClick={() => setQuickRange(7)}>{t('finance.week')}</button>
+            <button type="button" onClick={() => setQuickRange(30)}>{t('finance.month')}</button>
           </div>
           <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
@@ -156,16 +158,16 @@ export default function FinancePage() {
           </div>
           {pnl && (
             <div style={{ marginTop: 12 }}>
-              <p>Total sales: {pnl.total_sales}</p>
-              <p>COGS: {pnl.cogs}</p>
-              <p>Gross profit: {pnl.gross_profit}</p>
-              <p>Expenses: {pnl.expenses_total}</p>
-              <p>Net profit: {pnl.net_profit}</p>
+              <p>{t('finance.totalSales')}: {pnl.total_sales}</p>
+              <p>{t('finance.cogs')}: {pnl.cogs}</p>
+              <p>{t('finance.grossProfit')}: {pnl.gross_profit}</p>
+              <p>{t('finance.expenses')}: {pnl.expenses_total}</p>
+              <p>{t('finance.netProfit')}: {pnl.net_profit}</p>
             </div>
           )}
         </div>
         <div style={{ background: '#fff', padding: 12 }}>
-          <h3>Expenses</h3>
+          <h3>{t('finance.expensesTitle')}</h3>
           <div style={{ display: 'grid', gap: 8 }}>
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
@@ -173,7 +175,7 @@ export default function FinancePage() {
           <ul>
             {expenses.map((expense) => (
               <li key={expense.id}>
-                {new Date(expense.occurred_at).toLocaleDateString()} — {expense.amount} — {expense.note || 'No note'}
+                {new Date(expense.occurred_at).toLocaleDateString()} — {expense.amount} — {expense.note || t('finance.noNote')}
               </li>
             ))}
           </ul>

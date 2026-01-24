@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import axios from 'axios'
 import api from '../api/client'
+import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../utils/apiError'
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,21 +23,29 @@ export default function LoginPage() {
       }
       window.location.href = '/admin'
     } catch (e) {
-      if (axios.isAxiosError(e)) {
-        const message = e.response?.data?.detail ?? 'Login failed'
-        setError(message)
-      } else {
-        setError('Login failed')
-      }
+      setError(getApiErrorMessage(e, t, 'errors.loginFailed'))
     }
   }
 
   return (
     <div style={{ maxWidth: 360, margin: '80px auto', padding: 24, background: '#fff', borderRadius: 8 }}>
-      <h2>Login</h2>
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', marginBottom: 12 }} />
-      <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', marginBottom: 12 }} />
-      <button onClick={submit} style={{ width: '100%', padding: 12 }}>Sign in</button>
+      <h2>{t('login.title')}</h2>
+      <input
+        placeholder={t('login.emailPlaceholder')}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{ width: '100%', marginBottom: 12 }}
+      />
+      <input
+        placeholder={t('login.passwordPlaceholder')}
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{ width: '100%', marginBottom: 12 }}
+      />
+      <button onClick={submit} style={{ width: '100%', padding: 12 }}>
+        {t('login.signIn')}
+      </button>
       {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   )

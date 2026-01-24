@@ -5,13 +5,11 @@ import {
   useUpdateModuleSetting,
   useUpdateUIPrefs
 } from '../api/tenantSettings'
-
-const uiPrefLabels: Record<string, string> = {
-  compact_nav: 'Compact navigation',
-  show_help: 'Show help tips'
-}
+import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../utils/apiError'
 
 export default function TenantSettingsPage() {
+  const { t } = useTranslation()
   const { data, isLoading, isError, error, refetch } = useTenantSettings()
   const updateModule = useUpdateModuleSetting()
   const updateFeature = useUpdateFeatureSetting()
@@ -19,24 +17,24 @@ export default function TenantSettingsPage() {
   const [pendingPrefs, setPendingPrefs] = useState<Record<string, boolean>>({})
 
   if (isLoading) {
-    return <div style={{ padding: 24 }}>Loading settings...</div>
+    return <div style={{ padding: 24 }}>{t('settings.loading')}</div>
   }
 
   if (isError) {
-    const message = error instanceof Error ? error.message : 'Failed to load tenant settings.'
+    const message = getApiErrorMessage(error, t, 'errors.loadTenantSettingsMessage')
     return (
       <div style={{ padding: 24, display: 'grid', gap: 12 }}>
-        <strong>Unable to load tenant settings.</strong>
+        <strong>{t('settings.errorTitle')}</strong>
         <div>{message}</div>
         <button type="button" onClick={() => refetch()}>
-          Retry
+          {t('common.retry')}
         </button>
       </div>
     )
   }
 
   if (!data) {
-    return <div style={{ padding: 24 }}>No settings available.</div>
+    return <div style={{ padding: 24 }}>{t('settings.noSettings')}</div>
   }
 
   const uiPrefsFeatureEnabled =
@@ -52,11 +50,11 @@ export default function TenantSettingsPage() {
   return (
     <div style={{ padding: 24, display: 'grid', gap: 24 }}>
       <div>
-        <h2>Tenant settings</h2>
-        <p>Manage enabled modules, feature flags, and UI preferences.</p>
+        <h2>{t('settings.title')}</h2>
+        <p>{t('settings.subtitle')}</p>
       </div>
       <section style={{ display: 'grid', gap: 12 }}>
-        <h3>Modules</h3>
+        <h3>{t('settings.modules')}</h3>
         {data.modules.map((module) => (
           <label key={module.code} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input
@@ -66,13 +64,13 @@ export default function TenantSettingsPage() {
               onChange={() => updateModule.mutate({ code: module.code, is_enabled: !module.is_enabled })}
             />
             <span>
-              {module.name} ({module.code}) {!module.is_active && '— inactive'}
+              {module.name} ({module.code}) {!module.is_active && `— ${t('settings.inactive')}`}
             </span>
           </label>
         ))}
       </section>
       <section style={{ display: 'grid', gap: 12 }}>
-        <h3>Features</h3>
+        <h3>{t('settings.features')}</h3>
         {data.features.map((feature) => (
           <label key={feature.code} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input
@@ -89,8 +87,11 @@ export default function TenantSettingsPage() {
       </section>
       {uiPrefsFeatureEnabled && (
         <section style={{ display: 'grid', gap: 12 }}>
-          <h3>UI preferences</h3>
-          {Object.entries(uiPrefLabels).map(([key, label]) => (
+          <h3>{t('settings.uiPreferences')}</h3>
+          {[
+            { key: 'compact_nav', label: t('settings.compactNav') },
+            { key: 'show_help', label: t('settings.showHelp') }
+          ].map(({ key, label }) => (
             <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"

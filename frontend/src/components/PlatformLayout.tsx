@@ -1,8 +1,10 @@
 import type { CSSProperties } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function PlatformLayout() {
+  const { t, i18n } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -22,8 +24,20 @@ export default function PlatformLayout() {
   return (
     <div>
       <nav style={{ display: 'flex', gap: 12, padding: '16px 24px', background: '#111827', color: '#fff' }}>
-        <span style={{ fontWeight: 700 }}>Platform</span>
-        <Link style={linkStyle('/platform/tenants')} to="/platform/tenants">Tenants</Link>
+        <span style={{ fontWeight: 700 }}>{t('nav.platform')}</span>
+        <Link style={linkStyle('/platform/tenants')} to="/platform/tenants">
+          {t('nav.tenants')}
+        </Link>
+        <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12 }}>{t('language.label')}</span>
+          <select
+            value={i18n.language}
+            onChange={(event) => i18n.changeLanguage(event.target.value)}
+          >
+            <option value="ru">{t('language.ru')}</option>
+            <option value="en">{t('language.en')}</option>
+          </select>
+        </label>
       </nav>
       <Outlet />
     </div>

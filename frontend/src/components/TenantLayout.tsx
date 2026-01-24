@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useTenantSettings } from '../api/tenantSettings'
 
 const adminModules = ['catalog', 'purchasing', 'stock', 'sales', 'reports', 'users', 'finance']
 
 export default function TenantLayout() {
+  const { t, i18n } = useTranslation()
   const location = useLocation()
   const { data, isLoading } = useTenantSettings()
 
@@ -38,11 +40,35 @@ export default function TenantLayout() {
   return (
     <div>
       <nav style={navStyle}>
-        <span style={{ fontWeight: 700 }}>Tenant Console</span>
-        {showAdmin && <Link style={linkStyle('/admin')} to="/admin">Admin</Link>}
-        {showPos && <Link style={linkStyle('/pos')} to="/pos">POS</Link>}
-        {showFinance && <Link style={linkStyle('/finance')} to="/finance">Finance</Link>}
-        <Link style={linkStyle('/settings')} to="/settings">Settings</Link>
+        <span style={{ fontWeight: 700 }}>{t('nav.tenantConsole')}</span>
+        {showAdmin && (
+          <Link style={linkStyle('/admin')} to="/admin">
+            {t('nav.admin')}
+          </Link>
+        )}
+        {showPos && (
+          <Link style={linkStyle('/pos')} to="/pos">
+            {t('nav.pos')}
+          </Link>
+        )}
+        {showFinance && (
+          <Link style={linkStyle('/finance')} to="/finance">
+            {t('nav.finance')}
+          </Link>
+        )}
+        <Link style={linkStyle('/settings')} to="/settings">
+          {t('nav.settings')}
+        </Link>
+        <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12 }}>{t('language.label')}</span>
+          <select
+            value={i18n.language}
+            onChange={(event) => i18n.changeLanguage(event.target.value)}
+          >
+            <option value="ru">{t('language.ru')}</option>
+            <option value="en">{t('language.en')}</option>
+          </select>
+        </label>
       </nav>
       <Outlet />
     </div>

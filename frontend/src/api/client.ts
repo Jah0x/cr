@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getApiBase } from '../config/runtimeConfig'
+import i18n from '../i18n'
 
 const api = axios.create({
   baseURL: getApiBase(),
@@ -32,8 +33,8 @@ api.interceptors.response.use(
     const isAbort = error?.code === 'ERR_CANCELED'
 
     if (isTimeout || isAbort) {
-      const reason = isTimeout ? 'Request timed out' : 'Request was cancelled'
-      const normalizedError = new Error(`${reason}. Please try again.`)
+      const reason = isTimeout ? i18n.t('errors.requestTimeout') : i18n.t('errors.requestCancelled')
+      const normalizedError = new Error(reason)
       normalizedError.cause = error
       return Promise.reject(normalizedError)
     }
