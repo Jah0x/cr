@@ -5,12 +5,63 @@ import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useToast } from '../components/ToastProvider'
 
+const TRANSLIT_MAP: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'e',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'i',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'ts',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'shch',
+  ы: 'y',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+  ъ: '',
+  ь: ''
+}
+
+const slugify = (value: string) => {
+  const transliterated = value
+    .toLowerCase()
+    .split('')
+    .map((char) => TRANSLIT_MAP[char] ?? char)
+    .join('')
+
+  return transliterated
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export default function PlatformTenantCreatePage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [isCodeDirty, setIsCodeDirty] = useState(false)
   const [ownerEmail, setOwnerEmail] = useState('')
   const [templateId, setTemplateId] = useState('')
   const [result, setResult] = useState<{ tenant_url?: string; invite_url?: string } | null>(null)
@@ -42,8 +93,31 @@ export default function PlatformTenantCreatePage() {
     <div style={{ padding: 24, maxWidth: 520 }}>
       <h2>{t('platformTenantCreate.title')}</h2>
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
-        <input placeholder={t('platformTenantCreate.tenantName')} value={name} onChange={(event) => setName(event.target.value)} />
-        <input placeholder={t('platformTenantCreate.tenantCode')} value={code} onChange={(event) => setCode(event.target.value)} />
+        <label style={{ display: 'grid', gap: 6 }}>
+          <input
+            placeholder={t('platformTenantCreate.tenantName')}
+            value={name}
+            onChange={(event) => {
+              const value = event.target.value
+              setName(value)
+              if (!isCodeDirty) {
+                setCode(slugify(value))
+              }
+            }}
+          />
+          <span style={{ fontSize: 12, color: '#64748b' }}>name = отображаемое имя.</span>
+        </label>
+        <label style={{ display: 'grid', gap: 6 }}>
+          <input
+            placeholder={t('platformTenantCreate.tenantCode')}
+            value={code}
+            onChange={(event) => {
+              setCode(event.target.value)
+              setIsCodeDirty(true)
+            }}
+          />
+          <span style={{ fontSize: 12, color: '#64748b' }}>code = slug (schema/subdomain).</span>
+        </label>
         <input placeholder={t('platformTenantCreate.ownerEmail')} value={ownerEmail} onChange={(event) => setOwnerEmail(event.target.value)} />
         <input placeholder={t('platformTenantCreate.templateId')} value={templateId} onChange={(event) => setTemplateId(event.target.value)} />
         <div style={{ display: 'flex', gap: 12 }}>

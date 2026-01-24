@@ -246,9 +246,8 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     <div style={{ border: '1px solid #e2e8f0', padding: 16, borderRadius: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontWeight: 600 }}>{tenantName}</div>
-          <div style={{ fontSize: 13, color: '#475569' }}>
-            {t('platformTenants.codeLabel')}: {tenant.code}
+          <div style={{ fontWeight: 600 }}>
+            {tenantName} ({tenant.code})
           </div>
         </div>
         <button type="button" onClick={() => migrateMutation.mutate()} disabled={migrateMutation.isPending}>
