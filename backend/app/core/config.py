@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     platform_hosts: str = Field(default="", alias="PLATFORM_HOSTS")
     reserved_subdomains: str = Field(default="", alias="RESERVED_SUBDOMAINS")
     default_tenant_slug: str | None = Field(default=None, alias="DEFAULT_TENANT_SLUG")
+    tenant_canonical_redirect: bool = Field(default=False, alias="TENANT_CANONICAL_REDIRECT")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
