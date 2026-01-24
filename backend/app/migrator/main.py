@@ -137,16 +137,23 @@ def main() -> None:
     sync_url = normalize_migration_database_url(database_url)
     engine = create_engine(sync_url)
     try:
-        with engine.connect() as connection:
-            _log_connection_diagnostics(connection, "Before migrations")
-            config.attributes["connection"] = connection
-            try:
+        try:
+            with engine.connect() as connection:
+                _log_connection_diagnostics(connection, "Before migrations")
+                config.attributes["connection"] = connection
                 run_public_migrations(config)
                 _log_connection_diagnostics(connection, "After migrations")
+                connection.commit()
+        except Exception as exc:
+            sys.stderr.write(f"Migration failed: {exc}\n")
+            sys.exit(1)
+
+        try:
+            with engine.connect() as connection:
                 _post_migration_check(connection, database_url)
-            except Exception as exc:
-                sys.stderr.write(f"Migration failed: {exc}\n")
-                sys.exit(1)
+        except Exception as exc:
+            sys.stderr.write(f"Post-migration check failed: {exc}\n")
+            sys.exit(1)
     finally:
         engine.dispose()
 
