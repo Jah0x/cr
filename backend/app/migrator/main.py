@@ -7,7 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, text
+from sqlalchemy import Connection, create_engine, text
 
 from app.core.db_urls import normalize_migration_database_url
 
@@ -39,45 +39,67 @@ def _mask_database_url(database_url: str) -> str:
     return urlunsplit((split.scheme, masked_netloc, split.path, split.query, split.fragment))
 
 
-def _post_migration_check(database_url: str) -> None:
-    sync_url = normalize_migration_database_url(database_url)
-    engine = create_engine(sync_url)
-    try:
-        with engine.connect() as conn:
-            info_row = conn.execute(
-                text("select current_database(), current_user, current_schema()")
-            ).one()
-            check_row = (
-                conn.execute(
-                    text(
-                        """
-                        select
-                            to_regclass('public.alembic_version') as alembic_version,
-                            to_regclass('public.tenants') as tenants,
-                            to_regclass('public.modules') as modules,
-                            to_regclass('public.tenant_settings') as tenant_settings,
-                            to_regclass('public.users') as users,
-                            to_regclass('public.roles') as roles,
-                            to_regclass('public.user_roles') as user_roles
-                        """
-                    )
-                )
-            ).mappings().one()
-    finally:
-        engine.dispose()
+def _log_connection_diagnostics(connection: Connection, stage: str) -> None:
+    info_row = connection.execute(
+        text(
+            "select current_database(), current_user, inet_server_addr(), inet_server_port()"
+        )
+    ).one()
+    search_path = connection.execute(text("show search_path")).scalar()
+    current_schema = connection.execute(text("select current_schema()")).scalar()
+    logger.info(
+        "%s: db=%s user=%s addr=%s port=%s",
+        stage,
+        info_row[0],
+        info_row[1],
+        info_row[2],
+        info_row[3],
+    )
+    logger.info("%s: search_path=%s", stage, search_path)
+    logger.info("%s: current_schema=%s", stage, current_schema)
+
+
+def _post_migration_check(connection: Connection, database_url: str) -> None:
+    check_row = (
+        connection.execute(
+            text(
+                """
+                select
+                    to_regclass('public.alembic_version') as alembic_version,
+                    to_regclass('public.tenants') as tenants,
+                    to_regclass('public.modules') as modules,
+                    to_regclass('public.tenant_settings') as tenant_settings,
+                    to_regclass('public.users') as users,
+                    to_regclass('public.roles') as roles,
+                    to_regclass('public.user_roles') as user_roles
+                """
+            )
+        )
+    ).mappings().one()
+    logger.info("Post-migration table presence: %s", dict(check_row))
+    tables = connection.execute(
+        text(
+            """
+            select table_name
+            from information_schema.tables
+            where table_schema='public'
+            order by table_name
+            limit 30
+            """
+        )
+    ).scalars()
+    logger.info("Public tables (first 30): %s", list(tables))
 
     missing = [key for key, value in check_row.items() if value is None]
     if missing:
-        masked_url = _mask_database_url(sync_url)
-        message = (
-            "Post-migration check failed. Database info: "
-            f"db={info_row[0]}, user={info_row[1]}, schema={info_row[2]}. "
-            f"Missing tables: {', '.join(missing)}. URL={masked_url}"
+        masked_url = _mask_database_url(normalize_migration_database_url(database_url))
+        raise RuntimeError(
+            "Post-migration check failed. Missing tables: "
+            f"{', '.join(missing)}. URL={masked_url}"
         )
-        raise RuntimeError(message)
 
 
-def run_public_migrations(config: Config, database_url: str) -> None:
+def run_public_migrations(config: Config) -> None:
     script = ScriptDirectory.from_config(config)
     script_location = config.get_main_option("script_location")
     version_locations = config.get_main_option("version_locations")
@@ -94,7 +116,6 @@ def run_public_migrations(config: Config, database_url: str) -> None:
     logger.info("Running public alembic upgrade to head")
     command.upgrade(config, "public@head")
     logger.info("Public migrations completed")
-    _post_migration_check(database_url)
 
 
 def main() -> None:
@@ -113,11 +134,21 @@ def main() -> None:
         raise FileNotFoundError(f"alembic versions directory not found at {versions_path}")
     config = _build_alembic_config(base_dir, database_url)
 
+    sync_url = normalize_migration_database_url(database_url)
+    engine = create_engine(sync_url)
     try:
-        run_public_migrations(config, database_url)
-    except Exception as exc:
-        sys.stderr.write(f"Migration failed: {exc}\n")
-        sys.exit(1)
+        with engine.connect() as connection:
+            _log_connection_diagnostics(connection, "Before migrations")
+            config.attributes["connection"] = connection
+            try:
+                run_public_migrations(config)
+                _log_connection_diagnostics(connection, "After migrations")
+                _post_migration_check(connection, database_url)
+            except Exception as exc:
+                sys.stderr.write(f"Migration failed: {exc}\n")
+                sys.exit(1)
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":
