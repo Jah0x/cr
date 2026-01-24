@@ -147,6 +147,9 @@ def main() -> None:
             sys.stderr.write(f"Migration failed: {exc}\n")
             sys.exit(1)
 
+        engine.dispose()
+        engine = create_engine(sync_url)
+
         try:
             with engine.connect() as connection:
                 _post_migration_check(connection, database_url)
