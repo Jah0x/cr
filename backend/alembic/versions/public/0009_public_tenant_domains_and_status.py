@@ -1,7 +1,7 @@
 """Add tenant domains and provisioning status.
 
-Revision ID: public_0009
-Revises: public_0008
+Revision ID: public_0010
+Revises: public_0009
 Create Date: 2025-10-12 00:00:00.000000
 """
 
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
-revision = "public_0009"
-down_revision = "public_0008"
+revision = "public_0010"
+down_revision = "public_0009"
 branch_labels = None
 depends_on = None
 
