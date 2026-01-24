@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 revision = "public_0009"
 down_revision = "public_0008"
-branch_labels = ("public",)
+branch_labels = None
 depends_on = None
 
 
