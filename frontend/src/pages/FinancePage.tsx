@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../utils/apiError'
+import { useToast } from '../components/ToastProvider'
 
 type ExpenseCategory = { id: string; name: string }
 
@@ -32,6 +34,7 @@ const toDateParam = (value: string, endOfDay = false) => {
 
 export default function FinancePage() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categoryName, setCategoryName] = useState('')
@@ -67,7 +70,11 @@ export default function FinancePage() {
   }
 
   const loadData = async () => {
-    await Promise.all([loadCategories(), loadExpenses(), loadPnl()])
+    try {
+      await Promise.all([loadCategories(), loadExpenses(), loadPnl()])
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   useEffect(() => {
@@ -76,27 +83,37 @@ export default function FinancePage() {
 
   const createCategory = async () => {
     if (!categoryName.trim()) return
-    await api.post('/finance/expense-categories', { name: categoryName })
-    setCategoryName('')
-    loadCategories()
+    try {
+      await api.post('/finance/expense-categories', { name: categoryName })
+      setCategoryName('')
+      addToast(t('common.created'), 'success')
+      loadCategories()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const createExpense = async () => {
     if (!occurredAt || !amount) return
-    await api.post('/finance/expenses', {
-      occurred_at: toDateParam(occurredAt),
-      amount: Number(amount),
-      category_id: categoryId || null,
-      payment_method: paymentMethod || null,
-      note: note || null
-    })
-    setOccurredAt('')
-    setAmount('')
-    setCategoryId('')
-    setPaymentMethod('')
-    setNote('')
-    loadExpenses()
-    loadPnl()
+    try {
+      await api.post('/finance/expenses', {
+        occurred_at: toDateParam(occurredAt),
+        amount: Number(amount),
+        category_id: categoryId || null,
+        payment_method: paymentMethod || null,
+        note: note || null
+      })
+      setOccurredAt('')
+      setAmount('')
+      setCategoryId('')
+      setPaymentMethod('')
+      setNote('')
+      addToast(t('common.created'), 'success')
+      loadExpenses()
+      loadPnl()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const setQuickRange = (days: number) => {
@@ -108,78 +125,118 @@ export default function FinancePage() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>{t('finance.title')}</h2>
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-        <div style={{ background: '#fff', padding: 12 }}>
+    <div className="page">
+      <div className="page-header">
+        <h2 className="page-title">{t('finance.title')}</h2>
+      </div>
+      <div className="grid grid-cards">
+        <section className="card">
           <h3>{t('finance.expenseCategories')}</h3>
-          <input
-            placeholder={t('finance.categoryName')}
-            value={categoryName}
-            onChange={(event) => setCategoryName(event.target.value)}
-          />
-          <button onClick={createCategory}>{t('finance.addCategory')}</button>
-          <ul>
+          <div className="form-stack">
+            <div className="form-row">
+              <input
+                placeholder={t('finance.categoryName')}
+                value={categoryName}
+                onChange={(event) => setCategoryName(event.target.value)}
+              />
+              <button onClick={createCategory}>{t('finance.addCategory')}</button>
+            </div>
+          </div>
+          <ul className="pill-list">
             {categories.map((category) => (
-              <li key={category.id}>{category.name}</li>
+              <li key={category.id} className="pill">{category.name}</li>
             ))}
           </ul>
-        </div>
-        <div style={{ background: '#fff', padding: 12 }}>
+        </section>
+        <section className="card">
           <h3>{t('finance.logExpense')}</h3>
-          <input type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
-          <input placeholder={t('finance.amount')} value={amount} onChange={(event) => setAmount(event.target.value)} />
-          <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-            <option value="">{t('finance.category')}</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <input
-            placeholder={t('finance.paymentMethod')}
-            value={paymentMethod}
-            onChange={(event) => setPaymentMethod(event.target.value)}
-          />
-          <input placeholder={t('finance.note')} value={note} onChange={(event) => setNote(event.target.value)} />
-          <button onClick={createExpense}>{t('finance.saveExpense')}</button>
-        </div>
-        <div style={{ background: '#fff', padding: 12 }}>
+          <div className="form-stack">
+            <input type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
+            <input placeholder={t('finance.amount')} value={amount} onChange={(event) => setAmount(event.target.value)} />
+            <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+              <option value="">{t('finance.category')}</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <input
+              placeholder={t('finance.paymentMethod')}
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            />
+            <input placeholder={t('finance.note')} value={note} onChange={(event) => setNote(event.target.value)} />
+            <button onClick={createExpense}>{t('finance.saveExpense')}</button>
+          </div>
+        </section>
+        <section className="card">
           <h3>{t('finance.pnlSummary')}</h3>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="form-inline">
             <button type="button" onClick={() => setQuickRange(1)}>{t('finance.today')}</button>
             <button type="button" onClick={() => setQuickRange(7)}>{t('finance.week')}</button>
             <button type="button" onClick={() => setQuickRange(30)}>{t('finance.month')}</button>
           </div>
-          <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+          <div className="form-row">
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </div>
           {pnl && (
-            <div style={{ marginTop: 12 }}>
-              <p>{t('finance.totalSales')}: {pnl.total_sales}</p>
-              <p>{t('finance.cogs')}: {pnl.cogs}</p>
-              <p>{t('finance.grossProfit')}: {pnl.gross_profit}</p>
-              <p>{t('finance.expenses')}: {pnl.expenses_total}</p>
-              <p>{t('finance.netProfit')}: {pnl.net_profit}</p>
+            <div className="table-wrapper">
+              <table className="table">
+                <tbody>
+                  <tr>
+                    <th scope="row">{t('finance.totalSales')}</th>
+                    <td>{pnl.total_sales}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{t('finance.cogs')}</th>
+                    <td>{pnl.cogs}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{t('finance.grossProfit')}</th>
+                    <td>{pnl.gross_profit}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{t('finance.expenses')}</th>
+                    <td>{pnl.expenses_total}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{t('finance.netProfit')}</th>
+                    <td>{pnl.net_profit}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
-        <div style={{ background: '#fff', padding: 12 }}>
+        </section>
+        <section className="card">
           <h3>{t('finance.expensesTitle')}</h3>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div className="form-row">
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </div>
-          <ul>
-            {expenses.map((expense) => (
-              <li key={expense.id}>
-                {new Date(expense.occurred_at).toLocaleDateString()} — {expense.amount} — {expense.note || t('finance.noNote')}
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.expensesTitle')}</th>
+                  <th>{t('finance.amount')}</th>
+                  <th>{t('finance.note')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td>{new Date(expense.occurred_at).toLocaleDateString()}</td>
+                    <td>{expense.amount}</td>
+                    <td>{expense.note || t('finance.noNote')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   )
