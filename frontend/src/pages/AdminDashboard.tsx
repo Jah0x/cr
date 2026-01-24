@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import api from '../api/client'
 import { useTenantSettings } from '../api/tenantSettings'
 import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../utils/apiError'
+import { useToast } from '../components/ToastProvider'
 
 type Category = { id: string; name: string }
 type Brand = { id: string; name: string }
@@ -11,6 +13,7 @@ type Supplier = { id: string; name: string }
 
 export default function AdminDashboard() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const { data: tenantSettings } = useTenantSettings()
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
@@ -53,69 +56,124 @@ export default function AdminDashboard() {
   }, [])
 
   const createCategory = async () => {
-    await api.post('/categories', { name: categoryName })
-    setCategoryName('')
-    loadData()
+    if (!categoryName.trim()) return
+    try {
+      await api.post('/categories', { name: categoryName })
+      setCategoryName('')
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const createBrand = async () => {
-    await api.post('/brands', { name: brandName })
-    setBrandName('')
-    loadData()
+    if (!brandName.trim()) return
+    try {
+      await api.post('/brands', { name: brandName })
+      setBrandName('')
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const createLine = async () => {
-    await api.post('/lines', { name: lineName, brand_id: lineBrand })
-    setLineName('')
-    setLineBrand('')
-    loadData()
+    if (!lineName.trim()) return
+    try {
+      await api.post('/lines', { name: lineName, brand_id: lineBrand })
+      setLineName('')
+      setLineBrand('')
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const createProduct = async () => {
-    await api.post('/products', { name: productName, price: Number(productPrice), sku: productSku })
-    setProductName('')
-    setProductPrice('0')
-    setProductSku('')
-    loadData()
+    if (!productName.trim()) return
+    try {
+      await api.post('/products', { name: productName, price: Number(productPrice), sku: productSku })
+      setProductName('')
+      setProductPrice('0')
+      setProductSku('')
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const createSupplier = async () => {
-    await api.post('/suppliers', { name: supplierName })
-    setSupplierName('')
-    loadData()
+    if (!supplierName.trim()) return
+    try {
+      await api.post('/suppliers', { name: supplierName })
+      setSupplierName('')
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const createInvoice = async () => {
-    const res = await api.post('/purchase-invoices', { supplier_id: suppliers[0]?.id })
-    setInvoiceId(res.data.id)
-    loadData()
+    try {
+      const res = await api.post('/purchase-invoices', { supplier_id: suppliers[0]?.id })
+      setInvoiceId(res.data.id)
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const addPurchaseItem = async () => {
     if (!invoiceId) return
-    await api.post(`/purchase-invoices/${invoiceId}/items`, {
-      product_id: purchaseProduct,
-      quantity: purchaseQty,
-      unit_cost: purchaseCost
-    })
-    loadData()
+    try {
+      await api.post(`/purchase-invoices/${invoiceId}/items`, {
+        product_id: purchaseProduct,
+        quantity: purchaseQty,
+        unit_cost: purchaseCost
+      })
+      addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const postInvoice = async () => {
     if (invoiceId) {
-      await api.post(`/purchase-invoices/${invoiceId}/post`)
-      loadData()
+      try {
+        await api.post(`/purchase-invoices/${invoiceId}/post`)
+        addToast(t('common.updated'), 'success')
+        loadData()
+      } catch (error) {
+        addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+      }
     }
   }
 
   const adjustStock = async () => {
-    await api.post('/stock/adjustments', { product_id: stockProduct, quantity: Number(stockQty), reason: 'adjustment' })
-    loadData()
+    try {
+      await api.post('/stock/adjustments', { product_id: stockProduct, quantity: Number(stockQty), reason: 'adjustment' })
+      addToast(t('common.updated'), 'success')
+      loadData()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const loadReports = async () => {
-    const res = await api.get('/reports/summary')
-    setReports(res.data)
+    try {
+      const res = await api.get('/reports/summary')
+      setReports(res.data)
+      addToast(t('common.saved'), 'success')
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
   }
 
   const reportsEnabled =
@@ -125,85 +183,120 @@ export default function AdminDashboard() {
   const showReports = reportsEnabled && reportsModuleEnabled
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>{t('admin.title')}</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-        <div style={{ background: '#fff', padding: 12 }}>
+    <div className="page">
+      <div className="page-header">
+        <h2 className="page-title">{t('admin.title')}</h2>
+      </div>
+      <div className="grid grid-cards">
+        <section className="card">
           <h3>{t('admin.catalog')}</h3>
-          <input placeholder={t('admin.categoryPlaceholder')} value={categoryName} onChange={(e) => setCategoryName(e.target.value)} />
-          <button onClick={createCategory}>{t('admin.addCategory')}</button>
-          <input placeholder={t('admin.brandPlaceholder')} value={brandName} onChange={(e) => setBrandName(e.target.value)} />
-          <button onClick={createBrand}>{t('admin.addBrand')}</button>
-          <input placeholder={t('admin.linePlaceholder')} value={lineName} onChange={(e) => setLineName(e.target.value)} />
-          <select value={lineBrand} onChange={(e) => setLineBrand(e.target.value)}>
-            <option value="">{t('admin.brandSelect')}</option>
-            {brands.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-          <button onClick={createLine}>{t('admin.addLine')}</button>
-          <input placeholder={t('admin.skuPlaceholder')} value={productSku} onChange={(e) => setProductSku(e.target.value)} />
-          <input placeholder={t('admin.productPlaceholder')} value={productName} onChange={(e) => setProductName(e.target.value)} />
-          <input placeholder={t('admin.pricePlaceholder')} value={productPrice} onChange={(e) => setProductPrice(e.target.value)} />
-          <button onClick={createProduct}>{t('admin.addProduct')}</button>
-          <ul>
+          <div className="form-stack">
+            <div className="form-row">
+              <input placeholder={t('admin.categoryPlaceholder')} value={categoryName} onChange={(e) => setCategoryName(e.target.value)} />
+              <button onClick={createCategory}>{t('admin.addCategory')}</button>
+            </div>
+            <div className="form-row">
+              <input placeholder={t('admin.brandPlaceholder')} value={brandName} onChange={(e) => setBrandName(e.target.value)} />
+              <button onClick={createBrand}>{t('admin.addBrand')}</button>
+            </div>
+            <div className="form-row">
+              <input placeholder={t('admin.linePlaceholder')} value={lineName} onChange={(e) => setLineName(e.target.value)} />
+              <select value={lineBrand} onChange={(e) => setLineBrand(e.target.value)}>
+                <option value="">{t('admin.brandSelect')}</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <button onClick={createLine}>{t('admin.addLine')}</button>
+            </div>
+            <div className="form-row">
+              <input placeholder={t('admin.skuPlaceholder')} value={productSku} onChange={(e) => setProductSku(e.target.value)} />
+              <input placeholder={t('admin.productPlaceholder')} value={productName} onChange={(e) => setProductName(e.target.value)} />
+              <input placeholder={t('admin.pricePlaceholder')} value={productPrice} onChange={(e) => setProductPrice(e.target.value)} />
+              <button onClick={createProduct}>{t('admin.addProduct')}</button>
+            </div>
+          </div>
+          <ul className="pill-list">
             {products.map((p) => (
-              <li key={p.id}>{p.name}</li>
+              <li key={p.id} className="pill">{p.name}</li>
             ))}
           </ul>
-        </div>
-        <div style={{ background: '#fff', padding: 12 }}>
+        </section>
+        <section className="card">
           <h3>{t('admin.suppliersPurchasing')}</h3>
-          <input placeholder={t('admin.supplierPlaceholder')} value={supplierName} onChange={(e) => setSupplierName(e.target.value)} />
-          <button onClick={createSupplier}>{t('admin.addSupplier')}</button>
-          <button onClick={createInvoice}>{t('admin.newInvoice')}</button>
-          {invoiceId && <p>{t('admin.workingInvoice', { id: invoiceId })}</p>}
-          <select value={purchaseProduct} onChange={(e) => setPurchaseProduct(e.target.value)}>
-            <option value="">{t('admin.productSelect')}</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input placeholder={t('admin.qtyPlaceholder')} value={purchaseQty} onChange={(e) => setPurchaseQty(e.target.value)} />
-          <input placeholder={t('admin.costPlaceholder')} value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} />
-          <button onClick={addPurchaseItem}>{t('admin.addItem')}</button>
-          <button onClick={postInvoice}>{t('admin.postInvoice')}</button>
-        </div>
-        <div style={{ background: '#fff', padding: 12 }}>
+          <div className="form-stack">
+            <div className="form-row">
+              <input placeholder={t('admin.supplierPlaceholder')} value={supplierName} onChange={(e) => setSupplierName(e.target.value)} />
+              <button onClick={createSupplier}>{t('admin.addSupplier')}</button>
+            </div>
+            <div className="form-row">
+              <button onClick={createInvoice}>{t('admin.newInvoice')}</button>
+              {invoiceId && <div className="page-subtitle">{t('admin.workingInvoice', { id: invoiceId })}</div>}
+            </div>
+            <div className="form-row">
+              <select value={purchaseProduct} onChange={(e) => setPurchaseProduct(e.target.value)}>
+                <option value="">{t('admin.productSelect')}</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <input placeholder={t('admin.qtyPlaceholder')} value={purchaseQty} onChange={(e) => setPurchaseQty(e.target.value)} />
+              <input placeholder={t('admin.costPlaceholder')} value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} />
+              <button onClick={addPurchaseItem}>{t('admin.addItem')}</button>
+            </div>
+            <button onClick={postInvoice}>{t('admin.postInvoice')}</button>
+          </div>
+        </section>
+        <section className="card">
           <h3>{t('admin.stock')}</h3>
-          <select value={stockProduct} onChange={(e) => setStockProduct(e.target.value)}>
-            <option value="">{t('admin.productSelect')}</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input placeholder={t('admin.qtyPlaceholder')} value={stockQty} onChange={(e) => setStockQty(e.target.value)} />
-          <button onClick={adjustStock}>{t('admin.adjust')}</button>
+          <div className="form-stack">
+            <select value={stockProduct} onChange={(e) => setStockProduct(e.target.value)}>
+              <option value="">{t('admin.productSelect')}</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <input placeholder={t('admin.qtyPlaceholder')} value={stockQty} onChange={(e) => setStockQty(e.target.value)} />
+            <button onClick={adjustStock}>{t('admin.adjust')}</button>
+          </div>
           <h4>{t('admin.stockLevels')}</h4>
-          <ul>
+          <ul className="pill-list">
             {products.map((p) => (
-              <li key={p.id}>{p.name}</li>
+              <li key={p.id} className="pill">{p.name}</li>
             ))}
           </ul>
-        </div>
+        </section>
         {showReports && (
-          <div style={{ background: '#fff', padding: 12 }}>
+          <section className="card">
             <h3>{t('admin.reports')}</h3>
             <button onClick={loadReports}>{t('admin.loadSummary')}</button>
             {reports && (
-              <div>
-                <p>{t('admin.totalSales')}: {reports.total_sales}</p>
-                <p>{t('admin.totalPurchases')}: {reports.total_purchases}</p>
-                <p>{t('admin.grossMargin')}: {reports.gross_margin}</p>
+              <div className="table-wrapper">
+                <table className="table">
+                  <tbody>
+                    <tr>
+                      <th scope="row">{t('admin.totalSales')}</th>
+                      <td>{reports.total_sales}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('admin.totalPurchases')}</th>
+                      <td>{reports.total_purchases}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('admin.grossMargin')}</th>
+                      <td>{reports.gross_margin}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             )}
-          </div>
+          </section>
         )}
       </div>
     </div>

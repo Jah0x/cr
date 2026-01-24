@@ -59,7 +59,12 @@ const resources = {
         copy: 'Copy',
         copied: 'Copied',
         email: 'Email',
-        password: 'Password'
+        password: 'Password',
+        created: 'Created',
+        updated: 'Updated',
+        deleted: 'Deleted',
+        saved: 'Saved',
+        error: 'Something went wrong'
       },
       errors: {
         loginFailed: 'Login failed',
@@ -267,7 +272,12 @@ const resources = {
         copy: 'Копировать',
         copied: 'Скопировано',
         email: 'Email',
-        password: 'Пароль'
+        password: 'Пароль',
+        created: 'Создано',
+        updated: 'Обновлено',
+        deleted: 'Удалено',
+        saved: 'Сохранено',
+        error: 'Что-то пошло не так'
       },
       errors: {
         loginFailed: 'Не удалось войти',

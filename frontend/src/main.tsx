@@ -16,6 +16,7 @@ import TenantSettingsPage from './pages/TenantSettingsPage'
 import FinancePage from './pages/FinancePage'
 import RegisterPage from './pages/RegisterPage'
 import { loadRuntimeConfig } from './config/runtimeConfig'
+import { ToastProvider } from './components/ToastProvider'
 
 const queryClient = new QueryClient()
 const platformHostsFromEnv = (import.meta.env.VITE_PLATFORM_HOSTS ?? '')
@@ -35,30 +36,32 @@ const bootstrap = async () => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          {hostMode === 'platform' ? (
-            <Routes>
-              <Route path="/platform/login" element={<PlatformLoginPage />} />
-              <Route element={<PlatformLayout />}>
-                <Route path="/platform/tenants" element={<PlatformTenantsPage />} />
-                <Route path="/platform/tenants/new" element={<PlatformTenantCreatePage />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/platform/login" />} />
-            </Routes>
-          ) : (
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route element={<TenantLayout />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/pos" element={<PosPage />} />
-                <Route path="/finance" element={<FinancePage />} />
-                <Route path="/settings" element={<TenantSettingsPage />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/login" />} />
-            </Routes>
-          )}
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            {hostMode === 'platform' ? (
+              <Routes>
+                <Route path="/platform/login" element={<PlatformLoginPage />} />
+                <Route element={<PlatformLayout />}>
+                  <Route path="/platform/tenants" element={<PlatformTenantsPage />} />
+                  <Route path="/platform/tenants/new" element={<PlatformTenantCreatePage />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/platform/login" />} />
+              </Routes>
+            ) : (
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route element={<TenantLayout />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/pos" element={<PosPage />} />
+                  <Route path="/finance" element={<FinancePage />} />
+                  <Route path="/settings" element={<TenantSettingsPage />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/login" />} />
+              </Routes>
+            )}
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </React.StrictMode>
   )

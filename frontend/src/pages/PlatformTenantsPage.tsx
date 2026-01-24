@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
+import { useToast } from '../components/ToastProvider'
 
 type Tenant = { id: string; name: string; code: string; status: string; last_error?: string | null }
 type TenantStatus = {
@@ -30,6 +31,7 @@ type TenantUser = {
 
 function TenantCard({ tenant }: { tenant: Tenant }) {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const queryClient = useQueryClient()
   const [tenantName, setTenantName] = useState(tenant.name)
   const [tenantStatus, setTenantStatus] = useState(tenant.status === 'active')
@@ -85,6 +87,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platformTenantStatus', tenant.id] })
+      addToast(t('common.updated'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -99,6 +105,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platformTenants'] })
       queryClient.invalidateQueries({ queryKey: ['platformTenantStatus', tenant.id] })
+      addToast(t('common.updated'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -114,6 +124,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
       setDomainInput('')
       setDomainPrimary(false)
       queryClient.invalidateQueries({ queryKey: ['platformTenantDomains', tenant.id] })
+      addToast(t('common.created'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -123,6 +137,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platformTenantDomains', tenant.id] })
+      addToast(t('common.deleted'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -133,6 +151,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platformTenantDomains', tenant.id] })
+      addToast(t('common.updated'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -146,6 +168,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: (data) => {
       setInviteResult(data)
+      addToast(t('common.created'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -163,6 +189,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
       setUserPassword('')
       setUserInviteResult(null)
       queryClient.invalidateQueries({ queryKey: ['platformTenantUsers', tenant.id] })
+      addToast(t('common.created'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -176,6 +206,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: (data) => {
       setUserInviteResult(data)
+      addToast(t('common.created'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -188,6 +222,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platformTenantUsers', tenant.id] })
+      addToast(t('common.updated'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 
@@ -197,6 +235,10 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platformTenantUsers', tenant.id] })
+      addToast(t('common.deleted'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
   })
 

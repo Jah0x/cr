@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
+import { useToast } from '../components/ToastProvider'
 
 export default function PlatformTenantCreatePage() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -28,8 +30,11 @@ export default function PlatformTenantCreatePage() {
         template_id: templateId || null
       })
       setResult(res.data)
+      addToast(t('common.created'), 'success')
     } catch (err) {
-      setError(getApiErrorMessage(err, t, 'errors.createTenantFailed'))
+      const message = getApiErrorMessage(err, t, 'errors.createTenantFailed')
+      setError(message)
+      addToast(message, 'error')
     }
   }
 
