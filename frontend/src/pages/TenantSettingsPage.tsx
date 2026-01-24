@@ -12,7 +12,7 @@ const uiPrefLabels: Record<string, string> = {
 }
 
 export default function TenantSettingsPage() {
-  const { data, isLoading } = useTenantSettings()
+  const { data, isLoading, isError, error, refetch } = useTenantSettings()
   const updateModule = useUpdateModuleSetting()
   const updateFeature = useUpdateFeatureSetting()
   const updatePrefs = useUpdateUIPrefs()
@@ -20,6 +20,19 @@ export default function TenantSettingsPage() {
 
   if (isLoading) {
     return <div style={{ padding: 24 }}>Loading settings...</div>
+  }
+
+  if (isError) {
+    const message = error instanceof Error ? error.message : 'Failed to load tenant settings.'
+    return (
+      <div style={{ padding: 24, display: 'grid', gap: 12 }}>
+        <strong>Unable to load tenant settings.</strong>
+        <div>{message}</div>
+        <button type="button" onClick={() => refetch()}>
+          Retry
+        </button>
+      </div>
+    )
   }
 
   if (!data) {
