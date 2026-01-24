@@ -16,7 +16,15 @@ from app.schemas.platform import (
     PlatformTemplateResponse,
     PlatformTenantCreate,
     PlatformTenantCreateResponse,
+    PlatformTenantDomainCreate,
+    PlatformTenantDomainResponse,
+    PlatformTenantInviteRequest,
+    PlatformTenantInviteResponse,
     PlatformTenantResponse,
+    PlatformTenantStatusResponse,
+    PlatformTenantUserCreate,
+    PlatformTenantUserResponse,
+    PlatformTenantUserUpdate,
 )
 from app.schemas.user import TokenOut
 from app.services.platform_service import PlatformService
@@ -69,7 +77,14 @@ async def list_tenants(session: AsyncSession = Depends(get_db_session)):
     service = PlatformService(session)
     tenants = await service.list_tenants()
     return [
-        PlatformTenantResponse(id=str(t.id), name=t.name, code=t.code, status=t.status.value) for t in tenants
+        PlatformTenantResponse(
+            id=str(t.id),
+            name=t.name,
+            code=t.code,
+            status=t.status.value,
+            last_error=t.last_error,
+        )
+        for t in tenants
     ]
 
 
@@ -92,6 +107,154 @@ async def create_tenant(payload: PlatformTenantCreate, session: AsyncSession = D
         owner_email=result["owner_email"],
         invite_url=result["invite_url"],
     )
+
+
+@router.get("/tenants/{tenant_id}/status", response_model=PlatformTenantStatusResponse)
+async def tenant_status(tenant_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    status_info = await service.get_tenant_status(tenant_id)
+    tenant = status_info["tenant"]
+    return PlatformTenantStatusResponse(
+        id=str(tenant.id),
+        name=tenant.name,
+        code=tenant.code,
+        status=tenant.status.value,
+        last_error=tenant.last_error,
+        schema=status_info["schema"],
+        schema_exists=status_info["schema_exists"],
+        revision=status_info["revision"],
+        head_revision=status_info["head_revision"],
+    )
+
+
+@router.post("/tenants/{tenant_id}/migrate", response_model=PlatformTenantStatusResponse)
+async def migrate_tenant(tenant_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    status_info = await service.migrate_tenant(tenant_id)
+    tenant = status_info["tenant"]
+    return PlatformTenantStatusResponse(
+        id=str(tenant.id),
+        name=tenant.name,
+        code=tenant.code,
+        status=tenant.status.value,
+        last_error=tenant.last_error,
+        schema=status_info["schema"],
+        schema_exists=status_info["schema_exists"],
+        revision=status_info["revision"],
+        head_revision=status_info["head_revision"],
+    )
+
+
+@router.get("/tenants/{tenant_id}/domains", response_model=list[PlatformTenantDomainResponse])
+async def list_domains(tenant_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    domains = await service.list_domains(tenant_id)
+    return [
+        PlatformTenantDomainResponse(
+            id=str(domain.id),
+            domain=domain.domain,
+            is_primary=domain.is_primary,
+            created_at=domain.created_at.isoformat(),
+        )
+        for domain in domains
+    ]
+
+
+@router.post("/tenants/{tenant_id}/domains", response_model=PlatformTenantDomainResponse)
+async def create_domain(
+    tenant_id: str,
+    payload: PlatformTenantDomainCreate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = PlatformService(session)
+    domain = await service.create_domain(tenant_id, payload.domain, payload.is_primary)
+    return PlatformTenantDomainResponse(
+        id=str(domain.id),
+        domain=domain.domain,
+        is_primary=domain.is_primary,
+        created_at=domain.created_at.isoformat(),
+    )
+
+
+@router.delete("/tenants/{tenant_id}/domains/{domain_id}")
+async def delete_domain(tenant_id: str, domain_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    await service.delete_domain(tenant_id, domain_id)
+    return {"status": "deleted"}
+
+
+@router.post("/tenants/{tenant_id}/invite", response_model=PlatformTenantInviteResponse)
+async def create_invite(
+    tenant_id: str,
+    payload: PlatformTenantInviteRequest,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = PlatformService(session)
+    invite = await service.create_invite(tenant_id, payload.email, payload.role_name)
+    return PlatformTenantInviteResponse(invite_url=invite["invite_url"], expires_at=invite["expires_at"])
+
+
+@router.get("/tenants/{tenant_id}/users", response_model=list[PlatformTenantUserResponse])
+async def list_users(tenant_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    users = await service.list_users(tenant_id)
+    return [
+        PlatformTenantUserResponse(
+            id=str(user.id),
+            email=user.email,
+            roles=[role.name for role in user.roles],
+            is_active=user.is_active,
+            created_at=user.created_at.isoformat(),
+            last_login_at=user.last_login_at.isoformat() if user.last_login_at else None,
+        )
+        for user in users
+    ]
+
+
+@router.post("/tenants/{tenant_id}/users", response_model=PlatformTenantUserResponse)
+async def create_user(
+    tenant_id: str,
+    payload: PlatformTenantUserCreate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    if not payload.password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password is required")
+    service = PlatformService(session)
+    user = await service.create_user(tenant_id, payload.email, payload.password, payload.role_names)
+    return PlatformTenantUserResponse(
+        id=str(user.id),
+        email=user.email,
+        roles=[role.name for role in user.roles],
+        is_active=user.is_active,
+        created_at=user.created_at.isoformat(),
+        last_login_at=user.last_login_at.isoformat() if user.last_login_at else None,
+    )
+
+
+@router.patch("/tenants/{tenant_id}/users/{user_id}", response_model=PlatformTenantUserResponse)
+async def update_user(
+    tenant_id: str,
+    user_id: str,
+    payload: PlatformTenantUserUpdate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = PlatformService(session)
+    user = await service.update_user(tenant_id, user_id, is_active=payload.is_active)
+    return PlatformTenantUserResponse(
+        id=str(user.id),
+        email=user.email,
+        roles=[role.name for role in user.roles],
+        is_active=user.is_active,
+        created_at=user.created_at.isoformat(),
+        last_login_at=user.last_login_at.isoformat() if user.last_login_at else None,
+    )
+
+
+@router.delete("/tenants/{tenant_id}/users/{user_id}")
+async def delete_user(tenant_id: str, user_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    await service.delete_user(tenant_id, user_id)
+    return {"status": "deleted"}
 
 
 @router.post("/tenants/{tenant_id}/apply-template", response_model=PlatformTenantResponse)

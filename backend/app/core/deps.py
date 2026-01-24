@@ -15,6 +15,7 @@ from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
 from app.core.config import get_settings
 from app.services.tenant_service import TenantService
+from app.services.migrations import ensure_tenant_ready
 
 logger = logging.getLogger(__name__)
 auth_scheme = HTTPBearer(auto_error=False)
@@ -42,6 +43,7 @@ async def resolve_tenant_with_schema(
     tenant_service = TenantService(TenantRepo(session))
     tenant = await tenant_service.resolve_tenant(request)
     if tenant:
+        await ensure_tenant_ready(session, tenant, correlation_id=str(request.state.request_id) if hasattr(request.state, "request_id") else None)
         schema = tenant.code
         await set_search_path(session, schema)
         request.state.tenant_schema = schema

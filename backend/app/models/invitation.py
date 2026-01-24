@@ -19,6 +19,8 @@ class TenantInvitation(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("public.tenants.id", ondelete="CASCADE"), nullable=False)
     email = Column(String, nullable=False)
+    role_name = Column(String, nullable=False, default="owner", server_default="owner")
+    token = Column(String, nullable=True)
     token_hash = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
