@@ -22,6 +22,8 @@ from app.schemas.platform import (
     PlatformTenantInviteResponse,
     PlatformTenantResponse,
     PlatformTenantStatusResponse,
+    PlatformTenantUpdate,
+    PlatformTenantUpdateResponse,
     PlatformTenantUserCreate,
     PlatformTenantUserResponse,
     PlatformTenantUserUpdate,
@@ -106,6 +108,23 @@ async def create_tenant(payload: PlatformTenantCreate, session: AsyncSession = D
         tenant_url=result["tenant_url"],
         owner_email=result["owner_email"],
         invite_url=result["invite_url"],
+    )
+
+
+@router.patch("/tenants/{tenant_id}", response_model=PlatformTenantUpdateResponse)
+async def update_tenant(
+    tenant_id: str,
+    payload: PlatformTenantUpdate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = PlatformService(session)
+    tenant = await service.update_tenant(tenant_id, name=payload.name, status=payload.status)
+    return PlatformTenantUpdateResponse(
+        id=str(tenant.id),
+        name=tenant.name,
+        code=tenant.code,
+        status=tenant.status.value,
+        last_error=tenant.last_error,
     )
 
 

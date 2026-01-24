@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
@@ -28,6 +28,8 @@ type TenantUser = {
 
 function TenantCard({ tenant }: { tenant: Tenant }) {
   const queryClient = useQueryClient()
+  const [tenantName, setTenantName] = useState(tenant.name)
+  const [tenantStatus, setTenantStatus] = useState(tenant.status === 'active')
   const [domainInput, setDomainInput] = useState('')
   const [domainPrimary, setDomainPrimary] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -38,6 +40,11 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
   const [userPassword, setUserPassword] = useState('')
   const [userMode, setUserMode] = useState<'password' | 'invite'>('password')
   const [userInviteResult, setUserInviteResult] = useState<TenantInvite | null>(null)
+
+  useEffect(() => {
+    setTenantName(tenant.name)
+    setTenantStatus(tenant.status === 'active')
+  }, [tenant.name, tenant.status])
 
   const { data: status } = useQuery({
     queryKey: ['platformTenantStatus', tenant.id],
@@ -74,6 +81,20 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
       return res.data
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platformTenantStatus', tenant.id] })
+    }
+  })
+
+  const updateTenantMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.patch<Tenant>(`/platform/tenants/${tenant.id}`, {
+        name: tenantName,
+        status: tenantStatus ? 'active' : 'inactive'
+      })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platformTenants'] })
       queryClient.invalidateQueries({ queryKey: ['platformTenantStatus', tenant.id] })
     }
   })
@@ -170,12 +191,46 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     <div style={{ border: '1px solid #e2e8f0', padding: 16, borderRadius: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontWeight: 600 }}>{tenant.name}</div>
+          <div style={{ fontWeight: 600 }}>{tenantName}</div>
           <div style={{ fontSize: 13, color: '#475569' }}>Code: {tenant.code}</div>
         </div>
         <button type="button" onClick={() => migrateMutation.mutate()} disabled={migrateMutation.isPending}>
           {migrateMutation.isPending ? 'Migrating...' : 'Migrate tenant'}
         </button>
+      </div>
+
+      <div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span style={{ fontSize: 13, color: '#475569' }}>Tenant name</span>
+          <input
+            value={tenantName}
+            onChange={(event) => setTenantName(event.target.value)}
+            placeholder="Tenant name"
+          />
+        </label>
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span style={{ fontSize: 13, color: '#475569' }}>Tenant code</span>
+          <input value={tenant.code} readOnly title="Tenant code cannot be edited." />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={tenantStatus}
+            onChange={(event) => setTenantStatus(event.target.checked)}
+          />
+          <span style={{ fontSize: 13, color: '#475569' }}>
+            Status: {tenantStatus ? 'active' : 'inactive'}
+          </span>
+        </label>
+        <div>
+          <button
+            type="button"
+            onClick={() => updateTenantMutation.mutate()}
+            disabled={!tenantName || updateTenantMutation.isPending}
+          >
+            {updateTenantMutation.isPending ? 'Saving...' : 'Save tenant'}
+          </button>
+        </div>
       </div>
 
       <div style={{ marginTop: 12, display: 'grid', gap: 4, fontSize: 13 }}>
