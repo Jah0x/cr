@@ -7,18 +7,10 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/docker-backend.yml"
-      - "!backend/Dockerfile.migrator"
-      - "!backend/app/migrator/**"
-      - "!backend/alembic/**"
-      - "!backend/alembic.ini"
   pull_request:
     paths:
       - "backend/**"
       - ".github/workflows/docker-backend.yml"
-      - "!backend/Dockerfile.migrator"
-      - "!backend/app/migrator/**"
-      - "!backend/alembic/**"
-      - "!backend/alembic.ini"
 
 permissions:
   contents: read
