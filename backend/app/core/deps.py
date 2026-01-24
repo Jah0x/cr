@@ -11,6 +11,7 @@ from app.core.db import get_session
 from app.core.db_utils import set_search_path
 from app.core.security import verify_platform_token, verify_token
 from app.models.platform import Module, TenantFeature, TenantModule
+from app.repos.tenant_domain_repo import TenantDomainRepo
 from app.repos.tenant_repo import TenantRepo
 from app.repos.user_repo import UserRepo
 from app.core.config import get_settings
@@ -40,7 +41,7 @@ async def resolve_tenant_with_schema(
     *,
     allow_public: bool = False,
 ):
-    tenant_service = TenantService(TenantRepo(session))
+    tenant_service = TenantService(TenantRepo(session), TenantDomainRepo(session))
     tenant = await tenant_service.resolve_tenant(request)
     if tenant:
         await ensure_tenant_ready(session, tenant, correlation_id=str(request.state.request_id) if hasattr(request.state, "request_id") else None)
