@@ -202,6 +202,18 @@ async def delete_domain(tenant_id: str, domain_id: str, session: AsyncSession = 
     return {"status": "deleted"}
 
 
+@router.patch("/tenants/{tenant_id}/domains/{domain_id}", response_model=PlatformTenantDomainResponse)
+async def set_primary_domain(tenant_id: str, domain_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    domain = await service.set_primary_domain(tenant_id, domain_id)
+    return PlatformTenantDomainResponse(
+        id=str(domain.id),
+        domain=domain.domain,
+        is_primary=domain.is_primary,
+        created_at=domain.created_at.isoformat(),
+    )
+
+
 @router.post("/tenants/{tenant_id}/invite", response_model=PlatformTenantInviteResponse)
 async def create_invite(
     tenant_id: str,

@@ -203,7 +203,40 @@ class PlatformService:
         )
         if not domain:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Domain not found")
+        was_primary = domain.is_primary
         await self.session.delete(domain)
+        await self.session.flush()
+        if was_primary:
+            next_domain = await self.session.scalar(
+                select(TenantDomain)
+                .where(TenantDomain.tenant_id == tenant_id)
+                .order_by(TenantDomain.created_at.asc(), TenantDomain.id.asc())
+                .limit(1)
+            )
+            if next_domain:
+                await self.session.execute(
+                    TenantDomain.__table__.update()
+                    .where(TenantDomain.tenant_id == tenant_id)
+                    .values(is_primary=False)
+                )
+                next_domain.is_primary = True
+
+    async def set_primary_domain(self, tenant_id: str, domain_id: str) -> TenantDomain:
+        await set_search_path(self.session, None)
+        domain = await self.session.scalar(
+            select(TenantDomain).where(TenantDomain.id == domain_id, TenantDomain.tenant_id == tenant_id)
+        )
+        if not domain:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Domain not found")
+        if not domain.is_primary:
+            await self.session.execute(
+                TenantDomain.__table__.update()
+                .where(TenantDomain.tenant_id == tenant_id)
+                .values(is_primary=False)
+            )
+            domain.is_primary = True
+        await self.session.flush()
+        return domain
 
     async def create_invite(self, tenant_id: str, email: str, role_name: str) -> dict:
         tenant = await self._get_tenant(tenant_id)

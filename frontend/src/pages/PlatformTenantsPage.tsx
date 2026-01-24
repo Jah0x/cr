@@ -123,6 +123,16 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     }
   })
 
+  const setPrimaryDomainMutation = useMutation({
+    mutationFn: async (domainId: string) => {
+      const res = await api.patch<TenantDomain>(`/platform/tenants/${tenant.id}/domains/${domainId}`)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platformTenantDomains', tenant.id] })
+    }
+  })
+
   const inviteMutation = useMutation({
     mutationFn: async () => {
       const res = await api.post<TenantInvite>(`/platform/tenants/${tenant.id}/invite`, {
@@ -250,9 +260,18 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
               key={domain.id}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <strong>{domain.domain}</strong>
-                {domain.is_primary && <span style={{ marginLeft: 8, color: '#0f766e' }}>primary</span>}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="radio"
+                    name={`primary-domain-${tenant.id}`}
+                    checked={domain.is_primary}
+                    onChange={() => setPrimaryDomainMutation.mutate(domain.id)}
+                    disabled={setPrimaryDomainMutation.isPending}
+                  />
+                  Primary
+                </label>
               </div>
               <button type="button" onClick={() => deleteDomainMutation.mutate(domain.id)}>
                 Remove
