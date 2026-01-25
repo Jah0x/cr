@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, Numeric, ForeignKey, Index
+from sqlalchemy import Column, String, Boolean, Numeric, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -17,6 +17,7 @@ class Category(Base):
     is_active = Column(Boolean, default=True)
 
     products = relationship("Product", back_populates="category")
+    brands = relationship("Brand", secondary="category_brands", back_populates="categories")
 
 
 class Brand(Base):
@@ -30,6 +31,17 @@ class Brand(Base):
     is_active = Column(Boolean, default=True)
 
     lines = relationship("ProductLine", back_populates="brand")
+    categories = relationship("Category", secondary="category_brands", back_populates="brands")
+
+
+class CategoryBrand(Base):
+    __tablename__ = "category_brands"
+    __table_args__ = (
+        UniqueConstraint("category_id", "brand_id", name="uq_category_brands_category_id_brand_id"),
+    )
+
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True)
+    brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="CASCADE"), primary_key=True)
 
 
 class ProductLine(Base):

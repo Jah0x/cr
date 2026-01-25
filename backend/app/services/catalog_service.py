@@ -1,15 +1,23 @@
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
-from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo
+from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo, CategoryBrandRepo
 
 
 class CatalogService:
-    def __init__(self, category_repo: CategoryRepo, brand_repo: BrandRepo, line_repo: ProductLineRepo, product_repo: ProductRepo):
+    def __init__(
+        self,
+        category_repo: CategoryRepo,
+        brand_repo: BrandRepo,
+        line_repo: ProductLineRepo,
+        product_repo: ProductRepo,
+        category_brand_repo: CategoryBrandRepo,
+    ):
         self.category_repo = category_repo
         self.brand_repo = brand_repo
         self.line_repo = line_repo
         self.product_repo = product_repo
+        self.category_brand_repo = category_brand_repo
         self.session = category_repo.session
 
     async def list_categories(self):
@@ -49,8 +57,12 @@ class CatalogService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         await self.category_repo.delete(category)
 
-    async def list_brands(self):
-        return await self.brand_repo.list()
+    async def list_brands(self, category_id=None):
+        if category_id:
+            category = await self.category_repo.get(category_id)
+            if not category:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        return await self.brand_repo.list(category_id=category_id)
 
     async def create_brand(self, data):
         try:
@@ -85,6 +97,39 @@ class CatalogService:
         if not brand:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
         await self.brand_repo.delete(brand)
+
+    async def list_category_brands(self, category_id):
+        category = await self.category_repo.get(category_id)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        return await self.category_brand_repo.list_brands_for_category(category_id)
+
+    async def link_category_brand(self, category_id, brand_id):
+        category = await self.category_repo.get(category_id)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        brand = await self.brand_repo.get(brand_id)
+        if not brand:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
+        try:
+            await self.category_brand_repo.create(category_id, brand_id)
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category brand link already exists",
+            ) from exc
+
+    async def unlink_category_brand(self, category_id, brand_id):
+        category = await self.category_repo.get(category_id)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        brand = await self.brand_repo.get(brand_id)
+        if not brand:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
+        link = await self.category_brand_repo.get(category_id, brand_id)
+        if not link:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category brand link not found")
+        await self.category_brand_repo.delete(link)
 
     async def list_lines(self, brand_id=None):
         return await self.line_repo.list(brand_id)

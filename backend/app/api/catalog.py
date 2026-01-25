@@ -25,7 +25,7 @@ from app.schemas.catalog_hierarchy import (
     CatalogNodeUpdate,
 )
 from app.services.catalog_service import CatalogService
-from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo
+from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo, CategoryBrandRepo
 from app.repos.catalog_nodes_repo import CatalogNodeRepo
 from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.services.catalog_hierarchy_service import CatalogHierarchyService
@@ -47,6 +47,7 @@ def get_catalog_service(session: AsyncSession):
         BrandRepo(session),
         ProductLineRepo(session),
         ProductRepo(session),
+        CategoryBrandRepo(session),
     )
 
 
@@ -134,9 +135,13 @@ async def delete_category(category_id: str, request: Request, session: AsyncSess
 
 
 @router.get("/brands", response_model=list[BrandOut])
-async def list_brands(request: Request, session: AsyncSession = Depends(get_db_session)):
+async def list_brands(
+    request: Request,
+    category_id: uuid.UUID | None = None,
+    session: AsyncSession = Depends(get_db_session),
+):
     service = get_catalog_service(session)
-    return await service.list_brands()
+    return await service.list_brands(category_id=category_id)
 
 
 @router.post("/brands", response_model=BrandOut)
@@ -156,6 +161,40 @@ async def delete_brand(brand_id: str, request: Request, session: AsyncSession = 
     service = get_catalog_service(session)
     await service.delete_brand(brand_id)
     return {"detail": "deleted"}
+
+
+@router.post("/categories/{category_id}/brands/{brand_id}")
+async def link_category_brand(
+    category_id: uuid.UUID,
+    brand_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = get_catalog_service(session)
+    await service.link_category_brand(category_id, brand_id)
+    return {"detail": "linked"}
+
+
+@router.delete("/categories/{category_id}/brands/{brand_id}")
+async def unlink_category_brand(
+    category_id: uuid.UUID,
+    brand_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = get_catalog_service(session)
+    await service.unlink_category_brand(category_id, brand_id)
+    return {"detail": "deleted"}
+
+
+@router.get("/categories/{category_id}/brands", response_model=list[BrandOut])
+async def list_category_brands(
+    category_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = get_catalog_service(session)
+    return await service.list_category_brands(category_id)
 
 
 @router.get("/lines", response_model=list[ProductLineOut])
