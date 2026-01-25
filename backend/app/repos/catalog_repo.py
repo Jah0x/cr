@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.catalog import Category, Brand, ProductLine, Product
+from app.models.catalog import Category, Brand, ProductLine, Product, CategoryBrand
 
 
 class CategoryRepo:
@@ -31,8 +31,14 @@ class BrandRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list(self) -> List[Brand]:
-        result = await self.session.execute(select(Brand))
+    async def list(self, category_id: Optional[str] = None) -> List[Brand]:
+        stmt = select(Brand)
+        if category_id:
+            stmt = (
+                stmt.join(CategoryBrand, Brand.id == CategoryBrand.brand_id)
+                .where(CategoryBrand.category_id == category_id)
+            )
+        result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def create(self, data: dict) -> Brand:
@@ -106,3 +112,34 @@ class ProductRepo:
     async def soft_delete(self, product: Product) -> None:
         product.is_active = False
         await self.session.flush()
+
+
+class CategoryBrandRepo:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create(self, category_id, brand_id) -> CategoryBrand:
+        link = CategoryBrand(category_id=category_id, brand_id=brand_id)
+        self.session.add(link)
+        await self.session.flush()
+        return link
+
+    async def get(self, category_id, brand_id) -> Optional[CategoryBrand]:
+        result = await self.session.execute(
+            select(CategoryBrand).where(
+                CategoryBrand.category_id == category_id,
+                CategoryBrand.brand_id == brand_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def delete(self, link: CategoryBrand) -> None:
+        await self.session.delete(link)
+
+    async def list_brands_for_category(self, category_id) -> List[Brand]:
+        result = await self.session.execute(
+            select(Brand)
+            .join(CategoryBrand, Brand.id == CategoryBrand.brand_id)
+            .where(CategoryBrand.category_id == category_id)
+        )
+        return result.scalars().all()
