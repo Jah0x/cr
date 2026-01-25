@@ -242,6 +242,37 @@ class PlatformService:
         tenant = await self._get_tenant(tenant_id)
         return await self._create_invite(tenant.code, tenant.id, email, role_name=role_name)
 
+    async def list_invites(self, tenant_id: str):
+        tenant = await self._get_tenant(tenant_id)
+        await set_search_path(self.session, None)
+        return (
+            await self.session.scalars(
+                select(TenantInvitation)
+                .where(TenantInvitation.tenant_id == tenant.id)
+                .order_by(TenantInvitation.created_at.desc())
+            )
+        ).all()
+
+    async def regenerate_invite(self, tenant_id: str, invite_id: str) -> dict:
+        tenant = await self._get_tenant(tenant_id)
+        await set_search_path(self.session, None)
+        invitation = await self.session.scalar(
+            select(TenantInvitation).where(
+                TenantInvitation.id == invite_id,
+                TenantInvitation.tenant_id == tenant.id,
+            )
+        )
+        if not invitation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite not found")
+        invitation.used_at = datetime.now(timezone.utc)
+        await self.session.flush()
+        return await self._create_invite(
+            tenant.code,
+            tenant.id,
+            invitation.email,
+            role_name=invitation.role_name or "owner",
+        )
+
     async def list_users(self, tenant_id: str):
         tenant = await self._get_tenant(tenant_id)
         await set_search_path(self.session, tenant.code)

@@ -20,6 +20,13 @@ type TenantStatus = {
 }
 type TenantDomain = { id: string; domain: string; is_primary: boolean; created_at: string }
 type TenantInvite = { invite_url: string; expires_at: string }
+type TenantInviteItem = {
+  id: string
+  email: string
+  created_at: string
+  expires_at: string
+  used_at?: string | null
+}
 type TenantUser = {
   id: string
   email: string
@@ -40,6 +47,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('owner')
   const [inviteResult, setInviteResult] = useState<TenantInvite | null>(null)
+  const [regeneratedInvite, setRegeneratedInvite] = useState<TenantInvite | null>(null)
   const [userEmail, setUserEmail] = useState('')
   const [userRoles, setUserRoles] = useState('admin')
   const [userPassword, setUserPassword] = useState('')
@@ -71,6 +79,14 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     queryKey: ['platformTenantUsers', tenant.id],
     queryFn: async () => {
       const res = await api.get<TenantUser[]>(`/platform/tenants/${tenant.id}/users`)
+      return res.data
+    }
+  })
+
+  const { data: invites } = useQuery({
+    queryKey: ['platformTenantInvites', tenant.id],
+    queryFn: async () => {
+      const res = await api.get<TenantInviteItem[]>(`/platform/tenants/${tenant.id}/invites`)
       return res.data
     }
   })
@@ -168,7 +184,26 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     },
     onSuccess: (data) => {
       setInviteResult(data)
+      setRegeneratedInvite(null)
+      queryClient.invalidateQueries({ queryKey: ['platformTenantInvites', tenant.id] })
       addToast(t('common.created'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
+  })
+
+  const regenerateInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const res = await api.post<TenantInvite>(
+        `/platform/tenants/${tenant.id}/invites/${inviteId}/regenerate`
+      )
+      return res.data
+    },
+    onSuccess: (data) => {
+      setRegeneratedInvite(data)
+      queryClient.invalidateQueries({ queryKey: ['platformTenantInvites', tenant.id] })
+      addToast(t('common.updated'), 'success')
     },
     onError: (error) => {
       addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
@@ -370,6 +405,55 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {inviteResult.expires_at}</div>
             <code style={{ display: 'block', wordBreak: 'break-all' }}>{inviteResult.invite_url}</code>
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <h4 style={{ marginBottom: 8 }}>{t('platformTenants.invites')}</h4>
+        {invites?.length ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr auto',
+                gap: 8,
+                fontSize: 12,
+                color: '#64748b'
+              }}
+            >
+              <div>{t('platformTenants.inviteEmail')}</div>
+              <div>{t('platformTenants.inviteCreated')}</div>
+              <div>{t('platformTenants.inviteExpires')}</div>
+              <div>{t('platformTenants.inviteUsed')}</div>
+              <div />
+            </div>
+            {invites.map((invite) => (
+              <div
+                key={invite.id}
+                style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'center' }}
+              >
+                <div>{invite.email}</div>
+                <div style={{ fontSize: 12 }}>{invite.created_at}</div>
+                <div style={{ fontSize: 12 }}>{invite.expires_at}</div>
+                <div style={{ fontSize: 12 }}>{invite.used_at ?? '—'}</div>
+                <button
+                  type="button"
+                  onClick={() => regenerateInviteMutation.mutate(invite.id)}
+                  disabled={regenerateInviteMutation.isPending}
+                >
+                  {t('platformTenants.regenerateInvite')}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize: 13, color: '#64748b' }}>{t('platformTenants.noInvites')}</div>
+        )}
+        {regeneratedInvite && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {regeneratedInvite.expires_at}</div>
+            <code style={{ display: 'block', wordBreak: 'break-all' }}>{regeneratedInvite.invite_url}</code>
           </div>
         )}
       </div>

@@ -3,8 +3,10 @@ import type { TFunction } from 'i18next'
 
 const extractDetail = (error: unknown): string | undefined => {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { detail?: string; message?: string } | undefined
-    return data?.detail ?? data?.message ?? error.message
+    const data = error.response?.data as
+      | { detail?: string; message?: string; error?: { message?: string } }
+      | undefined
+    return data?.detail ?? data?.message ?? data?.error?.message ?? error.message
   }
   if (error instanceof Error) {
     return error.message

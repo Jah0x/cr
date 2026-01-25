@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
+import axios from 'axios'
 
 export default function RegisterPage() {
   const { t } = useTranslation()
@@ -15,27 +16,49 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const getInviteErrorMessage = (err: unknown, fallbackKey: string): string => {
+    if (axios.isAxiosError(err)) {
+      const data = err.response?.data as { error?: { code?: string } } | undefined
+      switch (data?.error?.code) {
+        case 'INVITE_NOT_FOUND':
+          return t('errors.inviteNotFound')
+        case 'INVITE_EXPIRED':
+          return t('errors.inviteExpired')
+        case 'INVITE_TENANT_MISMATCH':
+          return t('errors.inviteTenantMismatch')
+        default:
+          if (!err.response || typeof err.response.data === 'string' || err.response.status === 503) {
+            return t('errors.inviteNetwork')
+          }
+      }
+    }
+    return getApiErrorMessage(err, t, fallbackKey)
+  }
+
   useEffect(() => {
     const lookup = async () => {
-      if (!token) {
+      const trimmedToken = token.trim()
+      if (!trimmedToken) {
         setEmail(null)
+        setError(t('errors.inviteTokenMissing'))
         return
       }
       setError(null)
       try {
-        const res = await api.get('/auth/invite-info', { params: { token } })
+        const res = await api.get('/auth/invite-info', { params: { token: trimmedToken } })
         setEmail(res.data.email)
       } catch (err) {
-        setError(getApiErrorMessage(err, t, 'errors.inviteInvalid'))
+        setError(getInviteErrorMessage(err, 'errors.inviteInvalid'))
       }
     }
     void lookup()
-  }, [token])
+  }, [token, t])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
-    if (!token) {
+    const trimmedToken = token.trim()
+    if (!trimmedToken) {
       setError(t('errors.inviteTokenRequired'))
       return
     }
@@ -49,11 +72,11 @@ export default function RegisterPage() {
     }
     setLoading(true)
     try {
-      const res = await api.post('/auth/register-invite', { token, password })
+      const res = await api.post('/auth/register-invite', { token: trimmedToken, password })
       localStorage.setItem('token', res.data.access_token)
       navigate('/admin')
     } catch (err) {
-      setError(getApiErrorMessage(err, t, 'errors.registrationFailed'))
+      setError(getInviteErrorMessage(err, 'errors.registrationFailed'))
     } finally {
       setLoading(false)
     }
