@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from pathlib import Path
 
 from fastapi import HTTPException, status
@@ -134,13 +133,6 @@ async def ensure_tenant_ready(session, tenant, *, correlation_id: str | None = N
             head_revision,
             correlation_id,
         )
-        auto_migrate = os.getenv("ENABLE_AUTO_MIGRATIONS", "").lower() in {"1", "true", "yes", "on"}
-        if not auto_migrate:
-            detail = (
-                f"Tenant schema '{schema}' is not migrated. "
-                "Run tenant migrations with the migration CLI or enable auto migrations."
-            )
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
         try:
             await asyncio.to_thread(run_tenant_migrations, schema)
             tenant.status = TenantStatus.active
