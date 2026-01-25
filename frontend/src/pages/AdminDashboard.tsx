@@ -151,6 +151,11 @@ export default function AdminDashboard() {
     return Number.isFinite(parsed) && parsed >= 0
   }
 
+  const confirmDeletion = () =>
+    window.confirm(
+      t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this item?' })
+    )
+
   const loadCategoryBrands = async (categoryId: string, setter: (brands: Brand[]) => void, setLoading?: (value: boolean) => void) => {
     if (!categoryId) {
       setter([])
@@ -214,6 +219,19 @@ export default function AdminDashboard() {
     }
   }
 
+  const deleteCategory = async (categoryId: string) => {
+    if (!confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete(`/categories/${categoryId}`)
+      addToast(t('common.deleted'), 'success')
+      loadData()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
   const createBrand = async () => {
     if (!brandName.trim()) {
       addToast(t('admin.validation.requiredFields'), 'error')
@@ -223,6 +241,19 @@ export default function AdminDashboard() {
       await api.post('/brands', { name: brandName.trim() })
       setBrandName('')
       addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const deleteBrand = async (brandId: string) => {
+    if (!confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete(`/brands/${brandId}`)
+      addToast(t('common.deleted'), 'success')
       loadData()
     } catch (error) {
       handleApiError(error)
@@ -239,6 +270,19 @@ export default function AdminDashboard() {
       setLineName('')
       setLineBrand('')
       addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const deleteLine = async (lineId: string) => {
+    if (!confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete(`/lines/${lineId}`)
+      addToast(t('common.deleted'), 'success')
       loadData()
     } catch (error) {
       handleApiError(error)
@@ -280,6 +324,19 @@ export default function AdminDashboard() {
       setProductSellPrice('0')
       setProductLineId('')
       addToast(t('common.created'), 'success')
+      loadData()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const deleteProduct = async (productId: string) => {
+    if (!confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete(`/products/${productId}`)
+      addToast(t('common.deleted'), 'success')
       loadData()
     } catch (error) {
       handleApiError(error)
@@ -455,16 +512,17 @@ export default function AdminDashboard() {
                     <tr>
                       <th scope="col">{t('admin.table.name')}</th>
                       <th scope="col">{t('admin.table.brands')}</th>
+                      <th scope="col">{t('admin.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {catalogLoading ? (
                       <tr>
-                        <td colSpan={2}>{t('common.loading')}</td>
+                        <td colSpan={3}>{t('common.loading')}</td>
                       </tr>
                     ) : categories.length === 0 ? (
                       <tr>
-                        <td colSpan={2}>{t('admin.emptyCategories')}</td>
+                        <td colSpan={3}>{t('admin.emptyCategories')}</td>
                       </tr>
                     ) : (
                       categories.map((category) => (
@@ -476,6 +534,11 @@ export default function AdminDashboard() {
                               : categoryBrandsById[category.id]?.length
                                 ? categoryBrandsById[category.id].map((brand) => brand.name).join(', ')
                                 : t('admin.emptyCategoryBrands')}
+                          </td>
+                          <td>
+                            <button className="secondary" onClick={() => deleteCategory(category.id)}>
+                              {t('common.delete')}
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -502,21 +565,27 @@ export default function AdminDashboard() {
                   <thead>
                     <tr>
                       <th scope="col">{t('admin.table.name')}</th>
+                      <th scope="col">{t('admin.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {catalogLoading ? (
                       <tr>
-                        <td>{t('common.loading')}</td>
+                        <td colSpan={2}>{t('common.loading')}</td>
                       </tr>
                     ) : brands.length === 0 ? (
                       <tr>
-                        <td>{t('admin.emptyBrands')}</td>
+                        <td colSpan={2}>{t('admin.emptyBrands')}</td>
                       </tr>
                     ) : (
                       brands.map((brand) => (
                         <tr key={brand.id}>
                           <td>{brand.name}</td>
+                          <td>
+                            <button className="secondary" onClick={() => deleteBrand(brand.id)}>
+                              {t('common.delete')}
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -607,6 +676,40 @@ export default function AdminDashboard() {
                 </button>
               </div>
               {lineBrandMissing && <p className="page-subtitle">{t('admin.validation.selectBrandForLine')}</p>}
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('admin.table.name')}</th>
+                      <th scope="col">{t('admin.table.brand')}</th>
+                      <th scope="col">{t('admin.table.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {catalogLoading ? (
+                      <tr>
+                        <td colSpan={3}>{t('common.loading')}</td>
+                      </tr>
+                    ) : lines.length === 0 ? (
+                      <tr>
+                        <td colSpan={3}>{t('admin.emptyLines')}</td>
+                      </tr>
+                    ) : (
+                      lines.map((line) => (
+                        <tr key={line.id}>
+                          <td>{line.name}</td>
+                          <td>{brandMap.get(line.brand_id) ?? '—'}</td>
+                          <td>
+                            <button className="secondary" onClick={() => deleteLine(line.id)}>
+                              {t('common.delete')}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div>
@@ -698,16 +801,17 @@ export default function AdminDashboard() {
                       <th scope="col">{t('admin.table.unit')}</th>
                       <th scope="col">{t('admin.table.purchasePrice')}</th>
                       <th scope="col">{t('admin.table.sellPrice')}</th>
+                      <th scope="col">{t('admin.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {catalogLoading ? (
                       <tr>
-                        <td colSpan={8}>{t('common.loading')}</td>
+                        <td colSpan={9}>{t('common.loading')}</td>
                       </tr>
                     ) : products.length === 0 ? (
                       <tr>
-                        <td colSpan={8}>{t('admin.emptyProducts')}</td>
+                        <td colSpan={9}>{t('admin.emptyProducts')}</td>
                       </tr>
                     ) : (
                       products.map((product) => (
@@ -720,6 +824,11 @@ export default function AdminDashboard() {
                           <td>{product.unit}</td>
                           <td>{product.purchase_price}</td>
                           <td>{product.sell_price}</td>
+                          <td>
+                            <button className="secondary" onClick={() => deleteProduct(product.id)}>
+                              {t('common.delete')}
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}

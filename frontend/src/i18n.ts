@@ -63,6 +63,8 @@ const resources = {
         created: 'Created',
         updated: 'Updated',
         deleted: 'Deleted',
+        delete: 'Delete',
+        confirmDelete: 'Delete this item?',
         saved: 'Saved',
         error: 'Something went wrong'
       },
@@ -137,6 +139,7 @@ const resources = {
         searchBrandPlaceholder: 'Search brand',
         emptyCategories: 'No categories yet.',
         emptyBrands: 'No brands yet.',
+        emptyLines: 'No lines yet.',
         emptyCategoryBrands: 'No linked brands.',
         emptyLinkedBrands: 'No brands linked yet.',
         emptyAvailableBrands: 'No brands available.',
@@ -334,6 +337,8 @@ const resources = {
         created: 'Создано',
         updated: 'Обновлено',
         deleted: 'Удалено',
+        delete: 'Удалить',
+        confirmDelete: 'Удалить этот элемент?',
         saved: 'Сохранено',
         error: 'Что-то пошло не так'
       },
@@ -408,6 +413,7 @@ const resources = {
         searchBrandPlaceholder: 'Поиск бренда',
         emptyCategories: 'Категории отсутствуют.',
         emptyBrands: 'Бренды отсутствуют.',
+        emptyLines: 'Линейки отсутствуют.',
         emptyCategoryBrands: 'Нет привязанных брендов.',
         emptyLinkedBrands: 'Нет привязанных брендов.',
         emptyAvailableBrands: 'Нет доступных брендов.',
