@@ -1,9 +1,16 @@
+import enum
 import uuid
-from sqlalchemy import Column, String, Boolean, Numeric, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, Numeric, ForeignKey, Index, UniqueConstraint, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.db import Base
+
+
+class ProductUnit(str, enum.Enum):
+    pcs = "pcs"
+    ml = "ml"
+    g = "g"
 
 
 class Category(Base):
@@ -63,16 +70,19 @@ class Product(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sku = Column(String, nullable=False)
+    sku = Column(String, nullable=True)
+    barcode = Column(String, nullable=True)
     name = Column(String, nullable=False)
     description = Column(String, default="")
     image_url = Column(String, nullable=True)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"))
-    brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"))
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"), nullable=False)
+    brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"), nullable=False)
     line_id = Column(UUID(as_uuid=True), ForeignKey("product_lines.id", ondelete="SET NULL"))
     hierarchy_node_id = Column(UUID(as_uuid=True), ForeignKey("catalog_nodes.id", ondelete="SET NULL"))
-    price = Column(Numeric(12, 2), nullable=False, default=0)
-    last_purchase_unit_cost = Column(Numeric(12, 2), nullable=False, default=0)
+    unit = Column(Enum(ProductUnit), nullable=False, default=ProductUnit.pcs)
+    purchase_price = Column(Numeric(12, 2), nullable=False, default=0)
+    sell_price = Column(Numeric(12, 2), nullable=False, default=0)
+    tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
     is_active = Column(Boolean, default=True)
 
     category = relationship("Category", back_populates="products")

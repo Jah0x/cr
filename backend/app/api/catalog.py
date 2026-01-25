@@ -17,6 +17,7 @@ from app.schemas.catalog import (
     ProductCreate,
     ProductUpdate,
     ProductOut,
+    ProductUnit,
 )
 from app.schemas.catalog_hierarchy import (
     CatalogHierarchyResponse,
@@ -225,6 +226,9 @@ async def delete_line(line_id: str, request: Request, session: AsyncSession = De
 @router.get("/products", response_model=list[ProductOut])
 async def list_products(
     request: Request,
+    sku: str | None = None,
+    barcode: str | None = None,
+    unit: ProductUnit | None = None,
     category_id: str | None = None,
     brand_id: str | None = None,
     line_id: str | None = None,
@@ -233,7 +237,16 @@ async def list_products(
     session: AsyncSession = Depends(get_db_session),
 ):
     service = get_catalog_service(session)
-    filters = {"category_id": category_id, "brand_id": brand_id, "line_id": line_id, "q": q, "is_active": is_active}
+    filters = {
+        "sku": sku,
+        "barcode": barcode,
+        "unit": unit,
+        "category_id": category_id,
+        "brand_id": brand_id,
+        "line_id": line_id,
+        "q": q,
+        "is_active": is_active,
+    }
     return await service.list_products(filters)
 
 
