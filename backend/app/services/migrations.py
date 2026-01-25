@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import HTTPException, status
 
@@ -17,16 +18,20 @@ from app.core.config import get_settings
 from app.core.db_utils import quote_ident
 from app.core.tenancy import normalize_tenant_slug
 from app.models.tenant import TenantStatus
+from app.core.db_urls import normalize_migration_database_url
 
 logger = logging.getLogger(__name__)
-from app.core.db_urls import normalize_migration_database_url
+
+DEFAULT_VERSION_TABLE = "alembic_version"
+LEGACY_PUBLIC_VERSION_TABLE = "alembic_version_public"
+LEGACY_TENANT_VERSION_TABLE = "alembic_version_tenant"
 
 
 def _alembic_config(
     *,
     version_locations: list[Path],
     schema: str | None,
-    version_table: str,
+    version_table: str | None,
     version_table_schema: str | None,
 ) -> Config:
     settings = get_settings()
@@ -40,7 +45,8 @@ def _alembic_config(
         "version_locations",
         " ".join(str(path) for path in version_locations),
     )
-    config.set_main_option("version_table", version_table)
+    if version_table:
+        config.set_main_option("version_table", version_table)
     if schema:
         config.set_main_option("schema", schema)
     if version_table_schema:
@@ -48,16 +54,87 @@ def _alembic_config(
     return config
 
 
+def _mask_database_url(database_url: str) -> str:
+    split = urlsplit(database_url)
+    if not split.netloc or "@" not in split.netloc:
+        return database_url
+    userinfo, hostinfo = split.netloc.rsplit("@", 1)
+    username = userinfo.split(":", 1)[0]
+    masked_netloc = f"{username}:***@{hostinfo}"
+    return urlunsplit((split.scheme, masked_netloc, split.path, split.query, split.fragment))
+
+
+def _log_migration_start(
+    *,
+    schema: str,
+    branch: str,
+    revision_target: str,
+    version_table_schema: str | None,
+    version_table: str,
+    database_url: str,
+) -> None:
+    logger.info(
+        "Starting migrations: schema=%s branch=%s revision=%s version_table_schema=%s version_table=%s url=%s",
+        schema,
+        branch,
+        revision_target,
+        version_table_schema,
+        version_table,
+        _mask_database_url(database_url),
+    )
+
+
+def _log_schema_table_count(connection, schema: str, stage: str) -> None:
+    table_count = connection.execute(
+        text(
+            """
+            select count(*)
+            from information_schema.tables
+            where table_schema = :schema
+            """
+        ),
+        {"schema": schema},
+    ).scalar()
+    logger.info("%s table count: schema=%s tables=%s", stage, schema, table_count)
+
+
+def _table_exists(connection, schema: str, table_name: str) -> bool:
+    return bool(
+        connection.execute(
+            text(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = :schema
+                      AND table_name = :table_name
+                )
+                """
+            ),
+            {"schema": schema, "table_name": table_name},
+        ).scalar()
+    )
+
+
+def _resolve_version_table(connection, schema: str) -> str | None:
+    if _table_exists(connection, schema, DEFAULT_VERSION_TABLE):
+        return DEFAULT_VERSION_TABLE
+    if _table_exists(connection, schema, LEGACY_TENANT_VERSION_TABLE):
+        return LEGACY_TENANT_VERSION_TABLE
+    if _table_exists(connection, schema, LEGACY_PUBLIC_VERSION_TABLE):
+        return LEGACY_PUBLIC_VERSION_TABLE
+    return None
+
+
 def _tenant_script_directory() -> ScriptDirectory:
     settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
     script_location = root / "alembic"
-    public_versions = script_location / "versions" / "public"
     tenant_versions = script_location / "versions" / "tenant"
     config = _alembic_config(
-        version_locations=[public_versions, tenant_versions],
+        version_locations=[tenant_versions],
         schema=None,
-        version_table="alembic_version_tenant",
+        version_table=DEFAULT_VERSION_TABLE,
         version_table_schema=None,
     )
     return ScriptDirectory.from_config(config)
@@ -89,24 +166,13 @@ def get_tenant_migration_status(schema: str) -> dict:
             {"schema": schema},
         ).scalar()
         revision = None
+        version_table = None
         if schema_exists:
-            version_table = conn.execute(
-                text(
-                    """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM information_schema.tables
-                        WHERE table_schema = :schema
-                          AND table_name = 'alembic_version_tenant'
-                    )
-                    """
-                ),
-                {"schema": schema},
-            ).scalar()
+            version_table = _resolve_version_table(conn, schema)
             if version_table:
                 safe_schema = quote_ident(schema)
                 revision = conn.execute(
-                    text(f"SELECT version_num FROM {safe_schema}.alembic_version_tenant LIMIT 1")
+                    text(f"SELECT version_num FROM {safe_schema}.{version_table} LIMIT 1")
                 ).scalar()
     engine.dispose()
     return {
@@ -114,6 +180,7 @@ def get_tenant_migration_status(schema: str) -> dict:
         "schema_exists": bool(schema_exists),
         "revision": revision,
         "head_revision": head_revision,
+        "version_table": version_table,
     }
 
 
@@ -128,10 +195,11 @@ async def ensure_tenant_ready(session, tenant, *, correlation_id: str | None = N
     current_revision = status_info["revision"]
     if head_revision and current_revision != head_revision:
         logger.info(
-            "Tenant schema %s not at head (current=%s head=%s) correlation_id=%s",
+            "Tenant schema %s not at head (current=%s head=%s version_table=%s) correlation_id=%s",
             schema,
             current_revision,
             head_revision,
+            status_info["version_table"],
             correlation_id,
         )
         auto_migrate = os.getenv("ENABLE_AUTO_MIGRATIONS", "").lower() in {"1", "true", "yes", "on"}
@@ -165,14 +233,31 @@ def run_public_migrations() -> None:
     settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
     public_versions = root / "alembic" / "versions" / "public"
-    tenant_versions = root / "alembic" / "versions" / "tenant"
     config = _alembic_config(
-        version_locations=[public_versions, tenant_versions],
+        version_locations=[public_versions],
         schema="public",
-        version_table="alembic_version",
+        version_table=DEFAULT_VERSION_TABLE,
         version_table_schema="public",
     )
-    command.upgrade(config, "public@head")
+    database_url = _sync_database_url()
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            _ensure_public_version_table(connection)
+            config.attributes["connection"] = connection
+            _log_migration_start(
+                schema="public",
+                branch="public",
+                revision_target="public@head",
+                version_table_schema="public",
+                version_table=DEFAULT_VERSION_TABLE,
+                database_url=database_url,
+            )
+            command.upgrade(config, "public@head")
+            connection.commit()
+            _log_schema_table_count(connection, "public", "After public migrations")
+    finally:
+        engine.dispose()
 
 
 async def verify_public_migrations(engine) -> None:
@@ -207,18 +292,36 @@ async def verify_public_migrations(engine) -> None:
 
 
 def run_tenant_migrations(schema: str) -> None:
-    _ensure_tenant_version_table(schema)
+    schema = normalize_tenant_slug(schema)
     settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
-    public_versions = root / "alembic" / "versions" / "public"
     tenant_versions = root / "alembic" / "versions" / "tenant"
     config = _alembic_config(
-        version_locations=[public_versions, tenant_versions],
+        version_locations=[tenant_versions],
         schema=schema,
-        version_table="alembic_version_tenant",
+        version_table=DEFAULT_VERSION_TABLE,
         version_table_schema=schema,
     )
-    command.upgrade(config, "tenant@head")
+    database_url = _sync_database_url()
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            _ensure_tenant_version_table(connection, schema, config)
+            config.attributes["connection"] = connection
+            _log_migration_start(
+                schema=schema,
+                branch="tenant",
+                revision_target="tenant@head",
+                version_table_schema=schema,
+                version_table=DEFAULT_VERSION_TABLE,
+                database_url=database_url,
+            )
+            command.upgrade(config, "tenant@head")
+            connection.commit()
+            _log_schema_table_count(connection, schema, "After tenant migrations")
+            _verify_tenant_tables(connection, schema, database_url)
+    finally:
+        engine.dispose()
 
 
 def _sync_database_url() -> str:
@@ -226,46 +329,65 @@ def _sync_database_url() -> str:
     return normalize_migration_database_url(settings.database_url)
 
 
-def _ensure_tenant_version_table(schema: str) -> None:
-    engine = create_engine(_sync_database_url())
-    version_table = "alembic_version_tenant"
-    with engine.connect() as conn:
-        has_version_table = conn.execute(
-            text(
-                """
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = :schema
-                      AND table_name = :table_name
-                )
-                """
-            ),
-            {"schema": schema, "table_name": version_table},
-        ).scalar()
-        has_tables = conn.execute(
-            text(
-                """
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = :schema
-                      AND table_name != :table_name
-                )
-                """
-            ),
-            {"schema": schema, "table_name": version_table},
-        ).scalar()
-    engine.dispose()
-    if has_tables and not has_version_table:
-        settings = get_settings()
-        root = Path(settings.ALEMBIC_INI_PATH).parent
-        public_versions = root / "alembic" / "versions" / "public"
-        tenant_versions = root / "alembic" / "versions" / "tenant"
-        config = _alembic_config(
-            version_locations=[public_versions, tenant_versions],
-            schema=schema,
-            version_table=version_table,
-            version_table_schema=schema,
+def _ensure_public_version_table(connection) -> None:
+    if _table_exists(connection, "public", DEFAULT_VERSION_TABLE):
+        return
+    if _table_exists(connection, "public", LEGACY_PUBLIC_VERSION_TABLE):
+        connection.exec_driver_sql(
+            f"ALTER TABLE public.{LEGACY_PUBLIC_VERSION_TABLE} RENAME TO {DEFAULT_VERSION_TABLE}"
         )
+        connection.commit()
+
+
+def _ensure_tenant_version_table(connection, schema: str, config: Config) -> None:
+    if _table_exists(connection, schema, DEFAULT_VERSION_TABLE):
+        return
+    if _table_exists(connection, schema, LEGACY_TENANT_VERSION_TABLE):
+        quoted_schema = quote_ident(schema)
+        connection.exec_driver_sql(
+            f"ALTER TABLE {quoted_schema}.{LEGACY_TENANT_VERSION_TABLE} RENAME TO {DEFAULT_VERSION_TABLE}"
+        )
+        connection.commit()
+        return
+    has_tables = connection.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = :schema
+            )
+            """
+        ),
+        {"schema": schema},
+    ).scalar()
+    if has_tables:
+        logger.info("Stamping tenant schema at head because version table is missing: schema=%s", schema)
+        config.attributes["connection"] = connection
         command.stamp(config, "tenant@head")
+        connection.commit()
+
+
+def _verify_tenant_tables(connection, schema: str, database_url: str) -> None:
+    quoted_schema = quote_ident(schema)
+    category_reg = f"{quoted_schema}.categories"
+    product_reg = f"{quoted_schema}.products"
+    result = connection.execute(
+        text(
+            """
+            SELECT
+                to_regclass(:category) as categories,
+                to_regclass(:product) as products
+            """
+        ),
+        {"category": category_reg, "product": product_reg},
+    ).mappings().one()
+    if not result["categories"] or not result["products"]:
+        logger.error(
+            "Tenant migration missing tables: schema=%s url=%s categories=%s products=%s",
+            schema,
+            _mask_database_url(database_url),
+            result["categories"],
+            result["products"],
+        )
+        raise RuntimeError(f"Tenant migration did not create required tables in schema '{schema}'.")

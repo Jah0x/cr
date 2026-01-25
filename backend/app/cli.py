@@ -56,8 +56,7 @@ async def create_owner(tenant_schema: str):
 
 
 async def migrate_all():
-    await asyncio.to_thread(run_public_migrations)
-    await verify_public_migrations(get_engine())
+    await migrate_public()
     await seed_platform_defaults()
     sessionmaker = get_sessionmaker()
     async with sessionmaker() as session:
@@ -72,7 +71,7 @@ async def migrate_all():
             await ensure_tenant_schema(session, tenant.code)
         await session.commit()
     for tenant in tenants:
-        await asyncio.to_thread(run_tenant_migrations, tenant.code)
+        await migrate_tenant(tenant.code)
     husky_present = any(tenant.code == "husky" for tenant in tenants)
     settings = get_settings()
     if settings.first_owner_email and settings.first_owner_password and husky_present:
@@ -81,12 +80,26 @@ async def migrate_all():
         await apply_template_by_name("husky", "tobacco")
 
 
+async def migrate_public() -> None:
+    await asyncio.to_thread(run_public_migrations)
+    await verify_public_migrations(get_engine())
+    print("Public migrations applied.")
+
+
+async def migrate_tenant(schema: str) -> None:
+    await asyncio.to_thread(run_tenant_migrations, schema)
+    print(f"Tenant migrations applied for schema={schema}.")
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
     create_owner_parser = subparsers.add_parser("create-owner")
     create_owner_parser.add_argument("--tenant", default="husky")
     subparsers.add_parser("migrate-all")
+    migrate_public_parser = subparsers.add_parser("migrate-public")
+    migrate_tenant_parser = subparsers.add_parser("migrate-tenant")
+    migrate_tenant_parser.add_argument("--schema", required=True)
     args = parser.parse_args()
     if args.command == "create-owner":
         try:
@@ -97,6 +110,18 @@ def main():
     elif args.command == "migrate-all":
         try:
             asyncio.run(migrate_all())
+        except Exception as exc:
+            sys.stderr.write(f"{exc}\n")
+            sys.exit(1)
+    elif args.command == "migrate-public":
+        try:
+            asyncio.run(migrate_public())
+        except Exception as exc:
+            sys.stderr.write(f"{exc}\n")
+            sys.exit(1)
+    elif args.command == "migrate-tenant":
+        try:
+            asyncio.run(migrate_tenant(args.schema))
         except Exception as exc:
             sys.stderr.write(f"{exc}\n")
             sys.exit(1)

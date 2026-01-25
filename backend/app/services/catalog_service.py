@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo
 
@@ -15,9 +16,15 @@ class CatalogService:
         return await self.category_repo.list()
 
     async def create_category(self, data):
-        category = await self.category_repo.create(data)
-        await self.session.refresh(category)
-        return category
+        try:
+            category = await self.category_repo.create(data)
+            await self.session.refresh(category)
+            return category
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category already exists",
+            ) from exc
 
     async def update_category(self, category_id, data):
         category = await self.category_repo.get(category_id)
@@ -26,9 +33,15 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(category, key, value)
-        await self.session.flush()
-        await self.session.refresh(category)
-        return category
+        try:
+            await self.session.flush()
+            await self.session.refresh(category)
+            return category
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category already exists",
+            ) from exc
 
     async def delete_category(self, category_id):
         category = await self.category_repo.get(category_id)
@@ -40,9 +53,15 @@ class CatalogService:
         return await self.brand_repo.list()
 
     async def create_brand(self, data):
-        brand = await self.brand_repo.create(data)
-        await self.session.refresh(brand)
-        return brand
+        try:
+            brand = await self.brand_repo.create(data)
+            await self.session.refresh(brand)
+            return brand
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Brand already exists",
+            ) from exc
 
     async def update_brand(self, brand_id, data):
         brand = await self.brand_repo.get(brand_id)
@@ -51,9 +70,15 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(brand, key, value)
-        await self.session.flush()
-        await self.session.refresh(brand)
-        return brand
+        try:
+            await self.session.flush()
+            await self.session.refresh(brand)
+            return brand
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Brand already exists",
+            ) from exc
 
     async def delete_brand(self, brand_id):
         brand = await self.brand_repo.get(brand_id)
@@ -65,9 +90,15 @@ class CatalogService:
         return await self.line_repo.list(brand_id)
 
     async def create_line(self, data):
-        line = await self.line_repo.create(data)
-        await self.session.refresh(line)
-        return line
+        try:
+            line = await self.line_repo.create(data)
+            await self.session.refresh(line)
+            return line
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Line already exists",
+            ) from exc
 
     async def update_line(self, line_id, data):
         line = await self.line_repo.get(line_id)
@@ -76,9 +107,15 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(line, key, value)
-        await self.session.flush()
-        await self.session.refresh(line)
-        return line
+        try:
+            await self.session.flush()
+            await self.session.refresh(line)
+            return line
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Line already exists",
+            ) from exc
 
     async def delete_line(self, line_id):
         line = await self.line_repo.get(line_id)
@@ -90,9 +127,15 @@ class CatalogService:
         return await self.product_repo.list(filters)
 
     async def create_product(self, data):
-        product = await self.product_repo.create(data)
-        await self.session.refresh(product)
-        return product
+        try:
+            product = await self.product_repo.create(data)
+            await self.session.refresh(product)
+            return product
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Product already exists",
+            ) from exc
 
     async def get_product(self, product_id):
         product = await self.product_repo.get(product_id)
@@ -107,9 +150,15 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(product, key, value)
-        await self.session.flush()
-        await self.session.refresh(product)
-        return product
+        try:
+            await self.session.flush()
+            await self.session.refresh(product)
+            return product
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Product already exists",
+            ) from exc
 
     async def delete_product(self, product_id):
         product = await self.product_repo.get(product_id)
