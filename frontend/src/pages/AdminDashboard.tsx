@@ -23,7 +23,8 @@ type Product = {
 }
 type Supplier = { id: string; name: string }
 
-type ApiErrorPayload = { detail?: string; message?: string }
+type FastApiValidationError = { loc?: Array<string | number>; msg: string; type?: string }
+type ApiErrorPayload = { detail?: string | FastApiValidationError[]; message?: string }
 
 export default function AdminDashboard() {
   const { t } = useTranslation()
@@ -121,6 +122,16 @@ export default function AdminDashboard() {
     void loadCategoryBrandsTable()
   }, [categories])
 
+  const formatValidationErrors = (errors: FastApiValidationError[]) =>
+    errors
+      .map((item) => {
+        if (item.loc?.length) {
+          return `${item.loc.join('.')}: ${item.msg}`
+        }
+        return item.msg
+      })
+      .join(', ')
+
   const handleApiError = (error: unknown) => {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status
@@ -131,6 +142,11 @@ export default function AdminDashboard() {
       if (status === 422) {
         const data = error.response?.data as ApiErrorPayload | undefined
         const detail = data?.detail ?? data?.message
+        if (Array.isArray(detail)) {
+          const message = formatValidationErrors(detail)
+          addToast(message || t('common.error'), 'error')
+          return
+        }
         addToast(detail || t('common.error'), 'error')
         return
       }

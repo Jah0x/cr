@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo, CategoryBrandRepo
+
+logger = logging.getLogger(__name__)
 
 
 class CatalogService:
@@ -195,12 +199,16 @@ class CatalogService:
                 )
 
     async def create_product(self, data):
-        await self._validate_product_links(data.get("category_id"), data.get("brand_id"), data.get("line_id"))
         try:
+            await self._validate_product_links(data.get("category_id"), data.get("brand_id"), data.get("line_id"))
             product = await self.product_repo.create(data)
             await self.session.refresh(product)
             return product
+        except HTTPException as exc:
+            logger.warning("Failed to create product: %s", exc.detail)
+            raise
         except IntegrityError as exc:
+            logger.warning("Failed to create product due to integrity error.", exc_info=exc)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Product already exists",
