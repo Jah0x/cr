@@ -30,7 +30,7 @@ async def set_search_path(session: AsyncSession, schema: str | None) -> None:
 
 
 async def list_tables(session: AsyncSession, schema: str | None = None) -> set[str]:
-    async with session.connection() as conn:
+    async with await session.connection() as conn:
         def _load_tables(sync_conn):
             inspector = inspect(sync_conn)
             if schema is not None:
