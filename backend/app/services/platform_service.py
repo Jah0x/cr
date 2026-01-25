@@ -273,6 +273,20 @@ class PlatformService:
             role_name=invitation.role_name or "owner",
         )
 
+    async def delete_invite(self, tenant_id: str, invite_id: str):
+        tenant = await self._get_tenant(tenant_id)
+        await set_search_path(self.session, None)
+        invitation = await self.session.scalar(
+            select(TenantInvitation).where(
+                TenantInvitation.id == invite_id,
+                TenantInvitation.tenant_id == tenant.id,
+            )
+        )
+        if not invitation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite not found")
+        await self.session.delete(invitation)
+        await self.session.flush()
+
     async def list_users(self, tenant_id: str):
         tenant = await self._get_tenant(tenant_id)
         await set_search_path(self.session, tenant.code)

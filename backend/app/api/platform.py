@@ -239,6 +239,13 @@ async def regenerate_invite(tenant_id: str, invite_id: str, session: AsyncSessio
     return PlatformTenantInviteResponse(invite_url=invite["invite_url"], expires_at=invite["expires_at"])
 
 
+@router.delete("/tenants/{tenant_id}/invites/{invite_id}")
+async def delete_invite(tenant_id: str, invite_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    await service.delete_invite(tenant_id, invite_id)
+    return {"status": "deleted"}
+
+
 @router.get("/tenants/{tenant_id}/users", response_model=list[PlatformTenantUserResponse])
 async def list_users(tenant_id: str, session: AsyncSession = Depends(get_db_session)):
     service = PlatformService(session)
