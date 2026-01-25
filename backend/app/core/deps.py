@@ -4,11 +4,11 @@ from typing import AsyncGenerator
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
-from app.core.db_utils import set_search_path
+from app.core.db_utils import list_tables, set_search_path
 from app.core.security import verify_platform_token, verify_token
 from app.models.platform import Module, TenantFeature, TenantModule
 from app.repos.tenant_domain_repo import TenantDomainRepo
@@ -169,19 +169,9 @@ async def _ensure_platform_auth_ready(session: AsyncSession) -> None:
         detail = "Platform auth not configured: missing FIRST_OWNER_EMAIL/FIRST_OWNER_PASSWORD or BOOTSTRAP_TOKEN"
         logger.error(detail)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
-    row = (
-        await session.execute(
-            text(
-                """
-                select
-                    to_regclass('public.users') as users,
-                    to_regclass('public.roles') as roles,
-                    to_regclass('public.user_roles') as user_roles
-                """
-            )
-        )
-    ).mappings().one()
-    missing = [name for name, value in row.items() if value is None]
+    tables = await list_tables(session, "public")
+    required_tables = {"users", "roles", "user_roles"}
+    missing = sorted(required_tables - tables)
     if missing:
         detail = f"Platform auth not configured: missing public tables {', '.join(missing)}"
         logger.error(detail)

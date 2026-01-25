@@ -33,6 +33,13 @@
 - Use platform endpoints to create tenants, modules, and templates, and to apply templates to tenants.
 - Tenant module/feature toggles live under `/api/v1/tenant/settings` (owner-only) and are enforced across catalog, purchasing, stock, sales, POS, users, and reports. Missing tenant overrides are treated as disabled until explicitly enabled.
 
+## Troubleshooting auth regressions
+- Verify access logs from the backend include `/api/v1/auth/login` start/end and the final response code.
+- If `/api/v1/auth/login` returns 503, inspect backend logs for tenant readiness details (missing schema, migration mismatch, provisioning failed).
+- If 503 is produced before the application, confirm `crm-backend` Service `targetPort` is `8000`, the container listens on `8000`, and readiness/liveness probes report ready endpoints.
+- Confirm frontend base URL routes `/api` to the backend. For browser traffic behind ingress, avoid `localhost`/`127.0.0.1` in `VITE_API_BASE_URL`.
+- If `/api/v1/platform/tenants` returns 401, ensure the platform UI is authenticated via `/api/v1/platform/auth/login` and sends the platform bearer token on all `/api/v1/platform/*` calls; redirect users to `/platform/login` on 401.
+
 ## Operational notes
 - Roles: owner manages users and cash registers; admin handles catalog, stock, purchasing; cashier handles sales.
 - Stock moves are append-only; never delete historical records.

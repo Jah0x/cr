@@ -8,9 +8,20 @@ const api = axios.create({
   timeout: 15000
 })
 
+const tenantTokenKey = 'token'
+const platformTokenKey = 'platform_token'
+
+const isPlatformRequest = (url?: string | null): boolean => {
+  if (!url) {
+    return false
+  }
+  return url.startsWith('/platform')
+}
+
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBase()
-  const token = localStorage.getItem('token')
+  const tokenKey = isPlatformRequest(config.url) ? platformTokenKey : tenantTokenKey
+  const token = localStorage.getItem(tokenKey)
   if (token) {
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${token}`
@@ -39,6 +50,14 @@ api.interceptors.response.use(
       return Promise.reject(normalizedError)
     }
 
+    const status = error?.response?.status
+    const url = error?.config?.url
+    if (status === 401 && isPlatformRequest(url)) {
+      localStorage.removeItem(platformTokenKey)
+      if (window.location.pathname !== '/platform/login') {
+        window.location.assign('/platform/login')
+      }
+    }
     return Promise.reject(error)
   }
 )

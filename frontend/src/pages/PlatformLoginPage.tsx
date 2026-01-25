@@ -16,7 +16,7 @@ export default function PlatformLoginPage() {
     setError(null)
     try {
       const res = await api.post('/platform/auth/login', { email, password })
-      localStorage.setItem('token', res.data.access_token)
+      localStorage.setItem('platform_token', res.data.access_token)
       navigate('/platform/tenants')
     } catch (err) {
       setError(getApiErrorMessage(err, t, 'errors.invalidPlatformCredentials'))

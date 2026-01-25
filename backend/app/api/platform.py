@@ -2,11 +2,11 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from pydantic import BaseModel, EmailStr
 
 from app.core.config import get_settings
 from app.core.deps import get_db_session, require_platform_auth, require_platform_host
+from app.core.db_utils import list_tables
 from app.core.security import create_platform_token
 from app.schemas.platform import (
     PlatformModuleCreate,
@@ -50,19 +50,9 @@ async def login(payload: PlatformLoginPayload, session: AsyncSession = Depends(g
         detail = "Platform auth not configured: missing FIRST_OWNER_EMAIL/FIRST_OWNER_PASSWORD"
         logger.error(detail)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
-    row = (
-        await session.execute(
-            text(
-                """
-                select
-                    to_regclass('public.users') as users,
-                    to_regclass('public.roles') as roles,
-                    to_regclass('public.user_roles') as user_roles
-                """
-            )
-        )
-    ).mappings().one()
-    missing = [name for name, value in row.items() if value is None]
+    tables = await list_tables(session, "public")
+    required_tables = {"users", "roles", "user_roles"}
+    missing = sorted(required_tables - tables)
     if missing:
         detail = f"Platform auth not configured: missing public tables {', '.join(missing)}"
         logger.error(detail)

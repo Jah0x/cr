@@ -189,7 +189,12 @@ async def ensure_tenant_ready(session, tenant, *, correlation_id: str | None = N
     status_info = get_tenant_migration_status(schema)
     if not status_info["schema_exists"]:
         detail = f"Tenant schema '{schema}' is missing"
-        logger.error("Tenant schema missing: schema=%s correlation_id=%s", schema, correlation_id)
+        logger.error(
+            "Tenant schema missing: schema=%s correlation_id=%s detail=%s",
+            schema,
+            correlation_id,
+            detail,
+        )
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
     head_revision = status_info["head_revision"]
     current_revision = status_info["revision"]
@@ -207,6 +212,12 @@ async def ensure_tenant_ready(session, tenant, *, correlation_id: str | None = N
             detail = (
                 f"Tenant schema '{schema}' is not migrated. "
                 "Run tenant migrations with the migration CLI or enable auto migrations."
+            )
+            logger.error(
+                "Tenant schema not migrated: schema=%s correlation_id=%s detail=%s",
+                schema,
+                correlation_id,
+                detail,
             )
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
         try:

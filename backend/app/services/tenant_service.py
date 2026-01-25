@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import HTTPException, Request, status
 
 from app.core.config import get_settings
@@ -6,6 +8,8 @@ from app.models.tenant import TenantStatus
 from app.models.tenant_domain import TenantDomain
 from app.repos.tenant_domain_repo import TenantDomainRepo
 from app.repos.tenant_repo import TenantRepo
+
+logger = logging.getLogger(__name__)
 
 
 class TenantService:
@@ -34,9 +38,16 @@ class TenantService:
                     headers={"Location": str(redirect_url)},
                 )
         if tenant.status == TenantStatus.provisioning_failed:
+            detail = tenant.last_error or "Tenant provisioning failed"
+            logger.error(
+                "Tenant provisioning failed: tenant_id=%s tenant_code=%s detail=%s",
+                tenant.id,
+                tenant.code,
+                detail,
+            )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=tenant.last_error or "Tenant provisioning failed",
+                detail=detail,
             )
         if tenant.status != TenantStatus.active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant inactive")

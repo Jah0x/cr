@@ -9,7 +9,7 @@ export default function PlatformLayout() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('platform_token')
     if (!token) {
       navigate('/platform/login')
     }

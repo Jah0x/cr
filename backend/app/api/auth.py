@@ -56,8 +56,30 @@ async def login(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
+    logger.info(
+        "Auth login start: tenant_id=%s tenant_code=%s email=%s",
+        tenant.id,
+        tenant.code,
+        payload.email,
+    )
     service = AuthService(UserRepo(session))
-    token, _ = await service.login(payload.email, payload.password, tenant.id)
+    try:
+        token, _ = await service.login(payload.email, payload.password, tenant.id)
+    except Exception as exc:
+        logger.warning(
+            "Auth login end: tenant_id=%s tenant_code=%s email=%s status=error error=%s",
+            tenant.id,
+            tenant.code,
+            payload.email,
+            exc,
+        )
+        raise
+    logger.info(
+        "Auth login end: tenant_id=%s tenant_code=%s email=%s status=success",
+        tenant.id,
+        tenant.code,
+        payload.email,
+    )
     return TokenOut(access_token=token)
 
 
