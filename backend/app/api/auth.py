@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +19,35 @@ from app.services.bootstrap import ensure_roles
 from app.repos.user_repo import UserRepo
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
+
+
+def _invite_error(
+    *,
+    code: str,
+    message: str,
+    status_code: int,
+    token_hash: str,
+    invitation: TenantInvitation | None,
+    current_tenant_id: str,
+) -> JSONResponse:
+    token_hash_short = token_hash[:8]
+    token_tenant_id = str(invitation.tenant_id) if invitation else None
+    expires_at = invitation.expires_at.isoformat() if invitation and invitation.expires_at else None
+    used_at = invitation.used_at.isoformat() if invitation and invitation.used_at else None
+    logger.info(
+        "Invite rejected: code=%s token_hash=%s token_tenant_id=%s current_tenant_id=%s expires_at=%s used_at=%s",
+        code,
+        token_hash_short,
+        token_tenant_id,
+        current_tenant_id,
+        expires_at,
+        used_at,
+    )
+    return JSONResponse(
+        status_code=status_code,
+        content={"error": {"code": code, "message": message}},
+    )
 
 
 @router.post("/login", response_model=TokenOut)
@@ -44,13 +75,43 @@ async def invite_info(
     token_hash = hash_invite_token(token)
     await set_search_path(session, None)
     invitation = await session.scalar(select(TenantInvitation).where(TenantInvitation.token_hash == token_hash))
-    if not invitation or invitation.tenant_id != tenant.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite not found")
+    if not invitation:
+        return _invite_error(
+            code="INVITE_NOT_FOUND",
+            message="Invite not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            token_hash=token_hash,
+            invitation=None,
+            current_tenant_id=str(tenant.id),
+        )
+    if invitation.tenant_id != tenant.id:
+        return _invite_error(
+            code="INVITE_TENANT_MISMATCH",
+            message="Invite tenant mismatch",
+            status_code=status.HTTP_404_NOT_FOUND,
+            token_hash=token_hash,
+            invitation=invitation,
+            current_tenant_id=str(tenant.id),
+        )
     now = datetime.now(timezone.utc)
     if invitation.used_at:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invite already used")
+        return _invite_error(
+            code="INVITE_ALREADY_USED",
+            message="Invite already used",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            token_hash=token_hash,
+            invitation=invitation,
+            current_tenant_id=str(tenant.id),
+        )
     if invitation.expires_at and invitation.expires_at <= now:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invite expired")
+        return _invite_error(
+            code="INVITE_EXPIRED",
+            message="Invite expired",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            token_hash=token_hash,
+            invitation=invitation,
+            current_tenant_id=str(tenant.id),
+        )
     await set_search_path(session, tenant.code)
     return InviteInfoResponse(email=invitation.email, tenant_code=tenant.code)
 
@@ -64,17 +125,52 @@ async def register_invite(
     token_hash = hash_invite_token(payload.token)
     await set_search_path(session, None)
     invitation = await session.scalar(select(TenantInvitation).where(TenantInvitation.token_hash == token_hash))
-    if not invitation or invitation.tenant_id != tenant.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite not found")
+    if not invitation:
+        return _invite_error(
+            code="INVITE_NOT_FOUND",
+            message="Invite not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            token_hash=token_hash,
+            invitation=None,
+            current_tenant_id=str(tenant.id),
+        )
+    if invitation.tenant_id != tenant.id:
+        return _invite_error(
+            code="INVITE_TENANT_MISMATCH",
+            message="Invite tenant mismatch",
+            status_code=status.HTTP_404_NOT_FOUND,
+            token_hash=token_hash,
+            invitation=invitation,
+            current_tenant_id=str(tenant.id),
+        )
     now = datetime.now(timezone.utc)
     if invitation.used_at:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invite already used")
+        return _invite_error(
+            code="INVITE_ALREADY_USED",
+            message="Invite already used",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            token_hash=token_hash,
+            invitation=invitation,
+            current_tenant_id=str(tenant.id),
+        )
     if invitation.expires_at and invitation.expires_at <= now:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invite expired")
+        return _invite_error(
+            code="INVITE_EXPIRED",
+            message="Invite expired",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            token_hash=token_hash,
+            invitation=invitation,
+            current_tenant_id=str(tenant.id),
+        )
     await set_search_path(session, tenant.code)
     user = await session.scalar(select(User).where(User.email == invitation.email))
     if user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "error": {"code": "USER_ALREADY_EXISTS", "message": "User already exists"},
+            },
+        )
     await ensure_roles(session)
     role_name = invitation.role_name or "owner"
     owner_role = await session.scalar(select(Role).where(Role.name == role_name))

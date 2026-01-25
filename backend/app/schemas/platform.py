@@ -123,6 +123,14 @@ class PlatformTenantInviteResponse(BaseModel):
     expires_at: str
 
 
+class PlatformTenantInviteItem(BaseModel):
+    id: str
+    email: EmailStr
+    created_at: str
+    expires_at: str
+    used_at: str | None
+
+
 class PlatformTenantUserResponse(BaseModel):
     id: str
     email: str

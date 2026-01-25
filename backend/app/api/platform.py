@@ -19,6 +19,7 @@ from app.schemas.platform import (
     PlatformTenantDomainCreate,
     PlatformTenantDomainResponse,
     PlatformTenantInviteRequest,
+    PlatformTenantInviteItem,
     PlatformTenantInviteResponse,
     PlatformTenantResponse,
     PlatformTenantStatusResponse,
@@ -222,6 +223,29 @@ async def create_invite(
 ):
     service = PlatformService(session)
     invite = await service.create_invite(tenant_id, payload.email, payload.role_name)
+    return PlatformTenantInviteResponse(invite_url=invite["invite_url"], expires_at=invite["expires_at"])
+
+
+@router.get("/tenants/{tenant_id}/invites", response_model=list[PlatformTenantInviteItem])
+async def list_invites(tenant_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    invites = await service.list_invites(tenant_id)
+    return [
+        PlatformTenantInviteItem(
+            id=str(invite.id),
+            email=invite.email,
+            created_at=invite.created_at.isoformat(),
+            expires_at=invite.expires_at.isoformat(),
+            used_at=invite.used_at.isoformat() if invite.used_at else None,
+        )
+        for invite in invites
+    ]
+
+
+@router.post("/tenants/{tenant_id}/invites/{invite_id}/regenerate", response_model=PlatformTenantInviteResponse)
+async def regenerate_invite(tenant_id: str, invite_id: str, session: AsyncSession = Depends(get_db_session)):
+    service = PlatformService(session)
+    invite = await service.regenerate_invite(tenant_id, invite_id)
     return PlatformTenantInviteResponse(invite_url=invite["invite_url"], expires_at=invite["expires_at"])
 
 
