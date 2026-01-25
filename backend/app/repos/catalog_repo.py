@@ -86,6 +86,12 @@ class ProductRepo:
 
     async def list(self, filters: dict) -> List[Product]:
         stmt = select(Product)
+        if filters.get("sku"):
+            stmt = stmt.where(Product.sku == filters["sku"])
+        if filters.get("barcode"):
+            stmt = stmt.where(Product.barcode == filters["barcode"])
+        if filters.get("unit"):
+            stmt = stmt.where(Product.unit == filters["unit"])
         if filters.get("category_id"):
             stmt = stmt.where(Product.category_id == filters["category_id"])
         if filters.get("brand_id"):

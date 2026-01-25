@@ -56,7 +56,7 @@ class SalesService:
             qty = Decimal(item["qty"])
             unit_price = item.get("unit_price")
             if unit_price is None:
-                unit_price = product.price
+                unit_price = product.sell_price
             unit_price = Decimal(unit_price)
             if qty <= 0 or unit_price < 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
@@ -81,7 +81,7 @@ class SalesService:
                     {
                         "product_id": product.id,
                         "quantity": remaining_decimal,
-                        "unit_cost": product.last_purchase_unit_cost,
+                        "unit_cost": product.purchase_price,
                     }
                 )
                 fallback_batch.quantity = Decimal("0")
@@ -255,7 +255,7 @@ class SalesService:
                     allocation.batch.quantity = Decimal(allocation.batch.quantity) + restore_qty
         else:
             product = await self.product_repo.get(sale_item.product_id)
-            unit_cost = product.last_purchase_unit_cost if product else Decimal("0")
+            unit_cost = product.purchase_price if product else Decimal("0")
             await self.batch_repo.create(
                 {
                     "product_id": sale_item.product_id,

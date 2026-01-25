@@ -171,7 +171,25 @@ class CatalogService:
     async def list_products(self, filters):
         return await self.product_repo.list(filters)
 
+    async def _validate_product_links(self, category_id, brand_id, line_id):
+        if not category_id or not brand_id:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Category and brand required")
+        link = await self.category_brand_repo.get(category_id, brand_id)
+        if not link:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Brand is not linked to category",
+            )
+        if line_id:
+            line = await self.line_repo.get(line_id)
+            if not line or line.brand_id != brand_id:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Line does not belong to brand",
+                )
+
     async def create_product(self, data):
+        await self._validate_product_links(data.get("category_id"), data.get("brand_id"), data.get("line_id"))
         try:
             product = await self.product_repo.create(data)
             await self.session.refresh(product)
@@ -192,6 +210,10 @@ class CatalogService:
         product = await self.product_repo.get(product_id)
         if not product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+        category_id = data.get("category_id") if data.get("category_id") is not None else product.category_id
+        brand_id = data.get("brand_id") if data.get("brand_id") is not None else product.brand_id
+        line_id = data.get("line_id") if data.get("line_id") is not None else product.line_id
+        await self._validate_product_links(category_id, brand_id, line_id)
         for key, value in data.items():
             if value is not None:
                 setattr(product, key, value)

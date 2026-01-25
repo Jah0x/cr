@@ -1,8 +1,9 @@
 import uuid
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from decimal import Decimal
 
+from app.models.catalog import ProductUnit
 
 class CategoryBase(BaseModel):
     name: str
@@ -67,14 +68,18 @@ class ProductLineOut(ProductLineBase):
 
 
 class ProductBase(BaseModel):
-    sku: str
+    sku: Optional[str] = None
+    barcode: Optional[str] = None
     name: str
     description: str = ""
     image_url: Optional[str] = None
-    category_id: Optional[uuid.UUID] = None
-    brand_id: Optional[uuid.UUID] = None
+    category_id: uuid.UUID
+    brand_id: uuid.UUID
     line_id: Optional[uuid.UUID] = None
-    price: Decimal
+    unit: ProductUnit = ProductUnit.pcs
+    purchase_price: Decimal = Field(ge=0)
+    sell_price: Decimal = Field(ge=0)
+    tax_rate: Decimal = Field(ge=0)
     is_active: bool = True
 
 
@@ -84,18 +89,21 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     sku: Optional[str] = None
+    barcode: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
     category_id: Optional[uuid.UUID] = None
     brand_id: Optional[uuid.UUID] = None
     line_id: Optional[uuid.UUID] = None
-    price: Optional[Decimal] = None
+    unit: Optional[ProductUnit] = None
+    purchase_price: Optional[Decimal] = Field(default=None, ge=0)
+    sell_price: Optional[Decimal] = Field(default=None, ge=0)
+    tax_rate: Optional[Decimal] = Field(default=None, ge=0)
     is_active: Optional[bool] = None
 
 
 class ProductOut(ProductBase):
     id: uuid.UUID
-    last_purchase_unit_cost: Decimal
 
     model_config = {"from_attributes": True}
