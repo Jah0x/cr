@@ -210,6 +210,19 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
     }
   })
 
+  const deleteInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      await api.delete(`/platform/tenants/${tenant.id}/invites/${inviteId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platformTenantInvites', tenant.id] })
+      addToast(t('common.deleted'), 'success')
+    },
+    onError: (error) => {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
+  })
+
   const createUserMutation = useMutation({
     mutationFn: async () => {
       const res = await api.post<TenantUser>(`/platform/tenants/${tenant.id}/users`, {
@@ -437,13 +450,25 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
                 <div style={{ fontSize: 12 }}>{invite.created_at}</div>
                 <div style={{ fontSize: 12 }}>{invite.expires_at}</div>
                 <div style={{ fontSize: 12 }}>{invite.used_at ?? '—'}</div>
-                <button
-                  type="button"
-                  onClick={() => regenerateInviteMutation.mutate(invite.id)}
-                  disabled={regenerateInviteMutation.isPending}
-                >
-                  {t('platformTenants.regenerateInvite')}
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => regenerateInviteMutation.mutate(invite.id)}
+                    disabled={regenerateInviteMutation.isPending}
+                  >
+                    {t('platformTenants.regenerateInvite')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(t('platformTenants.deleteInviteConfirm'))) {
+                        deleteInviteMutation.mutate(invite.id)
+                      }
+                    }}
+                  >
+                    {t('platformTenants.deleteInvite')}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
