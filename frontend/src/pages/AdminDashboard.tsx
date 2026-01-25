@@ -42,6 +42,8 @@ export default function AdminDashboard() {
   const [categoryLinkId, setCategoryLinkId] = useState('')
   const [categoryBrands, setCategoryBrands] = useState<Brand[]>([])
   const [categoryBrandsLoading, setCategoryBrandsLoading] = useState(false)
+  const [categoryBrandsById, setCategoryBrandsById] = useState<Record<string, Brand[]>>({})
+  const [categoryBrandsTableLoading, setCategoryBrandsTableLoading] = useState(false)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [brandSearch, setBrandSearch] = useState('')
   const [productCategoryId, setProductCategoryId] = useState('')
@@ -93,6 +95,31 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      setCategoryBrandsById({})
+      return
+    }
+    const loadCategoryBrandsTable = async () => {
+      setCategoryBrandsTableLoading(true)
+      try {
+        const responses = await Promise.all(
+          categories.map((category) => api.get(`/categories/${category.id}/brands`))
+        )
+        const next = categories.reduce<Record<string, Brand[]>>((acc, category, index) => {
+          acc[category.id] = responses[index].data
+          return acc
+        }, {})
+        setCategoryBrandsById(next)
+      } catch (error) {
+        handleApiError(error)
+      } finally {
+        setCategoryBrandsTableLoading(false)
+      }
+    }
+    void loadCategoryBrandsTable()
+  }, [categories])
 
   const handleApiError = (error: unknown) => {
     if (axios.isAxiosError(error)) {
@@ -392,6 +419,7 @@ export default function AdminDashboard() {
   const canCreateCategory = categoryName.trim().length > 0
   const canCreateBrand = brandName.trim().length > 0
   const canCreateLine = lineName.trim().length > 0 && Boolean(lineBrand)
+  const lineBrandMissing = !lineBrand
   const canCreateProduct =
     validateRequired([productCategoryId, productBrandId, productName, productUnit]) &&
     isNonNegativeNumber(productPurchasePrice) &&
@@ -426,21 +454,29 @@ export default function AdminDashboard() {
                   <thead>
                     <tr>
                       <th scope="col">{t('admin.table.name')}</th>
+                      <th scope="col">{t('admin.table.brands')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {catalogLoading ? (
                       <tr>
-                        <td>{t('common.loading')}</td>
+                        <td colSpan={2}>{t('common.loading')}</td>
                       </tr>
                     ) : categories.length === 0 ? (
                       <tr>
-                        <td>{t('admin.emptyCategories')}</td>
+                        <td colSpan={2}>{t('admin.emptyCategories')}</td>
                       </tr>
                     ) : (
                       categories.map((category) => (
                         <tr key={category.id}>
                           <td>{category.name}</td>
+                          <td>
+                            {categoryBrandsTableLoading
+                              ? t('common.loading')
+                              : categoryBrandsById[category.id]?.length
+                                ? categoryBrandsById[category.id].map((brand) => brand.name).join(', ')
+                                : t('admin.emptyCategoryBrands')}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -562,10 +598,15 @@ export default function AdminDashboard() {
                     </option>
                   ))}
                 </select>
-                <button onClick={createLine} disabled={!canCreateLine}>
+                <button
+                  onClick={createLine}
+                  disabled={!canCreateLine}
+                  title={lineBrandMissing ? t('admin.validation.selectBrandForLine') : undefined}
+                >
                   {t('admin.addLine')}
                 </button>
               </div>
+              {lineBrandMissing && <p className="page-subtitle">{t('admin.validation.selectBrandForLine')}</p>}
             </div>
 
             <div>

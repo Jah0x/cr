@@ -135,6 +135,12 @@ class CatalogService:
         return await self.line_repo.list(brand_id)
 
     async def create_line(self, data):
+        brand_id = data.get("brand_id")
+        if not brand_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
+        brand = await self.brand_repo.get(brand_id)
+        if not brand:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
         try:
             line = await self.line_repo.create(data)
             await self.session.refresh(line)
