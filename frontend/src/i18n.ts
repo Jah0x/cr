@@ -132,6 +132,7 @@ const resources = {
         searchBrandPlaceholder: 'Search brand',
         emptyCategories: 'No categories yet.',
         emptyBrands: 'No brands yet.',
+        emptyCategoryBrands: 'No linked brands.',
         emptyLinkedBrands: 'No brands linked yet.',
         emptyAvailableBrands: 'No brands available.',
         emptyProducts: 'No products yet.',
@@ -142,6 +143,7 @@ const resources = {
         table: {
           name: 'Name',
           brand: 'Brand',
+          brands: 'Brands',
           actions: 'Actions',
           sku: 'SKU',
           category: 'Category',
@@ -152,6 +154,7 @@ const resources = {
         },
         validation: {
           requiredFields: 'Fill in all required fields.',
+          selectBrandForLine: 'Select a brand to create a product line.',
           nonNegative: 'Values must be zero or above.'
         },
         errors: {
@@ -386,6 +389,7 @@ const resources = {
         searchBrandPlaceholder: 'Поиск бренда',
         emptyCategories: 'Категории отсутствуют.',
         emptyBrands: 'Бренды отсутствуют.',
+        emptyCategoryBrands: 'Нет привязанных брендов.',
         emptyLinkedBrands: 'Нет привязанных брендов.',
         emptyAvailableBrands: 'Нет доступных брендов.',
         emptyProducts: 'Товары отсутствуют.',
@@ -396,6 +400,7 @@ const resources = {
         table: {
           name: 'Название',
           brand: 'Бренд',
+          brands: 'Бренды',
           actions: 'Действия',
           sku: 'SKU',
           category: 'Категория',
@@ -406,6 +411,7 @@ const resources = {
         },
         validation: {
           requiredFields: 'Заполните обязательные поля.',
+          selectBrandForLine: 'Выберите бренд для создания линейки.',
           nonNegative: 'Значения должны быть не меньше 0.'
         },
         errors: {
