@@ -1,6 +1,6 @@
 import re
 
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 _SCHEMA_RE = re.compile(r"^[a-z0-9_-]+$")
@@ -27,3 +27,18 @@ async def set_search_path(session: AsyncSession, schema: str | None) -> None:
         return
     validate_schema_name(schema)
     await session.execute(text(f'SET LOCAL search_path TO "{schema}", public'))
+
+
+async def list_tables(session: AsyncSession, schema: str | None = None) -> set[str]:
+    async with session.connection() as conn:
+        def _load_tables(sync_conn):
+            inspector = inspect(sync_conn)
+            if schema is not None:
+                tables = inspector.get_table_names(schema=schema)
+                if schema == "public" and not tables:
+                    tables = inspector.get_table_names()
+                return tables
+            return inspector.get_table_names()
+
+        tables = await conn.run_sync(_load_tables)
+    return set(tables)

@@ -1,4 +1,5 @@
 import logging
+import time
 
 from fastapi import FastAPI, APIRouter, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def access_log(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    logger.info(
+        "Access: method=%s path=%s status=%s duration_ms=%.2f host=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
+        request.headers.get("host"),
+    )
+    return response
 
 
 api_router = APIRouter(prefix="/api/v1")
