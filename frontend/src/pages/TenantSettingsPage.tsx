@@ -195,197 +195,199 @@ export default function TenantSettingsPage() {
         <h2 className="page-title">{t('settings.title')}</h2>
         <p className="page-subtitle">{t('settings.subtitle')}</p>
       </div>
-      <section className="card">
-        <h3>{t('settings.modules')}</h3>
-        <div className="form-stack">
-          {data.modules.map((module) => (
-            <label key={module.code} className="form-inline">
-              <input
-                type="checkbox"
-                checked={module.is_active && module.is_enabled}
-                disabled={!module.is_active || updateModule.isPending}
-                onChange={() =>
-                  updateModule.mutate(
-                    { code: module.code, is_enabled: !module.is_enabled },
-                    {
-                      onSuccess: () => addToast(t('common.updated'), 'success'),
-                      onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
-                    }
-                  )
-                }
-              />
-              <span>
-                {module.name} ({module.code}) {!module.is_active && `— ${t('settings.inactive')}`}
-              </span>
-            </label>
-          ))}
-        </div>
-      </section>
-      <section className="card">
-        <h3>{t('settings.features')}</h3>
-        <div className="form-stack">
-          {data.features.map((feature) => (
-            <label key={feature.code} className="form-inline">
-              <input
-                type="checkbox"
-                checked={feature.is_enabled}
-                disabled={updateFeature.isPending}
-                onChange={() =>
-                  updateFeature.mutate(
-                    { code: feature.code, is_enabled: !feature.is_enabled },
-                    {
-                      onSuccess: () => addToast(t('common.updated'), 'success'),
-                      onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
-                    }
-                  )
-                }
-              />
-              <span>
-                {feature.name} ({feature.code})
-              </span>
-            </label>
-          ))}
-        </div>
-      </section>
-      {uiPrefsFeatureEnabled && (
+      <div className="grid grid-cards">
         <section className="card">
-          <h3>{t('settings.uiPreferences')}</h3>
+          <h3>{t('settings.modules')}</h3>
           <div className="form-stack">
-            {[
-              { key: 'compact_nav', label: t('settings.compactNav') },
-              { key: 'show_help', label: t('settings.showHelp') }
-            ].map(({ key, label }) => (
-              <label key={key} className="form-inline">
+            {data.modules.map((module) => (
+              <label key={module.code} className="form-inline">
                 <input
                   type="checkbox"
-                  checked={pendingPrefs[key] ?? data.ui_prefs[key] ?? false}
-                  disabled={updatePrefs.isPending}
-                  onChange={() => handlePrefToggle(key)}
+                  checked={module.is_active && module.is_enabled}
+                  disabled={!module.is_active || updateModule.isPending}
+                  onChange={() =>
+                    updateModule.mutate(
+                      { code: module.code, is_enabled: !module.is_enabled },
+                      {
+                        onSuccess: () => addToast(t('common.updated'), 'success'),
+                        onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
+                      }
+                    )
+                  }
                 />
-                <span>{label}</span>
+                <span>
+                  {module.name} ({module.code}) {!module.is_active && `— ${t('settings.inactive')}`}
+                </span>
               </label>
             ))}
           </div>
         </section>
-      )}
-      <section className="card">
-        <h3>{t('settings.taxesTitle')}</h3>
-        <p className="page-subtitle">{t('settings.taxesSubtitle')}</p>
-        <div className="form-stack">
-          <label className="form-inline">
-            <input
-              type="checkbox"
-              checked={taxDraft.enabled}
-              disabled={updateTenantSettings.isPending}
-              onChange={handleTaxToggle}
-            />
-            <span>{t('settings.taxesEnabled')}</span>
-          </label>
-          <div className="form-row">
-            <label className="form-field">
-              <span>{t('settings.taxesMode')}</span>
-              <select
-                value={taxDraft.mode}
-                disabled={updateTenantSettings.isPending}
-                onChange={(event) => handleTaxModeChange(event.target.value as TaxSettings['mode'])}
-              >
-                <option value="exclusive">{t('settings.taxesModeExclusive')}</option>
-                <option value="inclusive">{t('settings.taxesModeInclusive')}</option>
-              </select>
-            </label>
-            <label className="form-field">
-              <span>{t('settings.taxesRounding')}</span>
-              <select
-                value={taxDraft.rounding}
-                disabled={updateTenantSettings.isPending}
-                onChange={(event) => handleTaxRoundingChange(event.target.value as TaxSettings['rounding'])}
-              >
-                <option value="round">{t('settings.taxesRoundingRound')}</option>
-                <option value="ceil">{t('settings.taxesRoundingCeil')}</option>
-                <option value="floor">{t('settings.taxesRoundingFloor')}</option>
-              </select>
-            </label>
+        <section className="card">
+          <h3>{t('settings.features')}</h3>
+          <div className="form-stack">
+            {data.features.map((feature) => (
+              <label key={feature.code} className="form-inline">
+                <input
+                  type="checkbox"
+                  checked={feature.is_enabled}
+                  disabled={updateFeature.isPending}
+                  onChange={() =>
+                    updateFeature.mutate(
+                      { code: feature.code, is_enabled: !feature.is_enabled },
+                      {
+                        onSuccess: () => addToast(t('common.updated'), 'success'),
+                        onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
+                      }
+                    )
+                  }
+                />
+                <span>
+                  {feature.name} ({feature.code})
+                </span>
+              </label>
+            ))}
           </div>
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th scope="col">{t('settings.taxRuleName')}</th>
-                  <th scope="col">{t('settings.taxRuleRate')}</th>
-                  <th scope="col">{t('settings.taxRuleStatus')}</th>
-                  <th scope="col">{t('settings.taxRuleActions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {taxDraft.rules.length === 0 ? (
+        </section>
+        {uiPrefsFeatureEnabled && (
+          <section className="card">
+            <h3>{t('settings.uiPreferences')}</h3>
+            <div className="form-stack">
+              {[
+                { key: 'compact_nav', label: t('settings.compactNav') },
+                { key: 'show_help', label: t('settings.showHelp') }
+              ].map(({ key, label }) => (
+                <label key={key} className="form-inline">
+                  <input
+                    type="checkbox"
+                    checked={pendingPrefs[key] ?? data.ui_prefs[key] ?? false}
+                    disabled={updatePrefs.isPending}
+                    onChange={() => handlePrefToggle(key)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
+        <section className="card">
+          <h3>{t('settings.taxesTitle')}</h3>
+          <p className="page-subtitle">{t('settings.taxesSubtitle')}</p>
+          <div className="form-stack">
+            <label className="form-inline">
+              <input
+                type="checkbox"
+                checked={taxDraft.enabled}
+                disabled={updateTenantSettings.isPending}
+                onChange={handleTaxToggle}
+              />
+              <span>{t('settings.taxesEnabled')}</span>
+            </label>
+            <div className="form-row">
+              <label className="form-field">
+                <span>{t('settings.taxesMode')}</span>
+                <select
+                  value={taxDraft.mode}
+                  disabled={updateTenantSettings.isPending}
+                  onChange={(event) => handleTaxModeChange(event.target.value as TaxSettings['mode'])}
+                >
+                  <option value="exclusive">{t('settings.taxesModeExclusive')}</option>
+                  <option value="inclusive">{t('settings.taxesModeInclusive')}</option>
+                </select>
+              </label>
+              <label className="form-field">
+                <span>{t('settings.taxesRounding')}</span>
+                <select
+                  value={taxDraft.rounding}
+                  disabled={updateTenantSettings.isPending}
+                  onChange={(event) => handleTaxRoundingChange(event.target.value as TaxSettings['rounding'])}
+                >
+                  <option value="round">{t('settings.taxesRoundingRound')}</option>
+                  <option value="ceil">{t('settings.taxesRoundingCeil')}</option>
+                  <option value="floor">{t('settings.taxesRoundingFloor')}</option>
+                </select>
+              </label>
+            </div>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
                   <tr>
-                    <td colSpan={4}>{t('settings.taxRuleEmpty')}</td>
+                    <th scope="col">{t('settings.taxRuleName')}</th>
+                    <th scope="col">{t('settings.taxRuleRate')}</th>
+                    <th scope="col">{t('settings.taxRuleStatus')}</th>
+                    <th scope="col">{t('settings.taxRuleActions')}</th>
                   </tr>
-                ) : (
-                  taxDraft.rules.map((rule) => (
-                    <tr key={rule.id}>
-                      <td>
-                        <input
-                          value={rule.name}
-                          onChange={(event) => handleTaxRuleNameChange(rule.id, event.target.value)}
-                          onBlur={saveTaxRules}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={rule.rate}
-                          onChange={(event) => handleTaxRuleRateChange(rule.id, event.target.value)}
-                          onBlur={saveTaxRules}
-                        />
-                      </td>
-                      <td>
-                        <label className="form-inline">
-                          <input
-                            type="checkbox"
-                            checked={rule.is_active}
-                            onChange={() => handleTaxRuleToggle(rule.id)}
-                          />
-                          <span>{rule.is_active ? t('settings.taxRuleActive') : t('settings.taxRuleInactive')}</span>
-                        </label>
-                      </td>
-                      <td>
-                        <button
-                          className="secondary"
-                          type="button"
-                          onClick={() => handleTaxRuleDelete(rule.id)}
-                        >
-                          {t('common.delete')}
-                        </button>
-                      </td>
+                </thead>
+                <tbody>
+                  {taxDraft.rules.length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>{t('settings.taxRuleEmpty')}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    taxDraft.rules.map((rule) => (
+                      <tr key={rule.id}>
+                        <td>
+                          <input
+                            value={rule.name}
+                            onChange={(event) => handleTaxRuleNameChange(rule.id, event.target.value)}
+                            onBlur={saveTaxRules}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={rule.rate}
+                            onChange={(event) => handleTaxRuleRateChange(rule.id, event.target.value)}
+                            onBlur={saveTaxRules}
+                          />
+                        </td>
+                        <td>
+                          <label className="form-inline">
+                            <input
+                              type="checkbox"
+                              checked={rule.is_active}
+                              onChange={() => handleTaxRuleToggle(rule.id)}
+                            />
+                            <span>{rule.is_active ? t('settings.taxRuleActive') : t('settings.taxRuleInactive')}</span>
+                          </label>
+                        </td>
+                        <td>
+                          <button
+                            className="secondary"
+                            type="button"
+                            onClick={() => handleTaxRuleDelete(rule.id)}
+                          >
+                            {t('common.delete')}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="form-row">
+              <input
+                placeholder={t('settings.taxRuleNamePlaceholder')}
+                value={newTaxName}
+                onChange={(event) => setNewTaxName(event.target.value)}
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder={t('settings.taxRuleRatePlaceholder')}
+                value={newTaxRate}
+                onChange={(event) => setNewTaxRate(event.target.value)}
+              />
+              <button type="button" onClick={addTaxRule} disabled={updateTenantSettings.isPending}>
+                {t('settings.addTaxRule')}
+              </button>
+            </div>
           </div>
-          <div className="form-row">
-            <input
-              placeholder={t('settings.taxRuleNamePlaceholder')}
-              value={newTaxName}
-              onChange={(event) => setNewTaxName(event.target.value)}
-            />
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder={t('settings.taxRuleRatePlaceholder')}
-              value={newTaxRate}
-              onChange={(event) => setNewTaxRate(event.target.value)}
-            />
-            <button type="button" onClick={addTaxRule} disabled={updateTenantSettings.isPending}>
-              {t('settings.addTaxRule')}
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   )
 }
