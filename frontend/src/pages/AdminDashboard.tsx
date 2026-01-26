@@ -17,6 +17,7 @@ type Product = {
   unit: string
   purchase_price: number
   sell_price: number
+  image_url?: string | null
   category_id: string
   brand_id: string
   line_id?: string | null
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
   const [productUnit, setProductUnit] = useState('pcs')
   const [productPurchasePrice, setProductPurchasePrice] = useState('0')
   const [productSellPrice, setProductSellPrice] = useState('0')
+  const [productImageUrl, setProductImageUrl] = useState('')
   const [productCategoryBrands, setProductCategoryBrands] = useState<Brand[]>([])
   const [productBrandLines, setProductBrandLines] = useState<ProductLine[]>([])
   const [supplierName, setSupplierName] = useState('')
@@ -327,6 +329,7 @@ export default function AdminDashboard() {
         name: productName.trim(),
         sku: productSku.trim() || null,
         barcode: productBarcode.trim() || null,
+        image_url: productImageUrl.trim() || null,
         unit: productUnit,
         purchase_price: purchasePrice,
         sell_price: sellPrice,
@@ -338,6 +341,7 @@ export default function AdminDashboard() {
       setProductUnit('pcs')
       setProductPurchasePrice('0')
       setProductSellPrice('0')
+      setProductImageUrl('')
       setProductLineId('')
       addToast(t('common.created'), 'success')
       loadData()
@@ -497,6 +501,17 @@ export default function AdminDashboard() {
     validateRequired([productCategoryId, productBrandId, productName, productUnit]) &&
     isNonNegativeNumber(productPurchasePrice) &&
     isNonNegativeNumber(productSellPrice)
+
+  const handleProductImageUpload = (file?: File | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setProductImageUrl(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div className="page">
@@ -781,25 +796,65 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div className="form-row">
-                  <select value={productUnit} onChange={(e) => setProductUnit(e.target.value)}>
-                    <option value="pcs">{t('admin.unitPcs')}</option>
-                    <option value="ml">{t('admin.unitMl')}</option>
-                    <option value="g">{t('admin.unitG')}</option>
-                  </select>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder={t('admin.purchasePricePlaceholder')}
-                    value={productPurchasePrice}
-                    onChange={(e) => setProductPurchasePrice(e.target.value)}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder={t('admin.sellPricePlaceholder')}
-                    value={productSellPrice}
-                    onChange={(e) => setProductSellPrice(e.target.value)}
-                  />
+                  <label className="form-field">
+                    <span>{t('admin.productImageLabel')}</span>
+                    <input
+                      type="url"
+                      placeholder={t('admin.productImagePlaceholder')}
+                      value={productImageUrl}
+                      onChange={(e) => setProductImageUrl(e.target.value)}
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.productImageUpload')}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleProductImageUpload(e.target.files?.[0])}
+                    />
+                  </label>
+                  {productImageUrl && (
+                    <div className="image-preview">
+                      <img src={productImageUrl} alt={t('admin.productImagePreview')} />
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => setProductImageUrl('')}
+                      >
+                        {t('admin.clearImage')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="form-row">
+                  <label className="form-field">
+                    <span>{t('admin.unitLabel')}</span>
+                    <select value={productUnit} onChange={(e) => setProductUnit(e.target.value)}>
+                      <option value="pcs">{t('admin.unitPcs')}</option>
+                      <option value="ml">{t('admin.unitMl')}</option>
+                      <option value="g">{t('admin.unitG')}</option>
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.purchasePriceLabel')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('admin.purchasePricePlaceholder')}
+                      value={productPurchasePrice}
+                      onChange={(e) => setProductPurchasePrice(e.target.value)}
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.sellPriceLabel')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('admin.sellPricePlaceholder')}
+                      value={productSellPrice}
+                      onChange={(e) => setProductSellPrice(e.target.value)}
+                    />
+                  </label>
                   <button onClick={createProduct} disabled={!canCreateProduct}>
                     {t('admin.addProduct')}
                   </button>
@@ -809,6 +864,7 @@ export default function AdminDashboard() {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th scope="col">{t('admin.table.image')}</th>
                       <th scope="col">{t('admin.table.name')}</th>
                       <th scope="col">{t('admin.table.sku')}</th>
                       <th scope="col">{t('admin.table.category')}</th>
@@ -823,15 +879,26 @@ export default function AdminDashboard() {
                   <tbody>
                     {catalogLoading ? (
                       <tr>
-                        <td colSpan={9}>{t('common.loading')}</td>
+                        <td colSpan={10}>{t('common.loading')}</td>
                       </tr>
                     ) : products.length === 0 ? (
                       <tr>
-                        <td colSpan={9}>{t('admin.emptyProducts')}</td>
+                        <td colSpan={10}>{t('admin.emptyProducts')}</td>
                       </tr>
                     ) : (
                       products.map((product) => (
                         <tr key={product.id}>
+                          <td>
+                            {product.image_url ? (
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                className="table-image"
+                              />
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                          </td>
                           <td>{product.name}</td>
                           <td>{product.sku || '—'}</td>
                           <td>{categoryMap.get(product.category_id) ?? '—'}</td>

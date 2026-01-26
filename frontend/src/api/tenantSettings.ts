@@ -20,6 +20,7 @@ export type TenantSettingsResponse = {
   modules: TenantModuleSetting[]
   features: TenantFeatureSetting[]
   ui_prefs: Record<string, boolean>
+  settings: Record<string, unknown>
 }
 
 export function useTenantSettings() {
@@ -65,6 +66,19 @@ export function useUpdateUIPrefs() {
   return useMutation({
     mutationFn: async (prefs: Record<string, boolean>) => {
       const res = await api.put<{ prefs: Record<string, boolean> }>(`/tenant/settings/ui-prefs`, { prefs })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenantSettings'] })
+    }
+  })
+}
+
+export function useUpdateTenantSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (settings: Record<string, unknown>) => {
+      const res = await api.patch<{ settings: Record<string, unknown> }>(`/tenant/settings`, { settings })
       return res.data
     },
     onSuccess: () => {
