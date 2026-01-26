@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import HTTPException, status
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError, ProgrammingError
 
 from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo, CategoryBrandRepo
 
@@ -207,11 +207,23 @@ class CatalogService:
         except HTTPException as exc:
             logger.warning("Failed to create product: %s", exc.detail)
             raise
+        except (ProgrammingError, DataError) as exc:
+            logger.exception("Failed to create product due to database error.")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database schema error. Apply latest migrations.",
+            ) from exc
         except IntegrityError as exc:
             logger.warning("Failed to create product due to integrity error.", exc_info=exc)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Product already exists",
+            ) from exc
+        except Exception as exc:
+            logger.exception("Unexpected error while creating product.")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Unable to create product.",
             ) from exc
 
     async def get_product(self, product_id):
@@ -235,10 +247,22 @@ class CatalogService:
             await self.session.flush()
             await self.session.refresh(product)
             return product
+        except (ProgrammingError, DataError) as exc:
+            logger.exception("Failed to update product due to database error.")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database schema error. Apply latest migrations.",
+            ) from exc
         except IntegrityError as exc:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Product already exists",
+            ) from exc
+        except Exception as exc:
+            logger.exception("Unexpected error while updating product.")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Unable to update product.",
             ) from exc
 
     async def delete_product(self, product_id):
