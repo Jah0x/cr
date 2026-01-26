@@ -159,6 +159,7 @@ export default function PosPage() {
   const totalWithTax = taxSettings.enabled && taxSettings.mode === 'exclusive' ? subtotal + taxAmount : subtotal
 
   const totalDue = Math.max(totalWithTax - paidTotal, 0)
+  const taxLabel = taxSettings.mode === 'inclusive' ? t('pos.taxIncluded') : t('pos.taxAdded')
 
   const addToCart = (product: Product) => {
     setCartItems((prev) => {
@@ -285,7 +286,7 @@ export default function PosPage() {
             {taxSettings.enabled && totalTaxRate > 0 && (
               <div className="pos-summary-row">
                 <span>
-                  {t('pos.tax')} ({totalTaxRate.toFixed(2)}%)
+                  {taxLabel} ({totalTaxRate.toFixed(2)}%)
                 </span>
                 <strong>${taxAmount.toFixed(2)}</strong>
               </div>
