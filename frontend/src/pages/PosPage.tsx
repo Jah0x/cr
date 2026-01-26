@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
+import { useTenantSettings } from '../api/tenantSettings'
 
 type PaymentMethod = 'cash' | 'card' | 'external'
 
@@ -9,6 +10,7 @@ interface Product {
   id: string
   name: string
   price: number
+  image_url?: string | null
 }
 
 interface CartItem {
@@ -47,6 +49,27 @@ interface SaleDetail {
   payments: PaymentRecord[]
 }
 
+type TaxRule = {
+  id: string
+  name: string
+  rate: number
+  is_active: boolean
+}
+
+type TaxSettings = {
+  enabled: boolean
+  mode: 'exclusive' | 'inclusive'
+  rounding: 'round' | 'ceil' | 'floor'
+  rules: TaxRule[]
+}
+
+const defaultTaxSettings: TaxSettings = {
+  enabled: false,
+  mode: 'exclusive',
+  rounding: 'round',
+  rules: []
+}
+
 export default function PosPage() {
   const { t } = useTranslation()
   const [products, setProducts] = useState<Product[]>([])
@@ -58,6 +81,7 @@ export default function PosPage() {
   const [paymentReference, setPaymentReference] = useState('')
   const [sale, setSale] = useState<SaleDetail | null>(null)
   const [error, setError] = useState('')
+  const { data: tenantSettings } = useTenantSettings()
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: t('pos.paymentMethodCash'),
     card: t('pos.paymentMethodCard'),
@@ -65,7 +89,16 @@ export default function PosPage() {
   }
 
   useEffect(() => {
-    api.get('/products').then((res) => setProducts(res.data))
+    api.get('/products').then((res) => {
+      const normalized = (res.data as Array<{ id: string; name: string; sell_price: number; image_url?: string | null }>)
+        .map((product) => ({
+          id: product.id,
+          name: product.name,
+          price: Number(product.sell_price ?? 0),
+          image_url: product.image_url ?? null
+        }))
+      setProducts(normalized)
+    })
   }, [])
 
   const filteredProducts = useMemo(() => {
@@ -82,7 +115,50 @@ export default function PosPage() {
     return payments.reduce((sum, payment) => sum + payment.amount, 0)
   }, [payments])
 
-  const totalDue = Math.max(subtotal - paidTotal, 0)
+  const taxSettings = useMemo<TaxSettings>(() => {
+    const stored = tenantSettings?.settings?.taxes
+    if (!stored || typeof stored !== 'object') return defaultTaxSettings
+    return {
+      ...defaultTaxSettings,
+      ...(stored as Partial<TaxSettings>),
+      rules: Array.isArray((stored as TaxSettings).rules) ? (stored as TaxSettings).rules : []
+    }
+  }, [tenantSettings?.settings])
+
+  const activeTaxRules = useMemo(
+    () => taxSettings.rules.filter((rule) => rule.is_active),
+    [taxSettings.rules]
+  )
+
+  const totalTaxRate = useMemo(
+    () => activeTaxRules.reduce((sum, rule) => sum + (Number(rule.rate) || 0), 0),
+    [activeTaxRules]
+  )
+
+  const applyRounding = (value: number) => {
+    switch (taxSettings.rounding) {
+      case 'ceil':
+        return Math.ceil(value * 100) / 100
+      case 'floor':
+        return Math.floor(value * 100) / 100
+      default:
+        return Math.round(value * 100) / 100
+    }
+  }
+
+  const taxAmount = useMemo(() => {
+    if (!taxSettings.enabled || totalTaxRate <= 0) return 0
+    if (taxSettings.mode === 'inclusive') {
+      const divisor = 1 + totalTaxRate / 100
+      if (divisor <= 0) return 0
+      return applyRounding(subtotal - subtotal / divisor)
+    }
+    return applyRounding(subtotal * (totalTaxRate / 100))
+  }, [applyRounding, subtotal, taxSettings.enabled, taxSettings.mode, totalTaxRate])
+
+  const totalWithTax = taxSettings.enabled && taxSettings.mode === 'exclusive' ? subtotal + taxAmount : subtotal
+
+  const totalDue = Math.max(totalWithTax - paidTotal, 0)
 
   const addToCart = (product: Product) => {
     setCartItems((prev) => {
@@ -146,63 +222,85 @@ export default function PosPage() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>{t('pos.title')}</h2>
-      <div style={{ display: 'flex', gap: 16 }}>
-        <div style={{ flex: 1 }}>
-          <input placeholder={t('pos.searchProducts')} value={search} onChange={(e) => setSearch(e.target.value)} />
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: 8,
-              marginTop: 12
-            }}
-          >
+    <div className="page pos-page">
+      <div className="page-header">
+        <h2 className="page-title">{t('pos.title')}</h2>
+        <p className="page-subtitle">{t('pos.subtitle')}</p>
+      </div>
+      <div className="pos-layout">
+        <section className="card pos-products">
+          <div className="pos-search">
+            <input
+              placeholder={t('pos.searchProducts')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="pos-products-grid">
             {filteredProducts.map((product) => (
-              <button
-                key={product.id}
-                onClick={() => addToCart(product)}
-                style={{ padding: 12, border: '1px solid #cbd5e1', background: '#fff' }}
-              >
-                <div>{product.name}</div>
-                <div>${product.price}</div>
+              <button key={product.id} onClick={() => addToCart(product)} className="pos-product-card">
+                <div className="pos-product-image">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} loading="lazy" />
+                  ) : (
+                    <span>{t('pos.noImage')}</span>
+                  )}
+                </div>
+                <div className="pos-product-info">
+                  <div className="pos-product-name">{product.name}</div>
+                  <div className="pos-product-price">${product.price.toFixed(2)}</div>
+                </div>
               </button>
             ))}
           </div>
-        </div>
-        <div style={{ width: 360, background: '#fff', padding: 12 }}>
+        </section>
+        <section className="card pos-cart">
           <h3>{t('pos.cart')}</h3>
           {cartItems.length === 0 ? (
-            <p>{t('pos.emptyCart')}</p>
+            <p className="page-subtitle">{t('pos.emptyCart')}</p>
           ) : (
-            <div>
-              <ul>
-                {cartItems.map((item) => (
-                  <li key={item.product.id} style={{ marginBottom: 8 }}>
-                    <div>{item.product.name}</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input
-                        value={item.qty}
-                        onChange={(e) => updateQty(item.product.id, Number(e.target.value))}
-                        style={{ width: 60 }}
-                      />
-                      <span>${(item.qty * item.product.price).toFixed(2)}</span>
-                      <button onClick={() => removeItem(item.product.id)}>{t('pos.remove')}</button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <p>{t('pos.subtotal')}: ${subtotal.toFixed(2)}</p>
+            <div className="pos-cart-items">
+              {cartItems.map((item) => (
+                <div key={item.product.id} className="pos-cart-item">
+                  <div className="pos-cart-name">{item.product.name}</div>
+                  <div className="pos-cart-controls">
+                    <input
+                      value={item.qty}
+                      onChange={(e) => updateQty(item.product.id, Number(e.target.value))}
+                    />
+                    <span>${(item.qty * item.product.price).toFixed(2)}</span>
+                    <button className="secondary" onClick={() => removeItem(item.product.id)}>
+                      {t('pos.remove')}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
+          <div className="pos-summary">
+            <div className="pos-summary-row">
+              <span>{t('pos.subtotal')}</span>
+              <strong>${subtotal.toFixed(2)}</strong>
+            </div>
+            {taxSettings.enabled && totalTaxRate > 0 && (
+              <div className="pos-summary-row">
+                <span>
+                  {t('pos.tax')} ({totalTaxRate.toFixed(2)}%)
+                </span>
+                <strong>${taxAmount.toFixed(2)}</strong>
+              </div>
+            )}
+            <div className="pos-summary-row total">
+              <span>{t('pos.total')}</span>
+              <strong>${totalWithTax.toFixed(2)}</strong>
+            </div>
+          </div>
           <h4>{t('pos.payments')}</h4>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <div className="pos-payment-entry">
             <input
               placeholder={t('pos.amount')}
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
-              style={{ width: 80 }}
             />
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
               <option value="cash">{t('pos.paymentMethodCash')}</option>
@@ -213,34 +311,44 @@ export default function PosPage() {
               placeholder={t('pos.reference')}
               value={paymentReference}
               onChange={(e) => setPaymentReference(e.target.value)}
-              style={{ flex: 1 }}
             />
             <button onClick={addPayment}>{t('pos.addPayment')}</button>
           </div>
-          <ul>
+          <div className="pos-payments-list">
             {payments.map((payment, index) => (
-              <li key={`${payment.method}-${index}`}>
-                {paymentLabels[payment.method]} ${payment.amount.toFixed(2)}
-                {payment.reference ? ` (${payment.reference})` : ''}
-                <button onClick={() => removePayment(index)} style={{ marginLeft: 8 }}>
+              <div key={`${payment.method}-${index}`} className="pos-payment-item">
+                <div>
+                  {paymentLabels[payment.method]} ${payment.amount.toFixed(2)}
+                  {payment.reference ? ` (${payment.reference})` : ''}
+                </div>
+                <button className="ghost" onClick={() => removePayment(index)}>
                   {t('pos.remove')}
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
-          <p>{t('pos.due')}: ${totalDue.toFixed(2)}</p>
-          <button onClick={finalizeSale} style={{ marginTop: 12 }}>
+          </div>
+          <div className="pos-summary-row total">
+            <span>{t('pos.due')}</span>
+            <strong>${totalDue.toFixed(2)}</strong>
+          </div>
+          <button className="pos-finalize" onClick={finalizeSale}>
             {t('pos.finalize')}
           </button>
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <p className="pos-error">{error}</p>}
           {sale && (
-            <div style={{ marginTop: 12 }}>
-              <p>{t('pos.sale')} {sale.id}</p>
-              <p>{t('pos.status')}: {sale.status}</p>
-              <p>{t('pos.total')}: ${sale.total_amount}</p>
+            <div className="pos-sale-summary">
+              <p>
+                {t('pos.sale')} {sale.id}
+              </p>
+              <p>
+                {t('pos.status')}: {sale.status}
+              </p>
+              <p>
+                {t('pos.total')}: ${sale.total_amount}
+              </p>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   )

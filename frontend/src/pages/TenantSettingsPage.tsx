@@ -1,13 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   useTenantSettings,
   useUpdateFeatureSetting,
   useUpdateModuleSetting,
+  useUpdateTenantSettings,
   useUpdateUIPrefs
 } from '../api/tenantSettings'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useToast } from '../components/ToastProvider'
+
+type TaxRule = {
+  id: string
+  name: string
+  rate: number
+  is_active: boolean
+}
+
+type TaxSettings = {
+  enabled: boolean
+  mode: 'exclusive' | 'inclusive'
+  rounding: 'round' | 'ceil' | 'floor'
+  rules: TaxRule[]
+}
+
+const defaultTaxSettings: TaxSettings = {
+  enabled: false,
+  mode: 'exclusive',
+  rounding: 'round',
+  rules: []
+}
 
 export default function TenantSettingsPage() {
   const { t } = useTranslation()
@@ -17,6 +39,10 @@ export default function TenantSettingsPage() {
   const updateFeature = useUpdateFeatureSetting()
   const updatePrefs = useUpdateUIPrefs()
   const [pendingPrefs, setPendingPrefs] = useState<Record<string, boolean>>({})
+  const updateTenantSettings = useUpdateTenantSettings()
+  const [taxDraft, setTaxDraft] = useState<TaxSettings>(defaultTaxSettings)
+  const [newTaxName, setNewTaxName] = useState('')
+  const [newTaxRate, setNewTaxRate] = useState('0')
 
   if (isLoading) {
     return <div className="page">{t('settings.loading')}</div>
@@ -44,6 +70,22 @@ export default function TenantSettingsPage() {
   const uiPrefsFeatureEnabled =
     data.features.find((feature) => feature.code === 'ui_prefs')?.is_enabled ?? true
 
+  const storedTaxSettings = useMemo(() => {
+    const settings = data.settings?.taxes
+    if (!settings || typeof settings !== 'object') {
+      return defaultTaxSettings
+    }
+    return {
+      ...defaultTaxSettings,
+      ...(settings as Partial<TaxSettings>),
+      rules: Array.isArray((settings as TaxSettings).rules) ? (settings as TaxSettings).rules : []
+    }
+  }, [data.settings])
+
+  useEffect(() => {
+    setTaxDraft(storedTaxSettings)
+  }, [storedTaxSettings])
+
   const handlePrefToggle = (key: string) => {
     const currentValue = pendingPrefs[key] ?? data.ui_prefs[key] ?? false
     const next = { ...data.ui_prefs, ...pendingPrefs, [key]: !currentValue }
@@ -52,6 +94,99 @@ export default function TenantSettingsPage() {
       onSuccess: () => addToast(t('common.updated'), 'success'),
       onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
     })
+  }
+
+  const createTaxRuleId = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID()
+    }
+    return `tax-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }
+
+  const saveTaxSettings = (next: TaxSettings) => {
+    updateTenantSettings.mutate(
+      { taxes: next },
+      {
+        onSuccess: () => addToast(t('common.updated'), 'success'),
+        onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
+      }
+    )
+  }
+
+  const handleTaxToggle = () => {
+    const next = { ...taxDraft, enabled: !taxDraft.enabled }
+    setTaxDraft(next)
+    saveTaxSettings(next)
+  }
+
+  const handleTaxModeChange = (value: TaxSettings['mode']) => {
+    const next = { ...taxDraft, mode: value }
+    setTaxDraft(next)
+    saveTaxSettings(next)
+  }
+
+  const handleTaxRoundingChange = (value: TaxSettings['rounding']) => {
+    const next = { ...taxDraft, rounding: value }
+    setTaxDraft(next)
+    saveTaxSettings(next)
+  }
+
+  const handleTaxRuleToggle = (ruleId: string) => {
+    const next = {
+      ...taxDraft,
+      rules: taxDraft.rules.map((rule) =>
+        rule.id === ruleId ? { ...rule, is_active: !rule.is_active } : rule
+      )
+    }
+    setTaxDraft(next)
+    saveTaxSettings(next)
+  }
+
+  const handleTaxRuleRateChange = (ruleId: string, value: string) => {
+    const rate = Number(value)
+    if (Number.isNaN(rate) || rate < 0) return
+    const next = {
+      ...taxDraft,
+      rules: taxDraft.rules.map((rule) => (rule.id === ruleId ? { ...rule, rate } : rule))
+    }
+    setTaxDraft(next)
+  }
+
+  const handleTaxRuleNameChange = (ruleId: string, value: string) => {
+    const next = {
+      ...taxDraft,
+      rules: taxDraft.rules.map((rule) => (rule.id === ruleId ? { ...rule, name: value } : rule))
+    }
+    setTaxDraft(next)
+  }
+
+  const saveTaxRules = () => {
+    saveTaxSettings(taxDraft)
+  }
+
+  const handleTaxRuleDelete = (ruleId: string) => {
+    const next = { ...taxDraft, rules: taxDraft.rules.filter((rule) => rule.id !== ruleId) }
+    setTaxDraft(next)
+    saveTaxSettings(next)
+  }
+
+  const addTaxRule = () => {
+    const rate = Number(newTaxRate)
+    if (!newTaxName.trim() || Number.isNaN(rate) || rate < 0) {
+      addToast(t('settings.taxRuleValidation'), 'error')
+      return
+    }
+    const nextRule: TaxRule = {
+      id: createTaxRuleId(),
+      name: newTaxName.trim(),
+      rate,
+      is_active: true
+    }
+    const next = { ...taxDraft, rules: [...taxDraft.rules, nextRule] }
+    setTaxDraft(next)
+    setNewTaxName('')
+    setNewTaxRate('0')
+    saveTaxSettings(next)
   }
 
   return (
@@ -133,6 +268,124 @@ export default function TenantSettingsPage() {
           </div>
         </section>
       )}
+      <section className="card">
+        <h3>{t('settings.taxesTitle')}</h3>
+        <p className="page-subtitle">{t('settings.taxesSubtitle')}</p>
+        <div className="form-stack">
+          <label className="form-inline">
+            <input
+              type="checkbox"
+              checked={taxDraft.enabled}
+              disabled={updateTenantSettings.isPending}
+              onChange={handleTaxToggle}
+            />
+            <span>{t('settings.taxesEnabled')}</span>
+          </label>
+          <div className="form-row">
+            <label className="form-field">
+              <span>{t('settings.taxesMode')}</span>
+              <select
+                value={taxDraft.mode}
+                disabled={updateTenantSettings.isPending}
+                onChange={(event) => handleTaxModeChange(event.target.value as TaxSettings['mode'])}
+              >
+                <option value="exclusive">{t('settings.taxesModeExclusive')}</option>
+                <option value="inclusive">{t('settings.taxesModeInclusive')}</option>
+              </select>
+            </label>
+            <label className="form-field">
+              <span>{t('settings.taxesRounding')}</span>
+              <select
+                value={taxDraft.rounding}
+                disabled={updateTenantSettings.isPending}
+                onChange={(event) => handleTaxRoundingChange(event.target.value as TaxSettings['rounding'])}
+              >
+                <option value="round">{t('settings.taxesRoundingRound')}</option>
+                <option value="ceil">{t('settings.taxesRoundingCeil')}</option>
+                <option value="floor">{t('settings.taxesRoundingFloor')}</option>
+              </select>
+            </label>
+          </div>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('settings.taxRuleName')}</th>
+                  <th scope="col">{t('settings.taxRuleRate')}</th>
+                  <th scope="col">{t('settings.taxRuleStatus')}</th>
+                  <th scope="col">{t('settings.taxRuleActions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {taxDraft.rules.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>{t('settings.taxRuleEmpty')}</td>
+                  </tr>
+                ) : (
+                  taxDraft.rules.map((rule) => (
+                    <tr key={rule.id}>
+                      <td>
+                        <input
+                          value={rule.name}
+                          onChange={(event) => handleTaxRuleNameChange(rule.id, event.target.value)}
+                          onBlur={saveTaxRules}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={rule.rate}
+                          onChange={(event) => handleTaxRuleRateChange(rule.id, event.target.value)}
+                          onBlur={saveTaxRules}
+                        />
+                      </td>
+                      <td>
+                        <label className="form-inline">
+                          <input
+                            type="checkbox"
+                            checked={rule.is_active}
+                            onChange={() => handleTaxRuleToggle(rule.id)}
+                          />
+                          <span>{rule.is_active ? t('settings.taxRuleActive') : t('settings.taxRuleInactive')}</span>
+                        </label>
+                      </td>
+                      <td>
+                        <button
+                          className="secondary"
+                          type="button"
+                          onClick={() => handleTaxRuleDelete(rule.id)}
+                        >
+                          {t('common.delete')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="form-row">
+            <input
+              placeholder={t('settings.taxRuleNamePlaceholder')}
+              value={newTaxName}
+              onChange={(event) => setNewTaxName(event.target.value)}
+            />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder={t('settings.taxRuleRatePlaceholder')}
+              value={newTaxRate}
+              onChange={(event) => setNewTaxRate(event.target.value)}
+            />
+            <button type="button" onClick={addTaxRule} disabled={updateTenantSettings.isPending}>
+              {t('settings.addTaxRule')}
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
