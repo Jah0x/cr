@@ -1,14 +1,15 @@
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import select, func
 from sqlalchemy.sql import Select
 
 from app.models.purchasing import PurchaseInvoice, PurchaseStatus, PurchaseItem
-from app.models.sales import Sale, SaleStatus, SaleItem
+from app.models.sales import Sale, SaleStatus, SaleItem, SaleTaxLine, PaymentProvider
 from app.models.catalog import Product, Category, Brand
 from app.models.stock import SaleItemCostAllocation, StockBatch, StockMove
 from app.models.finance import Expense
-from app.schemas.reports import SummaryReport, GroupReport, TopProductReport, PnlReport
+from app.schemas.reports import SummaryReport, GroupReport, TopProductReport, PnlReport, TaxReportItem
 
 
 class ReportsService:
@@ -110,3 +111,53 @@ class ReportsService:
             .having(on_hand <= threshold)
         )
         return [TopProductReport(product_id=str(row[0]), name=row[1], total=row[2]) for row in result.all()]
+
+    async def taxes(self, date_from: datetime | None = None, date_to: datetime | None = None, methods: list[str] | None = None):
+        stmt = (
+            select(
+                SaleTaxLine.rule_id,
+                SaleTaxLine.rule_name,
+                SaleTaxLine.rate,
+                SaleTaxLine.method,
+                func.coalesce(func.sum(SaleTaxLine.tax_amount), 0),
+            )
+            .join(Sale, Sale.id == SaleTaxLine.sale_id)
+            .where(Sale.status == SaleStatus.completed)
+            .group_by(SaleTaxLine.rule_id, SaleTaxLine.rule_name, SaleTaxLine.rate, SaleTaxLine.method)
+        )
+        if date_from:
+            stmt = stmt.where(Sale.created_at >= date_from)
+        if date_to:
+            stmt = stmt.where(Sale.created_at <= date_to)
+        if methods:
+            stmt = stmt.where(SaleTaxLine.method.in_(methods))
+
+        result = await self.session.execute(stmt)
+        method_keys = [method.value for method in PaymentProvider]
+        aggregated: dict[str, dict] = {}
+        for rule_id, rule_name, rate, method, total_tax in result.all():
+            rule_key = str(rule_id)
+            if rule_key not in aggregated:
+                aggregated[rule_key] = {
+                    "rule_id": rule_key,
+                    "name": rule_name,
+                    "rate": rate,
+                    "total_tax": Decimal("0"),
+                    "by_method": {key: Decimal("0") for key in method_keys},
+                }
+            aggregated[rule_key]["total_tax"] += total_tax
+            if method:
+                method_value = method.value if isinstance(method, PaymentProvider) else str(method)
+                if method_value in aggregated[rule_key]["by_method"]:
+                    aggregated[rule_key]["by_method"][method_value] += total_tax
+
+        return [
+            TaxReportItem(
+                rule_id=value["rule_id"],
+                name=value["name"],
+                rate=value["rate"],
+                total_tax=value["total_tax"],
+                by_method=value["by_method"],
+            )
+            for value in aggregated.values()
+        ]

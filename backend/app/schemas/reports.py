@@ -28,3 +28,11 @@ class TopProductReport(BaseModel):
     product_id: str
     name: str
     total: Decimal
+
+
+class TaxReportItem(BaseModel):
+    rule_id: str
+    name: str
+    rate: Decimal
+    total_tax: Decimal
+    by_method: dict[str, Decimal]

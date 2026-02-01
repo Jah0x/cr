@@ -10,11 +10,14 @@ import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useToast } from '../components/ToastProvider'
 
+type PaymentMethod = 'cash' | 'card' | 'external'
+
 type TaxRule = {
   id: string
   name: string
   rate: number
   is_active: boolean
+  applies_to: PaymentMethod[]
 }
 
 type TaxSettings = {
@@ -23,6 +26,8 @@ type TaxSettings = {
   rounding: 'round' | 'ceil' | 'floor'
   rules: TaxRule[]
 }
+
+const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
 
 const defaultTaxSettings: TaxSettings = {
   enabled: false,
@@ -75,16 +80,34 @@ export default function TenantSettingsPage() {
     if (!settings || typeof settings !== 'object') {
       return defaultTaxSettings
     }
+    const rules = Array.isArray((settings as TaxSettings).rules) ? (settings as TaxSettings).rules : []
     return {
       ...defaultTaxSettings,
       ...(settings as Partial<TaxSettings>),
-      rules: Array.isArray((settings as TaxSettings).rules) ? (settings as TaxSettings).rules : []
+      rules: rules.map((rule) => ({
+        ...rule,
+        applies_to: Array.isArray(rule.applies_to) && rule.applies_to.length > 0 ? rule.applies_to : paymentMethods
+      }))
     }
+  }, [data.settings])
+
+  const storedCurrency = useMemo(() => {
+    const currency = data.settings?.currency
+    if (typeof currency === 'string' && currency.trim()) {
+      return currency
+    }
+    return 'RUB'
   }, [data.settings])
 
   useEffect(() => {
     setTaxDraft(storedTaxSettings)
   }, [storedTaxSettings])
+
+  const [currency, setCurrency] = useState(storedCurrency)
+
+  useEffect(() => {
+    setCurrency(storedCurrency)
+  }, [storedCurrency])
 
   const handlePrefToggle = (key: string) => {
     const currentValue = pendingPrefs[key] ?? data.ui_prefs[key] ?? false
@@ -104,6 +127,11 @@ export default function TenantSettingsPage() {
   }
 
   const saveTaxSettings = (next: TaxSettings) => {
+    const invalidRule = next.rules.find((rule) => !rule.applies_to || rule.applies_to.length === 0)
+    if (invalidRule) {
+      addToast(t('settings.taxRuleApplyValidation'), 'error')
+      return
+    }
     updateTenantSettings.mutate(
       { taxes: next },
       {
@@ -170,6 +198,25 @@ export default function TenantSettingsPage() {
     saveTaxSettings(next)
   }
 
+  const handleTaxRuleApplyToggle = (ruleId: string, method: PaymentMethod) => {
+    const next = {
+      ...taxDraft,
+      rules: taxDraft.rules.map((rule) => {
+        if (rule.id !== ruleId) return rule
+        const nextAppliesTo = rule.applies_to.includes(method)
+          ? rule.applies_to.filter((value) => value !== method)
+          : [...rule.applies_to, method]
+        if (nextAppliesTo.length === 0) {
+          addToast(t('settings.taxRuleApplyValidation'), 'error')
+          return rule
+        }
+        return { ...rule, applies_to: nextAppliesTo }
+      })
+    }
+    setTaxDraft(next)
+    saveTaxSettings(next)
+  }
+
   const addTaxRule = () => {
     const rate = Number(newTaxRate)
     if (!newTaxName.trim() || Number.isNaN(rate) || rate < 0) {
@@ -180,7 +227,8 @@ export default function TenantSettingsPage() {
       id: createTaxRuleId(),
       name: newTaxName.trim(),
       rate,
-      is_active: true
+      is_active: true,
+      applies_to: paymentMethods
     }
     const next = { ...taxDraft, rules: [...taxDraft.rules, nextRule] }
     setTaxDraft(next)
@@ -270,6 +318,33 @@ export default function TenantSettingsPage() {
           </section>
         )}
         <section className="card">
+          <h3>{t('settings.currencyTitle')}</h3>
+          <div className="form-stack">
+            <label className="form-field">
+              <span>{t('settings.currencyLabel')}</span>
+              <select
+                value={currency}
+                disabled={updateTenantSettings.isPending}
+                onChange={(event) => {
+                  const next = event.target.value
+                  setCurrency(next)
+                  updateTenantSettings.mutate(
+                    { currency: next },
+                    {
+                      onSuccess: () => addToast(t('common.updated'), 'success'),
+                      onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
+                    }
+                  )
+                }}
+              >
+                <option value="RUB">{t('settings.currencyRub')}</option>
+                <option value="USD">{t('settings.currencyUsd')}</option>
+                <option value="EUR">{t('settings.currencyEur')}</option>
+              </select>
+            </label>
+          </div>
+        </section>
+        <section className="card">
           <h3>{t('settings.taxesTitle')}</h3>
           <p className="page-subtitle">{t('settings.taxesSubtitle')}</p>
           <div className="form-stack">
@@ -313,6 +388,7 @@ export default function TenantSettingsPage() {
                   <tr>
                     <th scope="col">{t('settings.taxRuleName')}</th>
                     <th scope="col">{t('settings.taxRuleRate')}</th>
+                    <th scope="col">{t('settings.taxRuleMethods')}</th>
                     <th scope="col">{t('settings.taxRuleStatus')}</th>
                     <th scope="col">{t('settings.taxRuleActions')}</th>
                   </tr>
@@ -320,7 +396,7 @@ export default function TenantSettingsPage() {
                 <tbody>
                   {taxDraft.rules.length === 0 ? (
                     <tr>
-                      <td colSpan={4}>{t('settings.taxRuleEmpty')}</td>
+                      <td colSpan={5}>{t('settings.taxRuleEmpty')}</td>
                     </tr>
                   ) : (
                     taxDraft.rules.map((rule) => (
@@ -341,6 +417,20 @@ export default function TenantSettingsPage() {
                             onChange={(event) => handleTaxRuleRateChange(rule.id, event.target.value)}
                             onBlur={saveTaxRules}
                           />
+                        </td>
+                        <td>
+                          <div className="form-inline">
+                            {paymentMethods.map((method) => (
+                              <label key={method} className="form-inline">
+                                <input
+                                  type="checkbox"
+                                  checked={rule.applies_to.includes(method)}
+                                  onChange={() => handleTaxRuleApplyToggle(rule.id, method)}
+                                />
+                                <span>{t(`settings.taxRuleMethod.${method}`)}</span>
+                              </label>
+                            ))}
+                          </div>
                         </td>
                         <td>
                           <label className="form-inline">

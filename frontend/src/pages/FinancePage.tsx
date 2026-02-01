@@ -23,6 +23,18 @@ type PnlReport = {
   net_profit: number
 }
 
+type PaymentMethod = 'cash' | 'card' | 'external'
+
+type TaxReportItem = {
+  rule_id: string
+  name: string
+  rate: number
+  total_tax: number
+  by_method: Partial<Record<PaymentMethod, number>>
+}
+
+const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
+
 const toDateParam = (value: string, endOfDay = false) => {
   if (!value) return undefined
   const date = new Date(`${value}T00:00:00`)
@@ -46,6 +58,8 @@ export default function FinancePage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [pnl, setPnl] = useState<PnlReport | null>(null)
+  const [taxes, setTaxes] = useState<TaxReportItem[]>([])
+  const [taxMethods, setTaxMethods] = useState<PaymentMethod[]>(paymentMethods)
 
   const params = useMemo(() => {
     return {
@@ -53,6 +67,15 @@ export default function FinancePage() {
       date_to: toDateParam(dateTo, true)
     }
   }, [dateFrom, dateTo])
+
+  const taxParams = useMemo(() => {
+    const methods =
+      taxMethods.length > 0 && taxMethods.length < paymentMethods.length ? taxMethods.join(',') : undefined
+    return {
+      ...params,
+      methods
+    }
+  }, [params, taxMethods])
 
   const loadCategories = async () => {
     const res = await api.get('/finance/expense-categories')
@@ -69,9 +92,14 @@ export default function FinancePage() {
     setPnl(res.data)
   }
 
+  const loadTaxes = async () => {
+    const res = await api.get('/reports/taxes', { params: taxParams })
+    setTaxes(res.data)
+  }
+
   const loadData = async () => {
     try {
-      await Promise.all([loadCategories(), loadExpenses(), loadPnl()])
+      await Promise.all([loadCategories(), loadExpenses(), loadPnl(), loadTaxes()])
     } catch (error) {
       addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
@@ -79,7 +107,7 @@ export default function FinancePage() {
 
   useEffect(() => {
     loadData()
-  }, [params.date_from, params.date_to])
+  }, [params.date_from, params.date_to, taxParams.methods])
 
   const createCategory = async () => {
     if (!categoryName.trim()) return
@@ -123,6 +151,19 @@ export default function FinancePage() {
     setDateFrom(start.toISOString().slice(0, 10))
     setDateTo(now.toISOString().slice(0, 10))
   }
+
+  const toggleTaxMethod = (method: PaymentMethod) => {
+    setTaxMethods((prev) => {
+      if (prev.includes(method)) {
+        return prev.filter((value) => value !== method)
+      }
+      return [...prev, method]
+    })
+  }
+
+  const taxTotal = useMemo(() => {
+    return taxes.reduce((sum, item) => sum + Number(item.total_tax || 0), 0)
+  }, [taxes])
 
   return (
     <div className="page">
@@ -208,6 +249,63 @@ export default function FinancePage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </section>
+        <section className="card">
+          <h3>{t('finance.taxesTitle')}</h3>
+          <p className="page-subtitle">{t('finance.taxesSubtitle')}</p>
+          <div className="form-inline">
+            {paymentMethods.map((method) => (
+              <label key={method} className="form-inline">
+                <input
+                  type="checkbox"
+                  checked={taxMethods.includes(method)}
+                  onChange={() => toggleTaxMethod(method)}
+                />
+                <span>{t(`finance.taxMethod.${method}`)}</span>
+              </label>
+            ))}
+          </div>
+          <div className="form-row">
+            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          </div>
+          {taxes.length === 0 ? (
+            <p>{t('finance.taxesEmpty')}</p>
+          ) : (
+            <>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t('finance.taxName')}</th>
+                      <th>{t('finance.taxRate')}</th>
+                      <th>{t('finance.taxTotal')}</th>
+                      <th>{t('finance.taxCash')}</th>
+                      <th>{t('finance.taxCard')}</th>
+                      <th>{t('finance.taxExternal')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {taxes.map((tax) => (
+                      <tr key={tax.rule_id}>
+                        <td>{tax.name}</td>
+                        <td>{tax.rate}</td>
+                        <td>{tax.total_tax}</td>
+                        <td>{tax.by_method.cash ?? 0}</td>
+                        <td>{tax.by_method.card ?? 0}</td>
+                        <td>{tax.by_method.external ?? 0}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <th colSpan={2}>{t('finance.taxGrandTotal')}</th>
+                      <th>{taxTotal}</th>
+                      <td colSpan={3}></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
         <section className="card">

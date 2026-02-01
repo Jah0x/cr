@@ -322,9 +322,20 @@ export default function AdminCatalogPage() {
   const createProduct = async () => {
     const purchasePrice = Number(productPurchasePrice)
     const sellPrice = Number(productSellPrice)
+    const trimmedName = productName.trim()
+    const resolvedLine = productLineId
+      ? productBrandLines.find((line) => line.id === productLineId) ??
+        lines.find((line) => line.id === productLineId)
+      : null
+    const resolvedName = trimmedName || resolvedLine?.name?.trim() || ''
 
-    if (!validateRequired([productCategoryId, productBrandId, productName, productUnit])) {
+    if (!validateRequired([productCategoryId, productBrandId, productUnit])) {
       addToast(t('admin.validation.requiredFields'), 'error')
+      return
+    }
+
+    if (!resolvedName) {
+      addToast(t('admin.validation.productNameOrLine'), 'error')
       return
     }
 
@@ -338,7 +349,7 @@ export default function AdminCatalogPage() {
         category_id: productCategoryId,
         brand_id: productBrandId,
         line_id: productLineId || null,
-        name: productName.trim(),
+        name: resolvedName,
         sku: productSku.trim() || null,
         barcode: productBarcode.trim() || null,
         image_url: productImageUrl.trim() || null,
@@ -412,7 +423,7 @@ export default function AdminCatalogPage() {
   const canCreateLine = lineName.trim().length > 0 && Boolean(lineBrand)
   const lineBrandMissing = !lineBrand
   const canCreateProduct =
-    validateRequired([productCategoryId, productBrandId, productName, productUnit]) &&
+    validateRequired([productCategoryId, productBrandId, productUnit]) &&
     isNonNegativeNumber(productPurchasePrice) &&
     isNonNegativeNumber(productSellPrice)
 

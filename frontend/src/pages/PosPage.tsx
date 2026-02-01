@@ -54,6 +54,7 @@ type TaxRule = {
   name: string
   rate: number
   is_active: boolean
+  applies_to: PaymentMethod[]
 }
 
 type TaxSettings = {
@@ -69,6 +70,8 @@ const defaultTaxSettings: TaxSettings = {
   rounding: 'round',
   rules: []
 }
+
+const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
 
 export default function PosPage() {
   const { t } = useTranslation()
@@ -118,10 +121,14 @@ export default function PosPage() {
   const taxSettings = useMemo<TaxSettings>(() => {
     const stored = tenantSettings?.settings?.taxes
     if (!stored || typeof stored !== 'object') return defaultTaxSettings
+    const rules = Array.isArray((stored as TaxSettings).rules) ? (stored as TaxSettings).rules : []
     return {
       ...defaultTaxSettings,
       ...(stored as Partial<TaxSettings>),
-      rules: Array.isArray((stored as TaxSettings).rules) ? (stored as TaxSettings).rules : []
+      rules: rules.map((rule) => ({
+        ...rule,
+        applies_to: Array.isArray(rule.applies_to) && rule.applies_to.length > 0 ? rule.applies_to : paymentMethods
+      }))
     }
   }, [tenantSettings?.settings])
 
@@ -147,14 +154,43 @@ export default function PosPage() {
   }
 
   const taxAmount = useMemo(() => {
-    if (!taxSettings.enabled || totalTaxRate <= 0) return 0
-    if (taxSettings.mode === 'inclusive') {
-      const divisor = 1 + totalTaxRate / 100
-      if (divisor <= 0) return 0
-      return applyRounding(subtotal - subtotal / divisor)
-    }
-    return applyRounding(subtotal * (totalTaxRate / 100))
-  }, [applyRounding, subtotal, taxSettings.enabled, taxSettings.mode, totalTaxRate])
+    if (!taxSettings.enabled || activeTaxRules.length === 0) return 0
+    const totalsByMethod = payments.reduce<Record<PaymentMethod, number>>(
+      (acc, payment) => {
+        acc[payment.method] += payment.amount
+        return acc
+      },
+      { cash: 0, card: 0, external: 0 }
+    )
+    const totalPaid = Object.values(totalsByMethod).reduce((sum, value) => sum + value, 0)
+    const methodShares =
+      totalPaid > 0
+        ? paymentMethods.map((method) => ({
+            method,
+            share: totalsByMethod[method] / totalPaid
+          }))
+        : [{ method: null, share: 1 }]
+    const totalTax = methodShares.reduce((sum, { method, share }) => {
+      const grossMethod = subtotal * share
+      const applicableRules =
+        method === null ? activeTaxRules : activeTaxRules.filter((rule) => rule.applies_to.includes(method))
+      if (applicableRules.length === 0) return sum
+      if (taxSettings.mode === 'inclusive') {
+        const totalRate = applicableRules.reduce((rateSum, rule) => rateSum + (Number(rule.rate) || 0), 0)
+        if (totalRate <= 0) return sum
+        const taxTotal = grossMethod - grossMethod / (1 + totalRate / 100)
+        const allocated = applicableRules.reduce((ruleSum, rule) => {
+          return ruleSum + taxTotal * ((Number(rule.rate) || 0) / totalRate)
+        }, 0)
+        return sum + allocated
+      }
+      const methodTax = applicableRules.reduce((ruleSum, rule) => {
+        return ruleSum + grossMethod * ((Number(rule.rate) || 0) / 100)
+      }, 0)
+      return sum + methodTax
+    }, 0)
+    return applyRounding(totalTax)
+  }, [activeTaxRules, applyRounding, payments, subtotal, taxSettings.enabled, taxSettings.mode])
 
   const totalWithTax = taxSettings.enabled && taxSettings.mode === 'exclusive' ? subtotal + taxAmount : subtotal
 
@@ -200,12 +236,17 @@ export default function PosPage() {
       setError(t('errors.addItemsBeforeFinalize'))
       return
     }
+    const currency =
+      typeof tenantSettings?.settings?.currency === 'string' && tenantSettings?.settings?.currency.trim()
+        ? tenantSettings.settings.currency
+        : 'RUB'
     const payload = {
       items: cartItems.map((item) => ({
         product_id: item.product.id,
         qty: item.qty,
         unit_price: item.product.price
       })),
+      currency,
       payments: payments.map((payment) => ({
         amount: payment.amount,
         method: payment.method,

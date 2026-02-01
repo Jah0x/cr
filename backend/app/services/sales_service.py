@@ -3,14 +3,16 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.models.sales import PaymentProvider, PaymentStatus, SaleStatus
+from app.models.sales import PaymentProvider, PaymentStatus, SaleStatus, SaleTaxLine
 from app.models.stock import SaleItemCostAllocation
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
+from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.services.cash_register import get_cash_register
+from app.services.tax_service import calculate_sale_tax_lines
 
 
 class SalesService:
@@ -26,6 +28,7 @@ class SalesService:
         payment_repo: PaymentRepo,
         refund_repo: RefundRepo,
         cash_register_repo: CashRegisterRepo,
+        tenant_settings_repo: TenantSettingsRepo,
     ):
         self.session = session
         self.sale_repo = sale_repo
@@ -37,14 +40,17 @@ class SalesService:
         self.payment_repo = payment_repo
         self.refund_repo = refund_repo
         self.cash_register_repo = cash_register_repo
+        self.tenant_settings_repo = tenant_settings_repo
 
-    async def create_sale(self, payload: dict, user_id):
+    async def create_sale(self, payload: dict, user_id=None, tenant_id: str | None = None):
         items = payload.get("items", [])
-        currency = payload.get("currency", "")
+        currency = (payload.get("currency") or "").strip()
         payments = payload.get("payments", [])
         cash_register_id = payload.get("cash_register_id")
         if not items:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Items required")
+        if not currency:
+            currency = await self._resolve_currency(tenant_id)
         product_ids = [item["product_id"] for item in items]
         products = {str(p.id): p for p in await self._fetch_products(product_ids)}
         total_amount = Decimal("0")
@@ -105,6 +111,7 @@ class SalesService:
             )
         sale.total_amount = total_amount
         await self.session.flush()
+        await self._create_sale_tax_lines(sale.id, total_amount, payments, tenant_id, sale.status)
         await self._create_payments(sale.id, payments, currency)
         register = await self._resolve_cash_register(cash_register_id)
         receipt = await register.register_sale(sale.id)
@@ -228,6 +235,30 @@ class SalesService:
                 },
             )
 
+    async def _create_sale_tax_lines(self, sale_id, subtotal, payments, tenant_id, status):
+        if status != SaleStatus.completed:
+            return
+        if not tenant_id:
+            return
+        settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
+        tax_settings = (settings_row.settings or {}).get("taxes") if settings_row else None
+        lines = calculate_sale_tax_lines(Decimal(subtotal), payments, tax_settings)
+        if not lines:
+            return
+        for line in lines:
+            self.session.add(
+                SaleTaxLine(
+                    sale_id=sale_id,
+                    rule_id=line["rule_id"],
+                    rule_name=line["rule_name"],
+                    rate=line["rate"],
+                    method=PaymentProvider(line["method"]) if line["method"] else None,
+                    taxable_amount=line["taxable_amount"],
+                    tax_amount=line["tax_amount"],
+                )
+            )
+        await self.session.flush()
+
     async def _resolve_cash_register(self, cash_register_id=None):
         settings = get_settings()
         register = None
@@ -240,6 +271,14 @@ class SalesService:
             if active:
                 register = active[0]
         return get_cash_register(self.receipt_repo, register)
+
+    async def _resolve_currency(self, tenant_id: str | None) -> str:
+        if tenant_id:
+            settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
+            currency = (settings_row.settings or {}).get("currency")
+            if isinstance(currency, str) and currency.strip():
+                return currency
+        return "RUB"
 
     async def _restore_batches(self, sale_item, qty: Decimal):
         if not sale_item.product_id:
