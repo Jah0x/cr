@@ -253,7 +253,8 @@ async def list_products(
 @router.post("/products", response_model=ProductOut)
 async def create_product(payload: ProductCreate, request: Request, session: AsyncSession = Depends(get_db_session)):
     service = get_catalog_service(session)
-    return await service.create_product(payload.model_dump())
+    tenant_id = getattr(request.state, "tenant_id", None)
+    return await service.create_product(payload.model_dump(), tenant_id=tenant_id)
 
 
 @router.get("/products/{product_id}", response_model=ProductOut)
