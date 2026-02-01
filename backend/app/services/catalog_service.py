@@ -198,7 +198,7 @@ class CatalogService:
                     detail="Line does not belong to brand",
                 )
 
-    async def create_product(self, data):
+    async def create_product(self, data, tenant_id: str | None = None):
         try:
             await self._validate_product_links(data.get("category_id"), data.get("brand_id"), data.get("line_id"))
             product = await self.product_repo.create(data)
@@ -208,7 +208,11 @@ class CatalogService:
             logger.warning("Failed to create product: %s", exc.detail)
             raise
         except (ProgrammingError, DataError) as exc:
-            logger.exception("Failed to create product due to database error.")
+            logger.exception(
+                "Failed to create product due to database error. tenant_id=%s payload=%s",
+                tenant_id,
+                data,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database schema error. Apply latest migrations.",
@@ -220,7 +224,11 @@ class CatalogService:
                 detail="Product already exists",
             ) from exc
         except Exception as exc:
-            logger.exception("Unexpected error while creating product.")
+            logger.exception(
+                "Unexpected error while creating product. tenant_id=%s payload=%s",
+                tenant_id,
+                data,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unable to create product.",

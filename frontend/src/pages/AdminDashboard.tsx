@@ -152,6 +152,21 @@ export default function AdminDashboard() {
         addToast(detail || t('common.error'), 'error')
         return
       }
+      if (status === 500) {
+        const data = error.response?.data as ApiErrorPayload | undefined
+        const detail = data?.detail ?? data?.message
+        if (typeof detail === 'string') {
+          addToast(detail || t('common.error'), 'error')
+          return
+        }
+        if (detail) {
+          const safeDetail = typeof detail === 'object' ? JSON.stringify(detail) : String(detail)
+          addToast(`Internal error: ${safeDetail}`, 'error')
+          return
+        }
+        addToast(t('common.error'), 'error')
+        return
+      }
     }
     addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
   }

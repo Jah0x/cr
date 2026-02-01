@@ -27,6 +27,8 @@ button {
   display: grid;
   gap: 20px;
   padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
@@ -52,6 +54,7 @@ button {
 
 .grid-cards {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
 }
 
 .card {
@@ -60,7 +63,8 @@ button {
   padding: 16px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   min-width: 0;
 }
@@ -78,6 +82,8 @@ button {
 .form-row {
   display: grid;
   gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
 }
 
 .form-inline {
@@ -116,6 +122,10 @@ button {
   padding: 8px 12px;
   border-radius: 8px;
   font-weight: 600;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button.secondary {

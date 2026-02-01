@@ -79,7 +79,7 @@ class Product(Base):
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"), nullable=False)
     line_id = Column(UUID(as_uuid=True), ForeignKey("product_lines.id", ondelete="SET NULL"))
     hierarchy_node_id = Column(UUID(as_uuid=True), ForeignKey("catalog_nodes.id", ondelete="SET NULL"))
-    unit = Column(Enum(ProductUnit), nullable=False, default=ProductUnit.pcs)
+    unit = Column(Enum(ProductUnit, name="product_unit"), nullable=False, default=ProductUnit.pcs)
     purchase_price = Column(Numeric(12, 2), nullable=False, default=0)
     sell_price = Column(Numeric(12, 2), nullable=False, default=0)
     tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
