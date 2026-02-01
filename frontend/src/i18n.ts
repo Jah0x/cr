@@ -40,6 +40,22 @@ const resources = {
         finance: 'Finance',
         settings: 'Settings'
       },
+      adminNav: {
+        catalog: 'Catalog',
+        purchasing: 'Suppliers & Purchasing',
+        stock: 'Stock',
+        reports: 'Reports'
+      },
+      adminTabs: {
+        categories: 'Categories',
+        brands: 'Brands',
+        lines: 'Lines',
+        products: 'Products',
+        suppliers: 'Suppliers',
+        invoices: 'Invoices',
+        stockLevels: 'Stock levels',
+        adjustments: 'Adjustments'
+      },
       common: {
         add: 'Add',
         save: 'Save',
@@ -111,6 +127,8 @@ const resources = {
       },
       admin: {
         title: 'Admin',
+        menuToggle: 'Open admin menu',
+        menuClose: 'Close admin menu',
         catalog: 'Catalog',
         catalogSubtitle: 'Step-by-step catalog setup',
         catalogCategoryTitle: 'Category',
@@ -141,6 +159,7 @@ const resources = {
         sellPriceLabel: 'Retail price',
         sellPricePlaceholder: 'Sell price',
         addProduct: 'Add Product',
+        saveProduct: 'Save Product',
         linkBrand: 'Link brand',
         unlinkBrand: 'Unlink',
         linkBrandModalTitle: 'Link brand to category',
@@ -195,6 +214,65 @@ const resources = {
         totalSales: 'Total sales',
         totalPurchases: 'Total purchases',
         grossMargin: 'Gross margin'
+      },
+      adminSections: {
+        createCategory: 'Create category',
+        createCategorySubtitle: 'Add a new category to start building the catalog.',
+        categoryList: 'Category list',
+        createBrand: 'Create brand',
+        createBrandSubtitle: 'Brands help group product lines and products.',
+        brandList: 'Brand list',
+        createLine: 'Create line',
+        createLineSubtitle: 'Attach a line to the selected brand.',
+        lineList: 'Product lines',
+        createProduct: 'Create product',
+        createProductSubtitle: 'Fill in the key product details and pricing.',
+        productList: 'Product list'
+      },
+      adminPurchasing: {
+        subtitle: 'Manage suppliers and purchase invoices.',
+        createSupplier: 'Create supplier',
+        createSupplierSubtitle: 'Add suppliers you purchase from regularly.',
+        suppliersList: 'Suppliers list',
+        emptySuppliers: 'No suppliers yet.',
+        selectSupplier: 'Select supplier',
+        workingInvoice: 'Working invoice',
+        workingInvoiceSubtitle: 'Create or select a draft invoice to add items.',
+        selectInvoice: 'Select invoice',
+        selectInvoicePlaceholder: 'Choose draft invoice',
+        unknownSupplier: 'Unknown supplier',
+        addItemTitle: 'Add invoice item',
+        addItemSubtitle: 'Add products, quantities, and costs to the invoice.',
+        invoiceItems: 'Invoice items',
+        invoiceItemsSubtitle: 'Draft invoice items are listed here.',
+        emptyInvoiceItems: 'No items added yet.',
+        qty: 'Qty',
+        cost: 'Cost',
+        total: 'Total'
+      },
+      adminStock: {
+        subtitle: 'Track stock levels and apply adjustments.',
+        levelsTitle: 'Stock levels',
+        emptyLevels: 'No stock levels yet.',
+        onHand: 'On hand',
+        adjustmentsTitle: 'Stock adjustments',
+        adjustmentsSubtitle: 'Update quantities for corrections or manual changes.'
+      },
+      adminReports: {
+        subtitle: 'Monitor key metrics and sales performance.',
+        period: 'Period',
+        customRange: 'Custom range',
+        from: 'From',
+        to: 'To',
+        load: 'Load report',
+        revenue: 'Revenue',
+        purchases: 'Purchases',
+        margin: 'Margin',
+        salesCount: 'Sales count',
+        topProducts: 'Top products',
+        topProductsSubtitle: 'Overview of the best-selling items.',
+        sales: 'Sales',
+        noData: 'No data yet.'
       },
       pos: {
         title: 'POS',
@@ -349,6 +427,22 @@ const resources = {
         finance: 'Финансы',
         settings: 'Настройки'
       },
+      adminNav: {
+        catalog: 'Каталог',
+        purchasing: 'Поставщики и закупки',
+        stock: 'Склад',
+        reports: 'Отчеты'
+      },
+      adminTabs: {
+        categories: 'Категории',
+        brands: 'Бренды',
+        lines: 'Линейки',
+        products: 'Товары',
+        suppliers: 'Поставщики',
+        invoices: 'Накладные',
+        stockLevels: 'Остатки',
+        adjustments: 'Корректировки'
+      },
       common: {
         add: 'Добавить',
         save: 'Сохранить',
@@ -420,6 +514,8 @@ const resources = {
       },
       admin: {
         title: 'Админ',
+        menuToggle: 'Открыть меню админки',
+        menuClose: 'Закрыть меню админки',
         catalog: 'Каталог',
         catalogSubtitle: 'Пошаговое создание каталога',
         catalogCategoryTitle: 'Категория',
@@ -450,6 +546,7 @@ const resources = {
         sellPriceLabel: 'Розничная цена',
         sellPricePlaceholder: 'Продажа',
         addProduct: 'Добавить товар',
+        saveProduct: 'Сохранить товар',
         linkBrand: 'Привязать бренд',
         unlinkBrand: 'Отвязать',
         linkBrandModalTitle: 'Привязка бренда к категории',
@@ -504,6 +601,65 @@ const resources = {
         totalSales: 'Продажи',
         totalPurchases: 'Закупки',
         grossMargin: 'Валовая маржа'
+      },
+      adminSections: {
+        createCategory: 'Создать категорию',
+        createCategorySubtitle: 'Добавьте новую категорию для каталога.',
+        categoryList: 'Список категорий',
+        createBrand: 'Создать бренд',
+        createBrandSubtitle: 'Бренды помогают группировать линейки и товары.',
+        brandList: 'Список брендов',
+        createLine: 'Создать линейку',
+        createLineSubtitle: 'Привяжите линейку к выбранному бренду.',
+        lineList: 'Список линеек',
+        createProduct: 'Создать товар',
+        createProductSubtitle: 'Заполните ключевые параметры и цены.',
+        productList: 'Список товаров'
+      },
+      adminPurchasing: {
+        subtitle: 'Работа с поставщиками и накладными.',
+        createSupplier: 'Создать поставщика',
+        createSupplierSubtitle: 'Добавьте поставщиков для закупок.',
+        suppliersList: 'Список поставщиков',
+        emptySuppliers: 'Поставщики отсутствуют.',
+        selectSupplier: 'Выберите поставщика',
+        workingInvoice: 'Рабочая накладная',
+        workingInvoiceSubtitle: 'Создайте или выберите черновик для добавления позиций.',
+        selectInvoice: 'Выберите накладную',
+        selectInvoicePlaceholder: 'Выберите черновик',
+        unknownSupplier: 'Неизвестный поставщик',
+        addItemTitle: 'Добавить позицию',
+        addItemSubtitle: 'Добавьте товар, количество и себестоимость.',
+        invoiceItems: 'Позиции накладной',
+        invoiceItemsSubtitle: 'Список позиций черновика.',
+        emptyInvoiceItems: 'Позиции отсутствуют.',
+        qty: 'Кол-во',
+        cost: 'Себестоимость',
+        total: 'Итого'
+      },
+      adminStock: {
+        subtitle: 'Контроль остатков и корректировки.',
+        levelsTitle: 'Остатки',
+        emptyLevels: 'Данные об остатках отсутствуют.',
+        onHand: 'В наличии',
+        adjustmentsTitle: 'Корректировка остатков',
+        adjustmentsSubtitle: 'Обновите количество при исправлениях.'
+      },
+      adminReports: {
+        subtitle: 'Ключевые метрики и эффективность продаж.',
+        period: 'Период',
+        customRange: 'Произвольный диапазон',
+        from: 'С',
+        to: 'По',
+        load: 'Загрузить отчет',
+        revenue: 'Выручка',
+        purchases: 'Закупки',
+        margin: 'Маржа',
+        salesCount: 'Кол-во продаж',
+        topProducts: 'Топ товаров',
+        topProductsSubtitle: 'Самые продаваемые позиции.',
+        sales: 'Продажи',
+        noData: 'Данные отсутствуют.'
       },
       pos: {
         title: 'Касса',

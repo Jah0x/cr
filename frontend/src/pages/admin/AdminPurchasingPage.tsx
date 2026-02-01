@@ -1,0 +1,428 @@
+import { useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
+import { useTranslation } from 'react-i18next'
+import api from '../../api/client'
+import { useToast } from '../../components/ToastProvider'
+import { getApiErrorMessage } from '../../utils/apiError'
+
+type Supplier = { id: string; name: string }
+
+type Product = { id: string; name: string }
+
+type PurchaseInvoice = { id: string; status: string; supplier_id?: string | null }
+
+type PurchaseItem = {
+  id: string
+  product_id: string
+  quantity: number
+  unit_cost: number
+}
+
+type PurchaseInvoiceDetail = PurchaseInvoice & { items: PurchaseItem[] }
+
+type FastApiValidationError = { loc?: Array<string | number>; msg: string; type?: string }
+
+type ApiErrorPayload = { detail?: string | FastApiValidationError[]; message?: string }
+
+type PurchasingTab = 'suppliers' | 'invoices'
+
+export default function AdminPurchasingPage() {
+  const { t } = useTranslation()
+  const { addToast } = useToast()
+  const [activeTab, setActiveTab] = useState<PurchasingTab>('suppliers')
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [invoices, setInvoices] = useState<PurchaseInvoice[]>([])
+  const [supplierName, setSupplierName] = useState('')
+  const [invoiceSupplierId, setInvoiceSupplierId] = useState('')
+  const [invoiceId, setInvoiceId] = useState('')
+  const [invoiceDetail, setInvoiceDetail] = useState<PurchaseInvoiceDetail | null>(null)
+  const [purchaseProduct, setPurchaseProduct] = useState('')
+  const [purchaseQty, setPurchaseQty] = useState('0')
+  const [purchaseCost, setPurchaseCost] = useState('0')
+
+  const productMap = useMemo(() => new Map(products.map((item) => [item.id, item.name])), [products])
+  const supplierMap = useMemo(() => new Map(suppliers.map((item) => [item.id, item.name])), [suppliers])
+
+  const formatValidationErrors = (errors: FastApiValidationError[]) =>
+    errors
+      .map((item) => {
+        if (item.loc?.length) {
+          return `${item.loc.join('.')}: ${item.msg}`
+        }
+        return item.msg
+      })
+      .join(', ')
+
+  const handleApiError = (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status
+      if (status === 409) {
+        addToast(t('admin.errors.alreadyExists'), 'error')
+        return
+      }
+      if (status === 422) {
+        const data = error.response?.data as ApiErrorPayload | undefined
+        const detail = data?.detail ?? data?.message
+        if (Array.isArray(detail)) {
+          const message = formatValidationErrors(detail)
+          addToast(message || t('common.error'), 'error')
+          return
+        }
+        addToast(detail || t('common.error'), 'error')
+        return
+      }
+      if (status === 500) {
+        const data = error.response?.data as ApiErrorPayload | undefined
+        const detail = data?.detail ?? data?.message
+        if (typeof detail === 'string') {
+          addToast(detail || t('common.error'), 'error')
+          return
+        }
+        if (detail) {
+          const safeDetail = typeof detail === 'object' ? JSON.stringify(detail) : String(detail)
+          addToast(`Internal error: ${safeDetail}`, 'error')
+          return
+        }
+        addToast(t('common.error'), 'error')
+        return
+      }
+    }
+    addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+  }
+
+  const confirmDeletion = () =>
+    window.confirm(
+      t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this item?' })
+    )
+
+  const loadSuppliers = async () => {
+    try {
+      const res = await api.get('/suppliers')
+      setSuppliers(res.data)
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const loadProducts = async () => {
+    try {
+      const res = await api.get('/products')
+      setProducts(res.data)
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const loadInvoices = async () => {
+    try {
+      const res = await api.get('/purchase-invoices', { params: { status: 'draft' } })
+      setInvoices(res.data)
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  useEffect(() => {
+    void loadSuppliers()
+    void loadProducts()
+    void loadInvoices()
+  }, [])
+
+  useEffect(() => {
+    if (!invoiceId) {
+      setInvoiceDetail(null)
+      return
+    }
+    const loadInvoiceDetail = async () => {
+      try {
+        const res = await api.get(`/purchase-invoices/${invoiceId}`)
+        setInvoiceDetail(res.data)
+      } catch (error) {
+        handleApiError(error)
+      }
+    }
+    void loadInvoiceDetail()
+  }, [invoiceId])
+
+  const createSupplier = async () => {
+    if (!supplierName.trim()) {
+      addToast(t('admin.validation.requiredFields'), 'error')
+      return
+    }
+    try {
+      await api.post('/suppliers', { name: supplierName.trim() })
+      setSupplierName('')
+      addToast(t('common.created'), 'success')
+      loadSuppliers()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const deleteSupplier = async (supplierId: string) => {
+    if (!confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete(`/suppliers/${supplierId}`)
+      addToast(t('common.deleted'), 'success')
+      loadSuppliers()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const createInvoice = async () => {
+    if (!invoiceSupplierId) {
+      addToast(t('adminPurchasing.selectSupplier'), 'error')
+      return
+    }
+    try {
+      const res = await api.post('/purchase-invoices', { supplier_id: invoiceSupplierId })
+      setInvoiceId(res.data.id)
+      addToast(t('common.created'), 'success')
+      loadInvoices()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const addPurchaseItem = async () => {
+    if (!invoiceId) return
+    const qty = Number(purchaseQty)
+    const cost = Number(purchaseCost)
+    if (!purchaseProduct || !Number.isFinite(qty) || !Number.isFinite(cost)) {
+      addToast(t('admin.validation.requiredFields'), 'error')
+      return
+    }
+    if (qty < 0 || cost < 0) {
+      addToast(t('admin.validation.nonNegative'), 'error')
+      return
+    }
+    try {
+      const res = await api.post(`/purchase-invoices/${invoiceId}/items`, {
+        product_id: purchaseProduct,
+        quantity: purchaseQty,
+        unit_cost: purchaseCost
+      })
+      setPurchaseProduct('')
+      setPurchaseQty('0')
+      setPurchaseCost('0')
+      setInvoiceDetail(res.data)
+      addToast(t('common.created'), 'success')
+      loadInvoices()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const postInvoice = async () => {
+    if (!invoiceId) {
+      addToast(t('adminPurchasing.selectInvoice'), 'error')
+      return
+    }
+    try {
+      await api.post(`/purchase-invoices/${invoiceId}/post`)
+      addToast(t('common.updated'), 'success')
+      setInvoiceId('')
+      setInvoiceDetail(null)
+      loadInvoices()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  return (
+    <div className="admin-page">
+      <div className="page-header">
+        <h2 className="page-title">{t('adminNav.purchasing')}</h2>
+        <p className="page-subtitle">{t('adminPurchasing.subtitle')}</p>
+      </div>
+      <div className="tabs">
+        <button
+          type="button"
+          className={activeTab === 'suppliers' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('suppliers')}
+        >
+          {t('adminTabs.suppliers')}
+        </button>
+        <button
+          type="button"
+          className={activeTab === 'invoices' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('invoices')}
+        >
+          {t('adminTabs.invoices')}
+        </button>
+      </div>
+
+      {activeTab === 'suppliers' && (
+        <div className="split">
+          <section className="card">
+            <div>
+              <h3>{t('adminPurchasing.createSupplier')}</h3>
+              <p className="page-subtitle">{t('adminPurchasing.createSupplierSubtitle')}</p>
+            </div>
+            <div className="form-row">
+              <input
+                placeholder={t('admin.supplierPlaceholder')}
+                value={supplierName}
+                onChange={(e) => setSupplierName(e.target.value)}
+              />
+              <button onClick={createSupplier}>{t('admin.addSupplier')}</button>
+            </div>
+          </section>
+          <section className="card">
+            <h3>{t('adminPurchasing.suppliersList')}</h3>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th scope="col">{t('admin.table.name')}</th>
+                    <th scope="col">{t('admin.table.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suppliers.length === 0 ? (
+                    <tr>
+                      <td colSpan={2}>{t('adminPurchasing.emptySuppliers')}</td>
+                    </tr>
+                  ) : (
+                    suppliers.map((supplier) => (
+                      <tr key={supplier.id}>
+                        <td>{supplier.name}</td>
+                        <td>
+                          <button className="secondary" onClick={() => deleteSupplier(supplier.id)}>
+                            {t('common.delete')}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {activeTab === 'invoices' && (
+        <div className="grid">
+          <section className="card">
+            <div>
+              <h3>{t('adminPurchasing.workingInvoice')}</h3>
+              <p className="page-subtitle">{t('adminPurchasing.workingInvoiceSubtitle')}</p>
+            </div>
+            <div className="form-row">
+              <label className="form-field">
+                <span>{t('adminPurchasing.selectSupplier')}</span>
+                <select
+                  value={invoiceSupplierId}
+                  onChange={(e) => setInvoiceSupplierId(e.target.value)}
+                >
+                  <option value="">{t('admin.supplierPlaceholder')}</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button onClick={createInvoice}>{t('admin.newInvoice')}</button>
+              <label className="form-field">
+                <span>{t('adminPurchasing.selectInvoice')}</span>
+                <select value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)}>
+                  <option value="">{t('adminPurchasing.selectInvoicePlaceholder')}</option>
+                  {invoices.map((invoice) => (
+                    <option key={invoice.id} value={invoice.id}>
+                      {invoice.id.slice(0, 8)} · {supplierMap.get(invoice.supplier_id ?? '') ?? t('adminPurchasing.unknownSupplier')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {invoiceId && (
+              <div className="page-subtitle">
+                {t('admin.workingInvoice', { id: invoiceId })}
+              </div>
+            )}
+          </section>
+
+          <section className="card">
+            <div>
+              <h3>{t('adminPurchasing.addItemTitle')}</h3>
+              <p className="page-subtitle">{t('adminPurchasing.addItemSubtitle')}</p>
+            </div>
+            <div className="form-row">
+              <select value={purchaseProduct} onChange={(e) => setPurchaseProduct(e.target.value)}>
+                <option value="">{t('admin.productSelect')}</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="0"
+                placeholder={t('admin.qtyPlaceholder')}
+                value={purchaseQty}
+                onChange={(e) => setPurchaseQty(e.target.value)}
+              />
+              <input
+                type="number"
+                min="0"
+                placeholder={t('admin.costPlaceholder')}
+                value={purchaseCost}
+                onChange={(e) => setPurchaseCost(e.target.value)}
+              />
+              <button onClick={addPurchaseItem} disabled={!invoiceId}>
+                {t('admin.addItem')}
+              </button>
+            </div>
+          </section>
+
+          <section className="card">
+            <div>
+              <h3>{t('adminPurchasing.invoiceItems')}</h3>
+              <p className="page-subtitle">{t('adminPurchasing.invoiceItemsSubtitle')}</p>
+            </div>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th scope="col">{t('admin.table.name')}</th>
+                    <th scope="col">{t('adminPurchasing.qty')}</th>
+                    <th scope="col">{t('adminPurchasing.cost')}</th>
+                    <th scope="col">{t('adminPurchasing.total')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoiceDetail?.items?.length ? (
+                    invoiceDetail.items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{productMap.get(item.product_id) ?? '—'}</td>
+                        <td>{item.quantity}</td>
+                        <td>{item.unit_cost}</td>
+                        <td>{Number(item.quantity) * Number(item.unit_cost)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4}>{t('adminPurchasing.emptyInvoiceItems')}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="form-row">
+              <button className="danger" onClick={postInvoice} disabled={!invoiceId}>
+                {t('admin.postInvoice')}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  )
+}
