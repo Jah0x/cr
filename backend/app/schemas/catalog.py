@@ -84,7 +84,7 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-    pass
+    name: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):

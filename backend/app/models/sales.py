@@ -37,6 +37,7 @@ class Sale(Base):
     currency = Column(String, default="")
 
     items = relationship("SaleItem", back_populates="sale")
+    tax_lines = relationship("SaleTaxLine", back_populates="sale")
     receipts = relationship("CashReceipt", back_populates="sale")
     payments = relationship("Payment", back_populates="sale")
     refunds = relationship("Refund", back_populates="sale")
@@ -75,6 +76,27 @@ class Payment(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     sale = relationship("Sale", back_populates="payments")
+
+
+class SaleTaxLine(Base):
+    __tablename__ = "sale_tax_lines"
+    __table_args__ = (
+        Index("ix_sale_tax_lines_sale_id", "sale_id"),
+        Index("ix_sale_tax_lines_rule_id", "rule_id"),
+        Index("ix_sale_tax_lines_method", "method"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sale_id = Column(UUID(as_uuid=True), ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
+    rule_id = Column(String, nullable=False)
+    rule_name = Column(String, nullable=False)
+    rate = Column(Numeric(5, 2), nullable=False)
+    method = Column(Enum(PaymentProvider), nullable=True)
+    taxable_amount = Column(Numeric(12, 2), nullable=False)
+    tax_amount = Column(Numeric(12, 2), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    sale = relationship("Sale", back_populates="tax_lines")
 
 
 class Refund(Base):

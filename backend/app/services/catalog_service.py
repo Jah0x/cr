@@ -201,6 +201,22 @@ class CatalogService:
     async def create_product(self, data, tenant_id: str | None = None):
         try:
             await self._validate_product_links(data.get("category_id"), data.get("brand_id"), data.get("line_id"))
+            name = (data.get("name") or "").strip()
+            if not name:
+                line_id = data.get("line_id")
+                if not line_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Product name required (or pick a line)",
+                    )
+                line = await self.line_repo.get(line_id)
+                if not line:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Line not found",
+                    )
+                name = line.name
+            data["name"] = name
             product = await self.product_repo.create(data)
             await self.session.refresh(product)
             return product

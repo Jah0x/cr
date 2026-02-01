@@ -14,12 +14,13 @@ os.environ.setdefault("JWT_SECRET", "test")
 os.environ.setdefault("JWT_EXPIRES", "3600")
 
 from app.core.db import Base
-from app.models.catalog import Product
+from app.models.catalog import Product, Category, Brand
 from app.models.stock import StockBatch, SaleItemCostAllocation
 from app.models.user import User
 from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
+from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, PurchaseItemRepo
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
@@ -58,14 +59,21 @@ async def seed_user_and_product(session):
         password_hash="x",
         is_active=True,
     )
+    category = Category(id=uuid.uuid4(), name="Category")
+    brand = Brand(id=uuid.uuid4(), name="Brand")
     product = Product(
         id=uuid.uuid4(),
         sku=f"SKU-{uuid.uuid4()}",
         name="Item",
         description="",
-        price=Decimal("10.00"),
+        category_id=category.id,
+        brand_id=brand.id,
+        unit="pcs",
+        purchase_price=Decimal("5.00"),
+        sell_price=Decimal("10.00"),
+        tax_rate=Decimal("0"),
     )
-    session.add_all([user, product])
+    session.add_all([user, category, brand, product])
     await session.flush()
     return user, product
 
@@ -105,6 +113,7 @@ def test_purchase_sale_cogs_pnl():
             PaymentRepo(session),
             RefundRepo(session),
             CashRegisterRepo(session),
+            TenantSettingsRepo(session),
         )
         sale, _ = await sales_service.create_sale(
             {"items": [{"product_id": product.id, "qty": Decimal("3"), "unit_price": Decimal("10.00")}], "currency": "USD"},

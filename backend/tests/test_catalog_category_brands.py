@@ -12,7 +12,9 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
 from app.core.db import Base
-from app.models.catalog import Category, Brand
+from decimal import Decimal
+
+from app.models.catalog import Category, Brand, ProductLine
 from app.repos.catalog_repo import CategoryRepo, BrandRepo, ProductLineRepo, ProductRepo, CategoryBrandRepo
 from app.services.catalog_service import CatalogService
 
@@ -48,6 +50,15 @@ async def seed_category_and_brands(session):
     session.add_all([category, brand, brand_two])
     await session.flush()
     return category, brand, brand_two
+
+
+async def seed_category_brand_line(session):
+    category = Category(id=uuid.uuid4(), name="Category")
+    brand = Brand(id=uuid.uuid4(), name="Brand A")
+    line = ProductLine(id=uuid.uuid4(), name="Line A", brand_id=brand.id)
+    session.add_all([category, brand, line])
+    await session.flush()
+    return category, brand, line
 
 
 def test_category_brand_link_unique_and_filter():
@@ -108,3 +119,84 @@ def test_category_brand_unlink():
 
     brands_for_category = asyncio.run(scenario())
     assert brands_for_category == []
+
+
+def test_product_name_fallback_from_line():
+    asyncio.run(reset_db())
+
+    async def scenario():
+        session = TestSession()
+        service = CatalogService(
+            CategoryRepo(session),
+            BrandRepo(session),
+            ProductLineRepo(session),
+            ProductRepo(session),
+            CategoryBrandRepo(session),
+        )
+        async with session.begin():
+            category, brand, line = await seed_category_brand_line(session)
+        async with session.begin():
+            await service.link_category_brand(category.id, brand.id)
+            product = await service.create_product(
+                {
+                    "category_id": category.id,
+                    "brand_id": brand.id,
+                    "line_id": line.id,
+                    "name": "",
+                    "sku": None,
+                    "barcode": None,
+                    "image_url": None,
+                    "unit": "pcs",
+                    "purchase_price": Decimal("10.00"),
+                    "sell_price": Decimal("15.00"),
+                    "tax_rate": Decimal("0"),
+                }
+            )
+        await session.close()
+        return product, line
+
+    product, line = asyncio.run(scenario())
+    assert product.name == line.name
+
+
+def test_product_name_required_without_line():
+    asyncio.run(reset_db())
+
+    async def scenario():
+        session = TestSession()
+        service = CatalogService(
+            CategoryRepo(session),
+            BrandRepo(session),
+            ProductLineRepo(session),
+            ProductRepo(session),
+            CategoryBrandRepo(session),
+        )
+        async with session.begin():
+            category, brand, _ = await seed_category_and_brands(session)
+        async with session.begin():
+            await service.link_category_brand(category.id, brand.id)
+        error_status = None
+        try:
+            async with session.begin():
+                await service.create_product(
+                    {
+                        "category_id": category.id,
+                        "brand_id": brand.id,
+                        "line_id": None,
+                        "name": "",
+                        "sku": None,
+                        "barcode": None,
+                        "image_url": None,
+                        "unit": "pcs",
+                        "purchase_price": Decimal("10.00"),
+                        "sell_price": Decimal("15.00"),
+                        "tax_rate": Decimal("0"),
+                    }
+                )
+        except HTTPException as exc:
+            error_status = exc.status_code
+        await session.close()
+        return error_status
+
+    error_status = asyncio.run(scenario())
+    assert error_status == 422

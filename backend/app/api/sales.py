@@ -9,6 +9,7 @@ from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
+from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.schemas.sales import RefundCreate, SaleCreate, SaleOut, SaleDetail
 from app.services.sales_service import SalesService
 
@@ -35,6 +36,7 @@ def get_service(session: AsyncSession):
         PaymentRepo(session),
         RefundRepo(session),
         CashRegisterRepo(session),
+        TenantSettingsRepo(session),
     )
 
 
@@ -44,8 +46,9 @@ async def create_sale(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
     current_user=Depends(get_current_user),
+    current_tenant=Depends(get_current_tenant),
 ):
-    sale, _ = await get_service(session).create_sale(payload.model_dump(), current_user.id)
+    sale, _ = await get_service(session).create_sale(payload.model_dump(), current_user.id, current_tenant.id)
     return sale
 
 

@@ -6,7 +6,10 @@ from app.schemas.sales import SaleCreate, SaleOut, SaleItemCreate, SaleItemUpdat
 from app.services.sales_service import SalesService
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
-from app.services.payment_providers import PaymentGateway
+from app.repos.catalog_repo import ProductRepo
+from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
+from app.repos.payment_repo import PaymentRepo, RefundRepo
+from app.repos.tenant_settings_repo import TenantSettingsRepo
 
 router = APIRouter(
     prefix="/pos",
@@ -22,7 +25,12 @@ def get_service(session: AsyncSession):
         SaleItemRepo(session),
         StockRepo(session),
         StockBatchRepo(session),
-        PaymentGateway(),
+        ProductRepo(session),
+        CashReceiptRepo(session),
+        PaymentRepo(session),
+        RefundRepo(session),
+        CashRegisterRepo(session),
+        TenantSettingsRepo(session),
     )
 
 

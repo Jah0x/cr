@@ -147,7 +147,7 @@ const resources = {
         lineSelect: 'Line',
         skuPlaceholder: 'SKU',
         barcodePlaceholder: 'Barcode',
-        productPlaceholder: 'Product',
+        productPlaceholder: '(optional) product name — defaults to line',
         productImageLabel: 'Product image URL',
         productImagePlaceholder: 'https://example.com/photo.jpg',
         productImageUpload: 'Upload image',
@@ -191,7 +191,8 @@ const resources = {
         validation: {
           requiredFields: 'Fill in all required fields.',
           selectBrandForLine: 'Select a brand to create a product line.',
-          nonNegative: 'Values must be zero or above.'
+          nonNegative: 'Values must be zero or above.',
+          productNameOrLine: 'Enter a product name or pick a line.'
         },
         errors: {
           alreadyExists: 'Already exists.'
@@ -320,7 +321,22 @@ const resources = {
         expenses: 'Expenses',
         netProfit: 'Net profit',
         expensesTitle: 'Expenses',
-        noNote: 'No note'
+        noNote: 'No note',
+        taxesTitle: 'Taxes',
+        taxesSubtitle: 'Summary of taxes due for the selected period.',
+        taxesEmpty: 'Taxes are not configured yet.',
+        taxName: 'Tax',
+        taxRate: 'Rate',
+        taxTotal: 'Taxes due',
+        taxCash: 'Cash',
+        taxCard: 'Card',
+        taxExternal: 'External',
+        taxGrandTotal: 'Total taxes',
+        taxMethod: {
+          cash: 'Cash',
+          card: 'Card',
+          external: 'External'
+        }
       },
       settings: {
         loading: 'Loading settings...',
@@ -334,6 +350,11 @@ const resources = {
         compactNav: 'Compact navigation',
         showHelp: 'Show help tips',
         errorTitle: 'Unable to load tenant settings.',
+        currencyTitle: 'Currency',
+        currencyLabel: 'Default currency',
+        currencyRub: 'Russian Ruble (RUB)',
+        currencyUsd: 'US Dollar (USD)',
+        currencyEur: 'Euro (EUR)',
         taxesTitle: 'Taxes',
         taxesSubtitle: 'Choose whether taxes are included in prices or added on top.',
         taxesEnabled: 'Enable tax calculation',
@@ -346,6 +367,7 @@ const resources = {
         taxesRoundingFloor: 'Always round down',
         taxRuleName: 'Tax name',
         taxRuleRate: 'Rate (%)',
+        taxRuleMethods: 'Payment methods',
         taxRuleStatus: 'Status',
         taxRuleActions: 'Actions',
         taxRuleEmpty: 'No tax rules yet.',
@@ -354,7 +376,13 @@ const resources = {
         addTaxRule: 'Add tax rule',
         taxRuleActive: 'Active',
         taxRuleInactive: 'Inactive',
-        taxRuleValidation: 'Enter a name and a valid rate.'
+        taxRuleValidation: 'Enter a name and a valid rate.',
+        taxRuleApplyValidation: 'Select at least one payment method.',
+        taxRuleMethod: {
+          cash: 'Cash',
+          card: 'Card',
+          external: 'External'
+        }
       },
       platformTenants: {
         title: 'Tenants',
@@ -534,7 +562,7 @@ const resources = {
         lineSelect: 'Линейка',
         skuPlaceholder: 'SKU',
         barcodePlaceholder: 'Штрихкод',
-        productPlaceholder: 'Товар',
+        productPlaceholder: '(необязательно) товар — иначе из линейки',
         productImageLabel: 'Ссылка на фото',
         productImagePlaceholder: 'https://example.com/photo.jpg',
         productImageUpload: 'Загрузить фото',
@@ -578,7 +606,8 @@ const resources = {
         validation: {
           requiredFields: 'Заполните обязательные поля.',
           selectBrandForLine: 'Выберите бренд для создания линейки.',
-          nonNegative: 'Значения должны быть не меньше 0.'
+          nonNegative: 'Значения должны быть не меньше 0.',
+          productNameOrLine: 'Введите название товара или выберите линейку.'
         },
         errors: {
           alreadyExists: 'Уже существует.'
@@ -707,7 +736,22 @@ const resources = {
         expenses: 'Расходы',
         netProfit: 'Чистая прибыль',
         expensesTitle: 'Расходы',
-        noNote: 'Без комментария'
+        noNote: 'Без комментария',
+        taxesTitle: 'Налоги',
+        taxesSubtitle: 'Сводка налогов к уплате за выбранный период.',
+        taxesEmpty: 'Налоги не настроены.',
+        taxName: 'Налог',
+        taxRate: 'Ставка',
+        taxTotal: 'К уплате',
+        taxCash: 'Наличные',
+        taxCard: 'Карта',
+        taxExternal: 'Внешний',
+        taxGrandTotal: 'Итого по налогам',
+        taxMethod: {
+          cash: 'Наличные',
+          card: 'Карта',
+          external: 'Внешний'
+        }
       },
       settings: {
         loading: 'Загрузка настроек...',
@@ -721,6 +765,11 @@ const resources = {
         compactNav: 'Компактная навигация',
         showHelp: 'Показывать подсказки',
         errorTitle: 'Не удалось загрузить настройки тенанта.',
+        currencyTitle: 'Валюта',
+        currencyLabel: 'Валюта по умолчанию',
+        currencyRub: 'Российский рубль (RUB)',
+        currencyUsd: 'Доллар США (USD)',
+        currencyEur: 'Евро (EUR)',
         taxesTitle: 'Налоги',
         taxesSubtitle: 'Выберите, включен ли налог в цену или начисляется сверху.',
         taxesEnabled: 'Включить расчет налогов',
@@ -733,6 +782,7 @@ const resources = {
         taxesRoundingFloor: 'Всегда вниз',
         taxRuleName: 'Название',
         taxRuleRate: 'Ставка (%)',
+        taxRuleMethods: 'Типы оплат',
         taxRuleStatus: 'Статус',
         taxRuleActions: 'Действия',
         taxRuleEmpty: 'Правила налогов отсутствуют.',
@@ -741,7 +791,13 @@ const resources = {
         addTaxRule: 'Добавить налог',
         taxRuleActive: 'Активен',
         taxRuleInactive: 'Неактивен',
-        taxRuleValidation: 'Введите название и корректную ставку.'
+        taxRuleValidation: 'Введите название и корректную ставку.',
+        taxRuleApplyValidation: 'Выберите хотя бы один тип оплаты.',
+        taxRuleMethod: {
+          cash: 'Наличные',
+          card: 'Карта',
+          external: 'Внешний'
+        }
       },
       platformTenants: {
         title: 'Тенанты',
