@@ -10,6 +10,7 @@ from app.models.catalog import Product, Category, Brand
 from app.models.stock import SaleItemCostAllocation, StockBatch, StockMove
 from app.models.finance import Expense
 from app.schemas.reports import SummaryReport, GroupReport, TopProductReport, PnlReport, TaxReportItem
+from app.repos.tenant_settings_repo import TenantSettingsRepo
 
 
 class ReportsService:
@@ -112,7 +113,13 @@ class ReportsService:
         )
         return [TopProductReport(product_id=str(row[0]), name=row[1], total=row[2]) for row in result.all()]
 
-    async def taxes(self, date_from: datetime | None = None, date_to: datetime | None = None, methods: list[str] | None = None):
+    async def taxes(
+        self,
+        tenant_id,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        methods: list[str] | None = None,
+    ):
         stmt = (
             select(
                 SaleTaxLine.rule_id,
@@ -150,6 +157,25 @@ class ReportsService:
                 method_value = method.value if isinstance(method, PaymentProvider) else str(method)
                 if method_value in aggregated[rule_key]["by_method"]:
                     aggregated[rule_key]["by_method"][method_value] += total_tax
+
+        tenant_settings = await TenantSettingsRepo(self.session).get_or_create(tenant_id)
+        taxes_config = (tenant_settings.settings or {}).get("taxes", {})
+        rules = taxes_config.get("rules") if isinstance(taxes_config, dict) else None
+        if isinstance(taxes_config, dict) and taxes_config.get("enabled") and isinstance(rules, list):
+            for rule in rules:
+                rule_id = rule.get("id")
+                if not rule_id:
+                    continue
+                rule_key = str(rule_id)
+                if rule_key in aggregated:
+                    continue
+                aggregated[rule_key] = {
+                    "rule_id": rule_key,
+                    "name": rule.get("name"),
+                    "rate": rule.get("rate"),
+                    "total_tax": Decimal("0"),
+                    "by_method": {key: Decimal("0") for key in method_keys},
+                }
 
         return [
             TaxReportItem(

@@ -63,6 +63,11 @@ export default function AdminCatalogPage() {
   const [productImageUrl, setProductImageUrl] = useState('')
   const [productCategoryBrands, setProductCategoryBrands] = useState<Brand[]>([])
   const [productBrandLines, setProductBrandLines] = useState<ProductLine[]>([])
+  const [editOpen, setEditOpen] = useState(false)
+  const [editType, setEditType] = useState<CatalogTab>('categories')
+  const [editId, setEditId] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editSku, setEditSku] = useState('')
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
@@ -323,19 +328,19 @@ export default function AdminCatalogPage() {
     const purchasePrice = Number(productPurchasePrice)
     const sellPrice = Number(productSellPrice)
     const trimmedName = productName.trim()
-    const resolvedLine = productLineId
-      ? productBrandLines.find((line) => line.id === productLineId) ??
-        lines.find((line) => line.id === productLineId)
-      : null
-    const resolvedName = trimmedName || resolvedLine?.name?.trim() || ''
 
     if (!validateRequired([productCategoryId, productBrandId, productUnit])) {
       addToast(t('admin.validation.requiredFields'), 'error')
       return
     }
 
-    if (!resolvedName) {
-      addToast(t('admin.validation.productNameOrLine'), 'error')
+    if (!trimmedName && !productLineId) {
+      addToast(
+        t('admin.validation.productNameOrLine', {
+          defaultValue: 'Введите название товара или выберите линейку'
+        }),
+        'error'
+      )
       return
     }
 
@@ -349,7 +354,7 @@ export default function AdminCatalogPage() {
         category_id: productCategoryId,
         brand_id: productBrandId,
         line_id: productLineId || null,
-        name: resolvedName,
+        name: trimmedName || null,
         sku: productSku.trim() || null,
         barcode: productBarcode.trim() || null,
         image_url: productImageUrl.trim() || null,
@@ -380,6 +385,66 @@ export default function AdminCatalogPage() {
     try {
       await api.delete(`/products/${productId}`)
       addToast(t('common.deleted'), 'success')
+      loadData()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const openEditModal = (type: CatalogTab, item: Category | Brand | ProductLine | Product) => {
+    setEditType(type)
+    setEditId(item.id)
+    setEditName(item.name ?? '')
+    if (type === 'products') {
+      const product = item as Product
+      setEditSku(product.sku ?? '')
+    } else {
+      setEditSku('')
+    }
+    setEditOpen(true)
+  }
+
+  const closeEditModal = () => {
+    setEditOpen(false)
+    setEditId('')
+    setEditName('')
+    setEditSku('')
+  }
+
+  const updateCategory = async (id: string, name: string) => {
+    await api.patch(`/categories/${id}`, { name })
+  }
+
+  const updateBrand = async (id: string, name: string) => {
+    await api.patch(`/brands/${id}`, { name })
+  }
+
+  const updateLine = async (id: string, name: string) => {
+    await api.patch(`/lines/${id}`, { name })
+  }
+
+  const updateProduct = async (id: string, name: string, sku?: string) => {
+    await api.patch(`/products/${id}`, { name, sku: sku?.trim() || null })
+  }
+
+  const handleEditSave = async () => {
+    const trimmedName = editName.trim()
+    if (!trimmedName) {
+      addToast(t('admin.validation.requiredFields'), 'error')
+      return
+    }
+    try {
+      if (editType === 'categories') {
+        await updateCategory(editId, trimmedName)
+      } else if (editType === 'brands') {
+        await updateBrand(editId, trimmedName)
+      } else if (editType === 'lines') {
+        await updateLine(editId, trimmedName)
+      } else if (editType === 'products') {
+        await updateProduct(editId, trimmedName, editSku)
+      }
+      addToast(t('common.updated', { defaultValue: 'Обновлено' }), 'success')
+      closeEditModal()
       loadData()
     } catch (error) {
       handleApiError(error)
@@ -425,7 +490,8 @@ export default function AdminCatalogPage() {
   const canCreateProduct =
     validateRequired([productCategoryId, productBrandId, productUnit]) &&
     isNonNegativeNumber(productPurchasePrice) &&
-    isNonNegativeNumber(productSellPrice)
+    isNonNegativeNumber(productSellPrice) &&
+    (Boolean(productName.trim()) || Boolean(productLineId))
 
   const linkedBrandIds = new Set(categoryBrands.map((brand) => brand.id))
   const availableBrands = brands.filter((brand) => !linkedBrandIds.has(brand.id))
@@ -588,6 +654,12 @@ export default function AdminCatalogPage() {
                               : t('admin.emptyCategoryBrands')}
                         </td>
                         <td>
+                          <button
+                            className="secondary"
+                            onClick={() => openEditModal('categories', category)}
+                          >
+                            {t('common.edit', { defaultValue: 'Редактировать' })}
+                          </button>
                           <button className="secondary" onClick={() => deleteCategory(category.id)}>
                             {t('common.delete')}
                           </button>
@@ -644,6 +716,12 @@ export default function AdminCatalogPage() {
                       <tr key={brand.id}>
                         <td>{brand.name}</td>
                         <td>
+                          <button
+                            className="secondary"
+                            onClick={() => openEditModal('brands', brand)}
+                          >
+                            {t('common.edit', { defaultValue: 'Редактировать' })}
+                          </button>
                           <button className="secondary" onClick={() => deleteBrand(brand.id)}>
                             {t('common.delete')}
                           </button>
@@ -715,6 +793,12 @@ export default function AdminCatalogPage() {
                         <td>{line.name}</td>
                         <td>{brandMap.get(line.brand_id) ?? '—'}</td>
                         <td>
+                          <button
+                            className="secondary"
+                            onClick={() => openEditModal('lines', line)}
+                          >
+                            {t('common.edit', { defaultValue: 'Редактировать' })}
+                          </button>
                           <button className="secondary" onClick={() => deleteLine(line.id)}>
                             {t('common.delete')}
                           </button>
@@ -786,6 +870,11 @@ export default function AdminCatalogPage() {
                   onChange={(e) => setProductBarcode(e.target.value)}
                 />
               </div>
+              <p className="page-subtitle">
+                {t('admin.productNameHelp', {
+                  defaultValue: 'Можно оставить пустым — возьмём название из линейки.'
+                })}
+              </p>
               <div className="form-row">
                 <label className="form-field">
                   <span>{t('admin.productImageLabel')}</span>
@@ -902,6 +991,12 @@ export default function AdminCatalogPage() {
                         <td>{product.purchase_price}</td>
                         <td>{product.sell_price}</td>
                         <td>
+                          <button
+                            className="secondary"
+                            onClick={() => openEditModal('products', product)}
+                          >
+                            {t('common.edit', { defaultValue: 'Редактировать' })}
+                          </button>
                           <button className="secondary" onClick={() => deleteProduct(product.id)}>
                             {t('common.delete')}
                           </button>
@@ -913,6 +1008,39 @@ export default function AdminCatalogPage() {
               </table>
             </div>
           </section>
+        </div>
+      )}
+
+      {editOpen && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h4>{t('common.edit', { defaultValue: 'Редактировать' })}</h4>
+              <button className="ghost" onClick={closeEditModal}>
+                {t('common.cancel')}
+              </button>
+            </div>
+            <div className="form-stack">
+              <input
+                placeholder={t('admin.table.name')}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+              {editType === 'products' && (
+                <input
+                  placeholder={t('admin.skuPlaceholder')}
+                  value={editSku}
+                  onChange={(e) => setEditSku(e.target.value)}
+                />
+              )}
+              <div className="form-row">
+                <button onClick={handleEditSave}>{t('common.save', { defaultValue: 'Сохранить' })}</button>
+                <button className="ghost" onClick={closeEditModal}>
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

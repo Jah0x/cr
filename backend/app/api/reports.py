@@ -64,12 +64,13 @@ async def taxes(
     date_to: datetime | None = None,
     methods: str | None = None,
     session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
 ):
     methods_list = None
     if methods:
         raw = [value.strip() for value in methods.split(",") if value.strip()]
         if not raw:
-            return await get_service(session).taxes(date_from, date_to, None)
+            return await get_service(session).taxes(tenant.id, date_from, date_to, None)
         valid = {method.value for method in PaymentProvider}
         invalid = [value for value in raw if value not in valid]
         if invalid:
@@ -78,4 +79,4 @@ async def taxes(
                 detail=f"Invalid methods: {', '.join(invalid)}",
             )
         methods_list = raw
-    return await get_service(session).taxes(date_from, date_to, methods_list)
+    return await get_service(session).taxes(tenant.id, date_from, date_to, methods_list)

@@ -1,5 +1,3 @@
-from typing import Any
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,11 +36,11 @@ async def get_settings(session: AsyncSession = Depends(get_db_session), tenant=D
     dependencies=[Depends(require_roles({"owner", "admin"})), Depends(get_current_tenant)],
 )
 async def update_settings(
-    payload: dict[str, Any],
+    payload: TenantSettingsPayload,
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    settings = await get_service(session).update_tenant_settings(tenant.id, payload)
+    settings = await get_service(session).update_tenant_settings(tenant.id, payload.settings)
     return {"settings": settings}
 
 
