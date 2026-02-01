@@ -5,7 +5,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './styles/global.css'
 import './i18n'
 import LoginPage from './pages/LoginPage'
-import AdminDashboard from './pages/AdminDashboard'
+import AdminLayout from './components/AdminLayout'
+import AdminCatalogPage from './pages/admin/AdminCatalogPage'
+import AdminPurchasingPage from './pages/admin/AdminPurchasingPage'
+import AdminStockPage from './pages/admin/AdminStockPage'
+import AdminReportsPage from './pages/admin/AdminReportsPage'
 import PosPage from './pages/PosPage'
 import TenantLayout from './components/TenantLayout'
 import PlatformLayout from './components/PlatformLayout'
@@ -52,7 +56,13 @@ const bootstrap = async () => {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route element={<TenantLayout />}>
-                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<Navigate to="catalog" replace />} />
+                    <Route path="catalog" element={<AdminCatalogPage />} />
+                    <Route path="purchasing" element={<AdminPurchasingPage />} />
+                    <Route path="stock" element={<AdminStockPage />} />
+                    <Route path="reports" element={<AdminReportsPage />} />
+                  </Route>
                   <Route path="/pos" element={<PosPage />} />
                   <Route path="/finance" element={<FinancePage />} />
                   <Route path="/settings" element={<TenantSettingsPage />} />
