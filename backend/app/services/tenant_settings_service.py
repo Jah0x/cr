@@ -187,6 +187,8 @@ class TenantSettingsService:
         return DEFAULT_UI_PREFS.copy()
 
     async def update_tenant_settings(self, tenant_id, patch: dict[str, Any]):
+        if "settings" in patch and isinstance(patch["settings"], dict):
+            patch = patch["settings"]
         settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
         current_settings = settings_row.settings or {}
         merged = self._deep_merge(current_settings, patch)
@@ -205,7 +207,17 @@ class TenantSettingsService:
 
     async def _load_tenant_settings(self, tenant_id):
         settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
-        return settings_row.settings or {}
+        settings = settings_row.settings or {}
+        nested_settings = settings.get("settings")
+        if isinstance(nested_settings, dict):
+            flattened = dict(settings)
+            flattened.pop("settings", None)
+            normalized = {**flattened, **nested_settings}
+            settings_row.settings = normalized
+            settings_row.updated_at = datetime.now(timezone.utc)
+            await self.session.flush()
+            return normalized
+        return settings
 
     def _deep_merge(self, base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
         merged = dict(base)
