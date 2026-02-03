@@ -215,7 +215,14 @@ class CatalogService:
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                         detail="Line not found",
                     )
-                name = line.name
+                brand = await self.brand_repo.get(data.get("brand_id"))
+                if not brand:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Brand not found",
+                    )
+                name_parts = [brand.name.strip(), line.name.strip()]
+                name = " ".join(part for part in name_parts if part)
             data["name"] = name
             product = await self.product_repo.create(data)
             await self.session.refresh(product)
