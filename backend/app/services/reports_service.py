@@ -136,11 +136,17 @@ class ReportsService:
             stmt = stmt.where(Sale.created_at >= date_from)
         if date_to:
             stmt = stmt.where(Sale.created_at <= date_to)
+        method_keys = [method.value for method in PaymentProvider]
         if methods:
-            stmt = stmt.where(SaleTaxLine.method.in_(methods))
+            normalized_methods = [
+                PaymentProvider.normalize(method) if isinstance(method, str) else method
+                for method in methods
+            ]
+            filtered_methods = [method for method in normalized_methods if method in method_keys]
+            if filtered_methods:
+                stmt = stmt.where(SaleTaxLine.method.in_(filtered_methods))
 
         result = await self.session.execute(stmt)
-        method_keys = [method.value for method in PaymentProvider]
         aggregated: dict[str, dict] = {}
         for rule_id, rule_name, rate, method, total_tax in result.all():
             rule_key = str(rule_id)
@@ -154,7 +160,11 @@ class ReportsService:
                 }
             aggregated[rule_key]["total_tax"] += total_tax
             if method:
-                method_value = method.value if isinstance(method, PaymentProvider) else str(method)
+                method_value = PaymentProvider.normalize(method) if isinstance(method, str) else None
+                if isinstance(method, PaymentProvider):
+                    method_value = method.value
+                if method_value is None:
+                    method_value = str(method)
                 if method_value in aggregated[rule_key]["by_method"]:
                     aggregated[rule_key]["by_method"][method_value] += total_tax
 

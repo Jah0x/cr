@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useTenantSettings } from '../api/tenantSettings'
 
-type PaymentMethod = 'cash' | 'card' | 'external'
+type PaymentMethod = 'cash' | 'card' | 'transfer'
 
 interface Product {
   id: string
@@ -72,7 +72,12 @@ const defaultTaxSettings: TaxSettings = {
   rules: []
 }
 
-const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
+const paymentMethods: PaymentMethod[] = ['cash', 'card', 'transfer']
+
+const normalizePaymentMethod = (method: string): PaymentMethod => {
+  if (method === 'external') return 'transfer'
+  return method as PaymentMethod
+}
 
 export default function PosPage() {
   const { t, i18n } = useTranslation()
@@ -90,7 +95,7 @@ export default function PosPage() {
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: t('pos.paymentMethodCash'),
     card: t('pos.paymentMethodCard'),
-    external: t('pos.paymentMethodExternal')
+    transfer: t('pos.paymentMethodTransfer')
   }
 
   useEffect(() => {
@@ -129,7 +134,10 @@ export default function PosPage() {
       ...(stored as Partial<TaxSettings>),
       rules: rules.map((rule) => ({
         ...rule,
-        applies_to: Array.isArray(rule.applies_to) && rule.applies_to.length > 0 ? rule.applies_to : paymentMethods
+        applies_to:
+          Array.isArray(rule.applies_to) && rule.applies_to.length > 0
+            ? rule.applies_to.map((method) => normalizePaymentMethod(method))
+            : paymentMethods
       }))
     }
   }, [tenantSettings?.settings])
@@ -162,7 +170,7 @@ export default function PosPage() {
         acc[payment.method] += payment.amount
         return acc
       },
-      { cash: 0, card: 0, external: 0 }
+      { cash: 0, card: 0, transfer: 0 }
     )
     const totalPaid = Object.values(totalsByMethod).reduce((sum, value) => sum + value, 0)
     const methodShares =
@@ -376,7 +384,7 @@ export default function PosPage() {
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
               <option value="cash">{t('pos.paymentMethodCash')}</option>
               <option value="card">{t('pos.paymentMethodCard')}</option>
-              <option value="external">{t('pos.paymentMethodExternal')}</option>
+              <option value="transfer">{t('pos.paymentMethodTransfer')}</option>
             </select>
             <input
               placeholder={t('pos.reference')}

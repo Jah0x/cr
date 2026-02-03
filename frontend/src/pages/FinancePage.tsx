@@ -23,7 +23,7 @@ type PnlReport = {
   net_profit: number
 }
 
-type PaymentMethod = 'cash' | 'card' | 'external'
+type PaymentMethod = 'cash' | 'card' | 'transfer'
 
 type TaxReportItem = {
   rule_id: string
@@ -33,7 +33,7 @@ type TaxReportItem = {
   by_method: Partial<Record<PaymentMethod, number>>
 }
 
-const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
+const paymentMethods: PaymentMethod[] = ['cash', 'card', 'transfer']
 
 const toDateParam = (value: string, endOfDay = false) => {
   if (!value) return undefined
@@ -283,7 +283,7 @@ export default function FinancePage() {
                       <th>{t('finance.taxTotal')}</th>
                       <th>{t('finance.taxCash')}</th>
                       <th>{t('finance.taxCard')}</th>
-                      <th>{t('finance.taxExternal')}</th>
+                        <th>{t('finance.taxTransfer')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -294,7 +294,7 @@ export default function FinancePage() {
                         <td>{tax.total_tax}</td>
                         <td>{tax.by_method.cash ?? 0}</td>
                         <td>{tax.by_method.card ?? 0}</td>
-                        <td>{tax.by_method.external ?? 0}</td>
+                        <td>{tax.by_method.transfer ?? 0}</td>
                       </tr>
                     ))}
                     <tr>

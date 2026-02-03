@@ -17,7 +17,23 @@ class SaleStatus(str, enum.Enum):
 class PaymentProvider(str, enum.Enum):
     cash = "cash"
     card = "card"
-    external = "external"
+    transfer = "transfer"
+
+    @classmethod
+    def _missing_(cls, value):
+        if value == "external":
+            return cls.transfer
+        return None
+
+    @classmethod
+    def normalize(cls, value: object) -> str | None:
+        if isinstance(value, cls):
+            return value.value
+        if value == "external":
+            return cls.transfer.value
+        if isinstance(value, str):
+            return value
+        return None
 
 
 class PaymentStatus(str, enum.Enum):

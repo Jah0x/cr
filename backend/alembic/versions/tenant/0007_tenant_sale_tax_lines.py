@@ -14,7 +14,7 @@ down_revision = "tenant_0006"
 branch_labels = None
 depends_on = None
 
-payment_provider_enum = ENUM("cash", "card", "external", name="paymentprovider", create_type=False)
+payment_provider_enum = ENUM("cash", "card", "transfer", name="paymentprovider", create_type=False)
 
 
 def upgrade() -> None:

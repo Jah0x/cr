@@ -299,7 +299,7 @@ const resources = {
         remove: 'Remove',
         paymentMethodCash: 'Cash',
         paymentMethodCard: 'Card',
-        paymentMethodExternal: 'External'
+        paymentMethodTransfer: 'Transfer'
       },
       finance: {
         title: 'Finance',
@@ -331,12 +331,12 @@ const resources = {
         taxTotal: 'Taxes due',
         taxCash: 'Cash',
         taxCard: 'Card',
-        taxExternal: 'External',
+        taxTransfer: 'Transfer',
         taxGrandTotal: 'Total taxes',
         taxMethod: {
           cash: 'Cash',
           card: 'Card',
-          external: 'External'
+          transfer: 'Transfer'
         }
       },
       settings: {
@@ -382,7 +382,7 @@ const resources = {
         taxRuleMethod: {
           cash: 'Cash',
           card: 'Card',
-          external: 'External'
+          transfer: 'Transfer'
         }
       },
       platformTenants: {
@@ -715,7 +715,7 @@ const resources = {
         remove: 'Удалить',
         paymentMethodCash: 'Наличные',
         paymentMethodCard: 'Карта',
-        paymentMethodExternal: 'Внешний'
+        paymentMethodTransfer: 'Перевод'
       },
       finance: {
         title: 'Финансы',
@@ -747,12 +747,12 @@ const resources = {
         taxTotal: 'К уплате',
         taxCash: 'Наличные',
         taxCard: 'Карта',
-        taxExternal: 'Внешний',
+        taxTransfer: 'Перевод',
         taxGrandTotal: 'Итого по налогам',
         taxMethod: {
           cash: 'Наличные',
           card: 'Карта',
-          external: 'Внешний'
+          transfer: 'Перевод'
         }
       },
       settings: {
@@ -798,7 +798,7 @@ const resources = {
         taxRuleMethod: {
           cash: 'Наличные',
           card: 'Карта',
-          external: 'Внешний'
+          transfer: 'Перевод'
         }
       },
       platformTenants: {

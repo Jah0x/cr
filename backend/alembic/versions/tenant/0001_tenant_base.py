@@ -16,7 +16,7 @@ depends_on = None
 
 purchase_status_enum = ENUM("draft", "posted", "void", name="purchasestatus", create_type=False)
 sale_status_enum = ENUM("completed", "void", name="salestatus", create_type=False)
-payment_provider_enum = ENUM("cash", "card", "external", name="paymentprovider", create_type=False)
+payment_provider_enum = ENUM("cash", "card", "transfer", name="paymentprovider", create_type=False)
 payment_status_enum = ENUM("pending", "confirmed", "cancelled", name="paymentstatus", create_type=False)
 
 
