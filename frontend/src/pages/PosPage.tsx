@@ -47,6 +47,7 @@ interface SaleDetail {
   currency: string
   items: SaleItem[]
   payments: PaymentRecord[]
+  send_to_terminal: boolean
 }
 
 type TaxRule = {
@@ -84,6 +85,7 @@ export default function PosPage() {
   const [paymentReference, setPaymentReference] = useState('')
   const [sale, setSale] = useState<SaleDetail | null>(null)
   const [error, setError] = useState('')
+  const [sendToTerminal, setSendToTerminal] = useState(false)
   const { data: tenantSettings } = useTenantSettings()
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: t('pos.paymentMethodCash'),
@@ -259,7 +261,8 @@ export default function PosPage() {
         qty: item.qty,
         unit_price: item.product.price
       })),
-      currency: currencyCode
+      currency: currencyCode,
+      send_to_terminal: sendToTerminal
     }
     const completePayload = {
       payments: payments.map((payment) => ({
@@ -270,7 +273,7 @@ export default function PosPage() {
     }
     let draftId: string | null = null
     try {
-      const draftRes = await api.post('/sales/draft', { currency: currencyCode })
+      const draftRes = await api.post('/sales/draft', { currency: currencyCode, send_to_terminal: sendToTerminal })
       draftId = draftRes.data.id
       await api.put(`/sales/${draftId}`, itemPayload)
       const completeRes = await api.post(`/sales/${draftId}/complete`, completePayload)
@@ -399,6 +402,14 @@ export default function PosPage() {
             <span>{t('pos.due')}</span>
             <strong>{formatCurrency(totalDue)}</strong>
           </div>
+          <label className="form-inline">
+            <input
+              type="checkbox"
+              checked={sendToTerminal}
+              onChange={(e) => setSendToTerminal(e.target.checked)}
+            />
+            <span>{t('pos.sendToTerminal')}</span>
+          </label>
           <button className="pos-finalize" onClick={finalizeSale}>
             {t('pos.finalize')}
           </button>

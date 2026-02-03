@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Numeric, ForeignKey, Enum, DateTime, Index
+from sqlalchemy import Column, String, Numeric, ForeignKey, Enum, DateTime, Index, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -36,6 +36,7 @@ class Sale(Base):
     status = Column(Enum(SaleStatus), default=SaleStatus.draft, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False, server_default="0")
     currency = Column(String, default="")
+    send_to_terminal = Column(Boolean, nullable=False, server_default="false")
 
     items = relationship("SaleItem", back_populates="sale")
     tax_lines = relationship("SaleTaxLine", back_populates="sale")
