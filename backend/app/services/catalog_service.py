@@ -59,6 +59,11 @@ class CatalogService:
         category = await self.category_repo.get(category_id)
         if not category:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        if await self.product_repo.exists_for_category(category_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category has products and cannot be deleted",
+            )
         await self.category_repo.delete(category)
 
     async def list_brands(self, category_id=None):
@@ -100,6 +105,11 @@ class CatalogService:
         brand = await self.brand_repo.get(brand_id)
         if not brand:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
+        if await self.product_repo.exists_for_brand(brand_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Brand has products and cannot be deleted",
+            )
         await self.brand_repo.delete(brand)
 
     async def list_category_brands(self, category_id):
