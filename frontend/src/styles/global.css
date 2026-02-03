@@ -284,8 +284,62 @@ button:disabled:hover {
   font-size: 12px;
 }
 
+.badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.badge--role {
+  background: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #a5f3fc;
+}
+
 .muted {
   color: var(--muted);
+}
+
+.role-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-toggle__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.role-toggle__button {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-toggle__button--active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.role-toggle__hint {
+  font-size: 12px;
 }
 
 .image-preview {
