@@ -179,16 +179,20 @@ class SalesService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
             line_total = qty * unit_price
             total_amount += line_total
+            cost_snapshot = Decimal(product.cost_price or product.purchase_price or 0)
+            item.cost_snapshot = cost_snapshot
+            item.profit_line = line_total - (cost_snapshot * qty)
             for allocation in item.allocations:
                 await self.session.delete(allocation)
             consumed, remaining = await self.batch_repo.consume_with_fallback(product.id, float(qty))
             if remaining > 0:
                 remaining_decimal = Decimal(str(remaining))
+                fallback_cost = Decimal(product.cost_price or product.purchase_price or 0)
                 fallback_batch = await self.batch_repo.create(
                     {
                         "product_id": product.id,
                         "quantity": remaining_decimal,
-                        "unit_cost": product.purchase_price,
+                        "unit_cost": fallback_cost,
                     }
                 )
                 fallback_batch.quantity = Decimal("0")
@@ -405,7 +409,7 @@ class SalesService:
                     allocation.batch.quantity = Decimal(allocation.batch.quantity) + restore_qty
         else:
             product = await self.product_repo.get(sale_item.product_id)
-            unit_cost = product.purchase_price if product else Decimal("0")
+            unit_cost = Decimal(product.cost_price or product.purchase_price or 0) if product else Decimal("0")
             await self.batch_repo.create(
                 {
                     "product_id": sale_item.product_id,

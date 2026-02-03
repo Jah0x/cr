@@ -18,6 +18,7 @@ type Product = {
   barcode?: string | null
   unit: string
   purchase_price: number
+  cost_price: number
   sell_price: number
   image_url?: string | null
   category_id: string
@@ -70,6 +71,7 @@ export default function AdminCatalogPage() {
   const [productBarcode, setProductBarcode] = useState('')
   const [productUnit, setProductUnit] = useState('pcs')
   const [productPurchasePrice, setProductPurchasePrice] = useState('0')
+  const [productCostPrice, setProductCostPrice] = useState('0')
   const [productSellPrice, setProductSellPrice] = useState('0')
   const [productImageUrl, setProductImageUrl] = useState('')
   const [productCategoryBrands, setProductCategoryBrands] = useState<Brand[]>([])
@@ -405,6 +407,7 @@ export default function AdminCatalogPage() {
 
   const createProduct = async () => {
     const purchasePrice = Number(productPurchasePrice)
+    const costPrice = Number(productCostPrice)
     const sellPrice = Number(productSellPrice)
     const trimmedName = productName.trim()
 
@@ -423,7 +426,14 @@ export default function AdminCatalogPage() {
       return
     }
 
-    if (!Number.isFinite(purchasePrice) || !Number.isFinite(sellPrice) || purchasePrice < 0 || sellPrice < 0) {
+    if (
+      !Number.isFinite(purchasePrice) ||
+      !Number.isFinite(costPrice) ||
+      !Number.isFinite(sellPrice) ||
+      purchasePrice < 0 ||
+      costPrice < 0 ||
+      sellPrice < 0
+    ) {
       addToast(t('admin.validation.nonNegative'), 'error')
       return
     }
@@ -439,6 +449,7 @@ export default function AdminCatalogPage() {
         image_url: productImageUrl.trim() || null,
         unit: productUnit,
         purchase_price: purchasePrice,
+        cost_price: costPrice,
         sell_price: sellPrice,
         tax_rate: 0
       })
@@ -447,6 +458,7 @@ export default function AdminCatalogPage() {
       setProductBarcode('')
       setProductUnit('pcs')
       setProductPurchasePrice('0')
+      setProductCostPrice('0')
       setProductSellPrice('0')
       setProductImageUrl('')
       setProductLineId('')
@@ -569,6 +581,7 @@ export default function AdminCatalogPage() {
   const canCreateProduct =
     validateRequired([productCategoryId, productBrandId, productUnit]) &&
     isNonNegativeNumber(productPurchasePrice) &&
+    isNonNegativeNumber(productCostPrice) &&
     isNonNegativeNumber(productSellPrice) &&
     (Boolean(productName.trim()) || Boolean(productLineId))
 
@@ -1005,6 +1018,16 @@ export default function AdminCatalogPage() {
                   />
                 </label>
                 <label className="form-field">
+                  <span>{t('admin.costPriceLabel')}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder={t('admin.costPricePlaceholder')}
+                    value={productCostPrice}
+                    onChange={(e) => setProductCostPrice(e.target.value)}
+                  />
+                </label>
+                <label className="form-field">
                   <span>{t('admin.sellPriceLabel')}</span>
                   <input
                     type="number"
@@ -1034,6 +1057,7 @@ export default function AdminCatalogPage() {
                     <th scope="col">{t('admin.table.line')}</th>
                     <th scope="col">{t('admin.table.unit')}</th>
                     <th scope="col">{t('admin.table.purchasePrice')}</th>
+                    <th scope="col">{t('admin.table.costPrice')}</th>
                     <th scope="col">{t('admin.table.sellPrice')}</th>
                     <th scope="col">{t('adminStock.onHand', { defaultValue: 'On hand' })}</th>
                     <th scope="col">{t('admin.table.actions')}</th>
@@ -1042,11 +1066,11 @@ export default function AdminCatalogPage() {
                 <tbody>
                   {catalogLoading ? (
                     <tr>
-                      <td colSpan={11}>{t('common.loading')}</td>
+                      <td colSpan={12}>{t('common.loading')}</td>
                     </tr>
                   ) : products.length === 0 ? (
                     <tr>
-                      <td colSpan={11}>{t('admin.emptyProducts')}</td>
+                      <td colSpan={12}>{t('admin.emptyProducts')}</td>
                     </tr>
                   ) : (
                     products.map((product) => (
@@ -1069,6 +1093,7 @@ export default function AdminCatalogPage() {
                         <td>{product.line_id ? lineMap.get(product.line_id) ?? '—' : '—'}</td>
                         <td>{product.unit}</td>
                         <td>{product.purchase_price}</td>
+                        <td>{product.cost_price}</td>
                         <td>{product.sell_price}</td>
                         <td>
                           {stockLevelLoading
