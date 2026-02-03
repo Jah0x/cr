@@ -26,6 +26,8 @@ app.add_middleware(
 
 @app.middleware("http")
 async def access_log(request: Request, call_next):
+    if request.url.path in {"/healthz", "/readyz"} or request.url.path.startswith("/api/v1/health"):
+        return await call_next(request)
     start = time.perf_counter()
     response = await call_next(request)
     elapsed_ms = (time.perf_counter() - start) * 1000
