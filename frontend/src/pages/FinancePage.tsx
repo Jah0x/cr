@@ -421,7 +421,7 @@ export default function FinancePage() {
           </div>
         </div>
       </section>
-      <div className="grid grid-cards">
+      <div className="grid finance-grid finance-grid--entry">
         <section className="card">
           <div className="card-header">
             <h3>{t('finance.expenseCategories')}</h3>
@@ -472,7 +472,9 @@ export default function FinancePage() {
             <button onClick={createExpense}>{t('finance.saveExpense')}</button>
           </div>
         </section>
-        <section className="card">
+      </div>
+      <div className="grid finance-grid">
+        <section className="card finance-card--wide">
           <div className="card-header">
             <h3>{t('finance.overviewTitle')}</h3>
             <p className="page-subtitle">{t('finance.overviewSubtitle')}</p>
@@ -580,7 +582,7 @@ export default function FinancePage() {
             )}
           </div>
         </section>
-        <section className="card">
+        <section className="card finance-card--wide">
           <div className="card-header">
             <h3>{t('finance.topProductsTitle')}</h3>
             <p className="page-subtitle">{t('finance.topProductsSubtitle')}</p>
@@ -656,7 +658,7 @@ export default function FinancePage() {
             </div>
           </div>
         </section>
-        <section className="card">
+        <section className="card finance-card--wide">
           <div className="card-header">
             <h3>{t('finance.taxesTitle')}</h3>
             <p className="page-subtitle">{t('finance.taxesSubtitle')}</p>
@@ -705,7 +707,7 @@ export default function FinancePage() {
             )}
           </div>
         </section>
-        <section className="card">
+        <section className="card finance-card--wide">
           <div className="card-header">
             <h3>{t('finance.inventoryTitle')}</h3>
             <p className="page-subtitle">{t('finance.inventorySubtitle')}</p>
@@ -759,7 +761,7 @@ export default function FinancePage() {
             )}
           </div>
         </section>
-        <section className="card">
+        <section className="card finance-card--wide">
           <div className="card-header">
             <h3>{t('finance.expensesTitle')}</h3>
           </div>

@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.sql import Select
 
 from app.models.purchasing import PurchaseInvoice, PurchaseStatus, PurchaseItem
@@ -318,16 +318,17 @@ class ReportsService:
 
     async def inventory_valuation(self):
         on_hand = func.coalesce(func.sum(StockMove.delta_qty), 0)
+        unit_cost = case((Product.cost_price > 0, Product.cost_price), else_=Product.purchase_price)
         result = await self.session.execute(
             select(
                 Product.id,
                 Product.name,
                 on_hand,
-                Product.cost_price,
-                (on_hand * Product.cost_price).label("total_value"),
+                unit_cost,
+                (on_hand * unit_cost).label("total_value"),
             )
             .outerjoin(StockMove, StockMove.product_id == Product.id)
-            .group_by(Product.id, Product.name, Product.cost_price)
+            .group_by(Product.id, Product.name, unit_cost)
         )
         items = []
         total_value = Decimal("0")

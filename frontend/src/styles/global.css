@@ -79,6 +79,31 @@ button {
   align-items: start;
 }
 
+.finance-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+}
+
+.finance-grid > .card {
+  grid-column: span 4;
+}
+
+.finance-grid--entry > .card {
+  grid-column: span 6;
+}
+
+.finance-card--wide {
+  grid-column: span 8;
+}
+
+@media (max-width: 1024px) {
+  .finance-grid > .card,
+  .finance-grid--entry > .card,
+  .finance-card--wide {
+    grid-column: span 12;
+  }
+}
+
 .card {
   background: var(--surface);
   border-radius: var(--radius);
