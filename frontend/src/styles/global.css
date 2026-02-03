@@ -51,6 +51,14 @@ button {
   gap: 6px;
 }
 
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .page-title {
   margin: 0;
   font-size: 24px;
