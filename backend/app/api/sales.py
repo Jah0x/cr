@@ -10,7 +10,15 @@ from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
 from app.repos.tenant_settings_repo import TenantSettingsRepo
-from app.schemas.sales import RefundCreate, SaleCreate, SaleOut, SaleDetail
+from app.schemas.sales import (
+    RefundCreate,
+    SaleComplete,
+    SaleCreate,
+    SaleDetail,
+    SaleDraftCreate,
+    SaleDraftUpdate,
+    SaleOut,
+)
 from app.services.sales_service import SalesService
 
 router = APIRouter(
@@ -49,6 +57,55 @@ async def create_sale(
     current_tenant=Depends(get_current_tenant),
 ):
     sale, _ = await get_service(session).create_sale(payload.model_dump(), current_user.id, current_tenant.id)
+    return sale
+
+
+@router.post("/draft", response_model=SaleDetail)
+async def create_draft_sale(
+    payload: SaleDraftCreate,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    current_user=Depends(get_current_user),
+    current_tenant=Depends(get_current_tenant),
+):
+    sale = await get_service(session).create_draft_sale(payload.model_dump(), current_user.id, current_tenant.id)
+    return sale
+
+
+@router.put("/{sale_id}", response_model=SaleDetail)
+async def update_draft_sale_items(
+    sale_id: str,
+    payload: SaleDraftUpdate,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    current_tenant=Depends(get_current_tenant),
+):
+    sale = await get_service(session).update_draft_sale_items(sale_id, payload.model_dump(), current_tenant.id)
+    return sale
+
+
+@router.post("/{sale_id}/complete", response_model=SaleDetail)
+async def complete_sale(
+    sale_id: str,
+    payload: SaleComplete,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    current_user=Depends(get_current_user),
+    current_tenant=Depends(get_current_tenant),
+):
+    sale = await get_service(session).complete_sale(
+        sale_id, payload.model_dump(), current_user.id, current_tenant.id
+    )
+    return sale
+
+
+@router.post("/{sale_id}/cancel", response_model=SaleDetail)
+async def cancel_sale(
+    sale_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+):
+    sale = await get_service(session).cancel_sale(sale_id)
     return sale
 
 
