@@ -83,6 +83,17 @@ button {
   min-width: 0;
 }
 
+.card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-body {
+  display: grid;
+  gap: 12px;
+}
+
 .card h3,
 .card h4 {
   margin: 0;
@@ -117,6 +128,63 @@ button {
 .form-field > span {
   font-size: 12px;
   color: var(--muted);
+}
+
+.filters-panel {
+  gap: 16px;
+}
+
+.filters-panel__taxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filters-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.skeleton {
+  display: inline-block;
+  height: 12px;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+.skeleton-text {
+  height: 12px;
+  max-width: 220px;
+}
+
+.skeleton-text--wide {
+  max-width: 320px;
+}
+
+.skeleton-pill {
+  width: 84px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+.table--skeleton td {
+  padding: 12px 10px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 input,
