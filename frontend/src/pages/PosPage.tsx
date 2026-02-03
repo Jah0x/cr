@@ -74,7 +74,7 @@ const defaultTaxSettings: TaxSettings = {
 const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
 
 export default function PosPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [products, setProducts] = useState<Product[]>([])
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [payments, setPayments] = useState<PaymentDraft[]>([])
@@ -197,6 +197,23 @@ export default function PosPage() {
   const totalDue = Math.max(totalWithTax - paidTotal, 0)
   const taxLabel = taxSettings.mode === 'inclusive' ? t('pos.taxIncluded') : t('pos.taxAdded')
 
+  const currencyCode = useMemo(() => {
+    const currency =
+      typeof tenantSettings?.settings?.currency === 'string' && tenantSettings?.settings?.currency.trim()
+        ? tenantSettings.settings.currency
+        : 'RUB'
+    return currency
+  }, [tenantSettings?.settings])
+
+  const currencyFormatter = useMemo(() => {
+    return new Intl.NumberFormat(i18n.language || undefined, {
+      style: 'currency',
+      currency: currencyCode
+    })
+  }, [currencyCode, i18n.language])
+
+  const formatCurrency = (value: number) => currencyFormatter.format(value)
+
   const addToCart = (product: Product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id)
@@ -236,17 +253,13 @@ export default function PosPage() {
       setError(t('errors.addItemsBeforeFinalize'))
       return
     }
-    const currency =
-      typeof tenantSettings?.settings?.currency === 'string' && tenantSettings?.settings?.currency.trim()
-        ? tenantSettings.settings.currency
-        : 'RUB'
     const payload = {
       items: cartItems.map((item) => ({
         product_id: item.product.id,
         qty: item.qty,
         unit_price: item.product.price
       })),
-      currency,
+      currency: currencyCode,
       payments: payments.map((payment) => ({
         amount: payment.amount,
         method: payment.method,
@@ -290,7 +303,7 @@ export default function PosPage() {
                 </div>
                 <div className="pos-product-info">
                   <div className="pos-product-name">{product.name}</div>
-                  <div className="pos-product-price">${product.price.toFixed(2)}</div>
+                  <div className="pos-product-price">{formatCurrency(product.price)}</div>
                 </div>
               </button>
             ))}
@@ -310,7 +323,7 @@ export default function PosPage() {
                       value={item.qty}
                       onChange={(e) => updateQty(item.product.id, Number(e.target.value))}
                     />
-                    <span>${(item.qty * item.product.price).toFixed(2)}</span>
+                    <span>{formatCurrency(item.qty * item.product.price)}</span>
                     <button className="secondary" onClick={() => removeItem(item.product.id)}>
                       {t('pos.remove')}
                     </button>
@@ -322,19 +335,19 @@ export default function PosPage() {
           <div className="pos-summary">
             <div className="pos-summary-row">
               <span>{t('pos.subtotal')}</span>
-              <strong>${subtotal.toFixed(2)}</strong>
+              <strong>{formatCurrency(subtotal)}</strong>
             </div>
             {taxSettings.enabled && totalTaxRate > 0 && (
               <div className="pos-summary-row">
                 <span>
                   {taxLabel} ({totalTaxRate.toFixed(2)}%)
                 </span>
-                <strong>${taxAmount.toFixed(2)}</strong>
+                <strong>{formatCurrency(taxAmount)}</strong>
               </div>
             )}
             <div className="pos-summary-row total">
               <span>{t('pos.total')}</span>
-              <strong>${totalWithTax.toFixed(2)}</strong>
+              <strong>{formatCurrency(totalWithTax)}</strong>
             </div>
           </div>
           <h4>{t('pos.payments')}</h4>
@@ -360,7 +373,7 @@ export default function PosPage() {
             {payments.map((payment, index) => (
               <div key={`${payment.method}-${index}`} className="pos-payment-item">
                 <div>
-                  {paymentLabels[payment.method]} ${payment.amount.toFixed(2)}
+                  {paymentLabels[payment.method]} {formatCurrency(payment.amount)}
                   {payment.reference ? ` (${payment.reference})` : ''}
                 </div>
                 <button className="ghost" onClick={() => removePayment(index)}>
@@ -371,7 +384,7 @@ export default function PosPage() {
           </div>
           <div className="pos-summary-row total">
             <span>{t('pos.due')}</span>
-            <strong>${totalDue.toFixed(2)}</strong>
+            <strong>{formatCurrency(totalDue)}</strong>
           </div>
           <button className="pos-finalize" onClick={finalizeSale}>
             {t('pos.finalize')}
@@ -386,7 +399,7 @@ export default function PosPage() {
                 {t('pos.status')}: {sale.status}
               </p>
               <p>
-                {t('pos.total')}: ${sale.total_amount}
+                {t('pos.total')}: {formatCurrency(Number(sale.total_amount))}
               </p>
             </div>
           )}

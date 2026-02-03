@@ -43,6 +43,7 @@ class SalesService:
         self.tenant_settings_repo = tenant_settings_repo
 
     async def create_sale(self, payload: dict, user_id=None, tenant_id: str | None = None):
+        settings = get_settings()
         items = payload.get("items", [])
         currency = (payload.get("currency") or "").strip()
         payments = payload.get("payments", [])
@@ -67,7 +68,7 @@ class SalesService:
             if qty <= 0 or unit_price < 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
             on_hand = await self.stock_repo.on_hand(product.id)
-            if not on_hand >= float(qty):
+            if not on_hand >= float(qty) and not settings.allow_negative_stock:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
             line_total = qty * unit_price
             total_amount += line_total
