@@ -100,3 +100,10 @@ You can also set `VITE_PLATFORM_HOSTS` at build time to the same host list (comm
 
 * Health: `http://localhost/api/v1/health`
 * Login: open `http://localhost`, sign in, and confirm the UI shows the authenticated state or user data.
+
+## Manual checks
+
+* Финансы: сохранение фильтров и корректное восстановление выбранных значений после обновления страницы.
+* Cashier: создание кассира и успешный вход в систему.
+* POS-UX: работа кнопок оплаты, обработка Enter/Esc и управление корзиной.
+* UI: наличие toast-уведомлений и reset-кнопок там, где они ожидаются.
