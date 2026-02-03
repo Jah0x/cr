@@ -94,6 +94,7 @@ class SaleOut(BaseModel):
     created_at: datetime
     created_by_user_id: uuid.UUID | None
     send_to_terminal: bool
+    payments: list[PaymentOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -101,7 +102,6 @@ class SaleOut(BaseModel):
 class SaleDetail(SaleOut):
     items: list[SaleItemOut]
     receipts: list[CashReceiptOut]
-    payments: list[PaymentOut]
     refunds: list[RefundOut]
 
 

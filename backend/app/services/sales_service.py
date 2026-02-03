@@ -312,8 +312,14 @@ class SalesService:
         await register.refund_sale(sale.id)
         return await self.sale_repo.get(sale.id)
 
-    async def list_sales(self, status_filter=None, date_from=None, date_to=None):
-        return await self.sale_repo.list(status_filter, date_from, date_to)
+    async def list_sales(self, status_filter=None, date_from=None, date_to=None, cashier_id=None, payment_method=None):
+        return await self.sale_repo.list(
+            status_filter,
+            date_from,
+            date_to,
+            cashier_id=cashier_id,
+            payment_method=payment_method,
+        )
 
     async def get_sale(self, sale_id):
         sale = await self.sale_repo.get(sale_id)
