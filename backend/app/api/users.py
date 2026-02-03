@@ -29,7 +29,12 @@ async def create_user(
     session: AsyncSession = Depends(get_db_session),
     tenant=Depends(get_current_tenant),
 ):
-    user = await get_service(session).create_user(payload.email, payload.password, payload.roles)
+    user = await get_service(session).create_user(
+        payload.email,
+        payload.password,
+        payload.roles,
+        payload.is_active,
+    )
     return user
 
 

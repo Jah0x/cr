@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     roles: list[str]
+    is_active: bool = True
 
 
 class RoleOut(BaseModel):

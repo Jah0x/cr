@@ -34,8 +34,14 @@ class UserRepo:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def create(self, email: str, password_hash: str, roles: list[Role] | None = None) -> User:
-        user = User(email=email, password_hash=password_hash)
+    async def create(
+        self,
+        email: str,
+        password_hash: str,
+        roles: list[Role] | None = None,
+        is_active: bool = True,
+    ) -> User:
+        user = User(email=email, password_hash=password_hash, is_active=is_active)
         self.session.add(user)
         await self.session.flush()
         if roles:
