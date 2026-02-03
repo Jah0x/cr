@@ -81,21 +81,41 @@ export default function TenantSettingsPage() {
     data.features.find((feature) => feature.code === 'ui_prefs')?.is_enabled ?? true
 
   const storedTaxSettings = useMemo(() => {
-    const settings = data.settings?.taxes
-    if (!settings || typeof settings !== 'object') {
+    const rawSettings = data.settings?.taxes
+    if (!rawSettings || typeof rawSettings !== 'object' || Array.isArray(rawSettings)) {
       return defaultTaxSettings
     }
-    const rules = Array.isArray((settings as TaxSettings).rules) ? (settings as TaxSettings).rules : []
+    const settings = rawSettings as Partial<TaxSettings>
+    const rules = Array.isArray(settings.rules) ? settings.rules : []
+    const normalizedMode =
+      settings.mode === 'exclusive' || settings.mode === 'inclusive' ? settings.mode : defaultTaxSettings.mode
+    const normalizedRounding =
+      settings.rounding === 'round' || settings.rounding === 'ceil' || settings.rounding === 'floor'
+        ? settings.rounding
+        : defaultTaxSettings.rounding
     return {
       ...defaultTaxSettings,
-      ...(settings as Partial<TaxSettings>),
-      rules: rules.map((rule) => ({
-        ...rule,
-        applies_to:
-          Array.isArray(rule.applies_to) && rule.applies_to.length > 0
+      enabled: typeof settings.enabled === 'boolean' ? settings.enabled : defaultTaxSettings.enabled,
+      mode: normalizedMode,
+      rounding: normalizedRounding,
+      rules: rules
+        .filter((rule) => rule && typeof rule === 'object')
+        .map((rule, index) => {
+          const normalizedApplies = Array.isArray(rule.applies_to)
             ? rule.applies_to.map((method) => normalizePaymentMethod(method))
-            : paymentMethods
-      }))
+            : []
+          const applies =
+            normalizedApplies.length > 0
+              ? normalizedApplies.filter((method) => paymentMethods.includes(method))
+              : paymentMethods
+          return {
+            id: typeof rule.id === 'string' && rule.id.trim() ? rule.id : `tax-${index}`,
+            name: typeof rule.name === 'string' ? rule.name : '',
+            rate: typeof rule.rate === 'number' && Number.isFinite(rule.rate) ? rule.rate : 0,
+            is_active: typeof rule.is_active === 'boolean' ? rule.is_active : true,
+            applies_to: applies.length > 0 ? applies : paymentMethods
+          }
+        })
     }
   }, [data.settings])
 
