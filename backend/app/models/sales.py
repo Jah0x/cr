@@ -74,6 +74,8 @@ class SaleItem(Base):
     qty = Column(Numeric(12, 3), nullable=False)
     unit_price = Column(Numeric(12, 2), nullable=False)
     line_total = Column(Numeric(12, 2), nullable=False)
+    cost_snapshot = Column(Numeric(12, 2), nullable=False, default=0)
+    profit_line = Column(Numeric(12, 2), nullable=False, default=0)
 
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product", back_populates="sale_items")

@@ -81,6 +81,7 @@ class Product(Base):
     hierarchy_node_id = Column(UUID(as_uuid=True), ForeignKey("catalog_nodes.id", ondelete="SET NULL"))
     unit = Column(Enum(ProductUnit, name="product_unit"), nullable=False, default=ProductUnit.pcs)
     purchase_price = Column(Numeric(12, 2), nullable=False, default=0)
+    cost_price = Column(Numeric(12, 2), nullable=False, default=0)
     sell_price = Column(Numeric(12, 2), nullable=False, default=0)
     tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
     is_active = Column(Boolean, default=True)

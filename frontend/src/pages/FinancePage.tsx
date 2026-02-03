@@ -23,6 +23,35 @@ type PnlReport = {
   net_profit: number
 }
 
+type FinanceOverviewReport = {
+  total_revenue: number
+  gross_profit: number
+  total_taxes: number
+  revenue_by_method: Partial<Record<PaymentMethod, number>>
+  taxes_by_method: Partial<Record<PaymentMethod, number>>
+}
+
+type TopProductPerformance = {
+  product_id: string
+  name: string
+  qty: number
+  revenue: number
+  margin: number
+}
+
+type InventoryValuationItem = {
+  product_id: string
+  name: string
+  qty_on_hand: number
+  unit_cost: number
+  total_value: number
+}
+
+type InventoryValuationReport = {
+  total_value: number
+  items: InventoryValuationItem[]
+}
+
 type PaymentMethod = 'cash' | 'card' | 'transfer'
 
 type TaxReportItem = {
@@ -58,7 +87,11 @@ export default function FinancePage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [pnl, setPnl] = useState<PnlReport | null>(null)
+  const [overview, setOverview] = useState<FinanceOverviewReport | null>(null)
   const [taxes, setTaxes] = useState<TaxReportItem[]>([])
+  const [topRevenue, setTopRevenue] = useState<TopProductPerformance[]>([])
+  const [topMargin, setTopMargin] = useState<TopProductPerformance[]>([])
+  const [inventoryValuation, setInventoryValuation] = useState<InventoryValuationReport | null>(null)
   const [taxMethods, setTaxMethods] = useState<PaymentMethod[]>(paymentMethods)
 
   const params = useMemo(() => {
@@ -92,14 +125,41 @@ export default function FinancePage() {
     setPnl(res.data)
   }
 
+  const loadOverview = async () => {
+    const res = await api.get('/reports/finance-overview', { params })
+    setOverview(res.data)
+  }
+
   const loadTaxes = async () => {
     const res = await api.get('/reports/taxes', { params: taxParams })
     setTaxes(res.data)
   }
 
+  const loadTopProducts = async () => {
+    const [revenueRes, marginRes] = await Promise.all([
+      api.get('/reports/top-products-performance', { params: { ...params, sort: 'revenue' } }),
+      api.get('/reports/top-products-performance', { params: { ...params, sort: 'margin' } })
+    ])
+    setTopRevenue(revenueRes.data)
+    setTopMargin(marginRes.data)
+  }
+
+  const loadInventoryValuation = async () => {
+    const res = await api.get('/reports/inventory-valuation')
+    setInventoryValuation(res.data)
+  }
+
   const loadData = async () => {
     try {
-      await Promise.all([loadCategories(), loadExpenses(), loadPnl(), loadTaxes()])
+      await Promise.all([
+        loadCategories(),
+        loadExpenses(),
+        loadPnl(),
+        loadOverview(),
+        loadTaxes(),
+        loadTopProducts(),
+        loadInventoryValuation()
+      ])
     } catch (error) {
       addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
@@ -165,6 +225,14 @@ export default function FinancePage() {
     return taxes.reduce((sum, item) => sum + Number(item.total_tax || 0), 0)
   }, [taxes])
 
+  const topRevenueTotal = useMemo(() => {
+    return topRevenue.reduce((sum, item) => sum + Number(item.revenue || 0), 0)
+  }, [topRevenue])
+
+  const topMarginTotal = useMemo(() => {
+    return topMargin.reduce((sum, item) => sum + Number(item.margin || 0), 0)
+  }, [topMargin])
+
   return (
     <div className="page">
       <div className="page-header">
@@ -212,6 +280,56 @@ export default function FinancePage() {
           </div>
         </section>
         <section className="card">
+          <h3>{t('finance.overviewTitle')}</h3>
+          <p className="page-subtitle">{t('finance.overviewSubtitle')}</p>
+          <div className="form-row">
+            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          </div>
+          {overview && (
+            <>
+              <div className="table-wrapper">
+                <table className="table">
+                  <tbody>
+                    <tr>
+                      <th scope="row">{t('finance.totalRevenue')}</th>
+                      <td>{overview.total_revenue}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('finance.grossProfit')}</th>
+                      <td>{overview.gross_profit}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('finance.totalTaxes')}</th>
+                      <td>{overview.total_taxes}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t('finance.paymentMethodTitle')}</th>
+                      <th>{t('finance.totalRevenue')}</th>
+                      <th>{t('finance.totalTaxes')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentMethods.map((method) => (
+                      <tr key={method}>
+                        <td>{t(`finance.taxMethod.${method}`)}</td>
+                        <td>{overview.revenue_by_method?.[method] ?? 0}</td>
+                        <td>{overview.taxes_by_method?.[method] ?? 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </section>
+        <section className="card">
           <h3>{t('finance.pnlSummary')}</h3>
           <div className="form-inline">
             <button type="button" onClick={() => setQuickRange(1)}>{t('finance.today')}</button>
@@ -250,6 +368,78 @@ export default function FinancePage() {
               </table>
             </div>
           )}
+        </section>
+        <section className="card">
+          <h3>{t('finance.topProductsTitle')}</h3>
+          <p className="page-subtitle">{t('finance.topProductsSubtitle')}</p>
+          <div className="form-row">
+            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          </div>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.productName')}</th>
+                  <th>{t('finance.quantity')}</th>
+                  <th>{t('finance.totalRevenue')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topRevenue.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>{t('finance.noTopProducts')}</td>
+                  </tr>
+                ) : (
+                  <>
+                    {topRevenue.map((item) => (
+                      <tr key={item.product_id}>
+                        <td>{item.name}</td>
+                        <td>{item.qty}</td>
+                        <td>{item.revenue}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <th colSpan={2}>{t('finance.totalRevenue')}</th>
+                      <th>{topRevenueTotal}</th>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.productName')}</th>
+                  <th>{t('finance.quantity')}</th>
+                  <th>{t('finance.totalMargin')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topMargin.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>{t('finance.noTopProducts')}</td>
+                  </tr>
+                ) : (
+                  <>
+                    {topMargin.map((item) => (
+                      <tr key={item.product_id}>
+                        <td>{item.name}</td>
+                        <td>{item.qty}</td>
+                        <td>{item.margin}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <th colSpan={2}>{t('finance.totalMargin')}</th>
+                      <th>{topMarginTotal}</th>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
         <section className="card">
           <h3>{t('finance.taxesTitle')}</h3>
@@ -302,6 +492,45 @@ export default function FinancePage() {
                       <th>{taxTotal}</th>
                       <td colSpan={3}></td>
                     </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </section>
+        <section className="card">
+          <h3>{t('finance.inventoryTitle')}</h3>
+          <p className="page-subtitle">{t('finance.inventorySubtitle')}</p>
+          {inventoryValuation && (
+            <>
+              <p>
+                <strong>{t('finance.inventoryTotal')}</strong> {inventoryValuation.total_value}
+              </p>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t('finance.productName')}</th>
+                      <th>{t('finance.quantity')}</th>
+                      <th>{t('finance.unitCost')}</th>
+                      <th>{t('finance.inventoryValue')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryValuation.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={4}>{t('finance.inventoryEmpty')}</td>
+                      </tr>
+                    ) : (
+                      inventoryValuation.items.map((item) => (
+                        <tr key={item.product_id}>
+                          <td>{item.name}</td>
+                          <td>{item.qty_on_hand}</td>
+                          <td>{item.unit_cost}</td>
+                          <td>{item.total_value}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

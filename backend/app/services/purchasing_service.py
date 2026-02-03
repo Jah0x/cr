@@ -100,6 +100,7 @@ class PurchasingService:
             product = await self.product_repo.get(item.product_id)
             if product:
                 product.purchase_price = item.unit_cost
+                product.cost_price = item.unit_cost
         invoice.status = PurchaseStatus.posted
         await self.session.flush()
         await self.session.refresh(invoice)

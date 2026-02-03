@@ -50,6 +50,8 @@ class SaleItemOut(BaseModel):
     qty: Decimal
     unit_price: Decimal
     line_total: Decimal
+    cost_snapshot: Decimal
+    profit_line: Decimal
 
     model_config = {"from_attributes": True}
 

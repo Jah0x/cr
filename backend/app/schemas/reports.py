@@ -36,3 +36,32 @@ class TaxReportItem(BaseModel):
     rate: Decimal
     total_tax: Decimal
     by_method: dict[str, Decimal]
+
+
+class FinanceOverviewReport(BaseModel):
+    total_revenue: Decimal
+    gross_profit: Decimal
+    total_taxes: Decimal
+    revenue_by_method: dict[str, Decimal]
+    taxes_by_method: dict[str, Decimal]
+
+
+class TopProductPerformanceReport(BaseModel):
+    product_id: str
+    name: str
+    qty: Decimal
+    revenue: Decimal
+    margin: Decimal
+
+
+class InventoryValuationItem(BaseModel):
+    product_id: str
+    name: str
+    qty_on_hand: Decimal
+    unit_cost: Decimal
+    total_value: Decimal
+
+
+class InventoryValuationReport(BaseModel):
+    total_value: Decimal
+    items: list[InventoryValuationItem]

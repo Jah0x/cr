@@ -78,6 +78,7 @@ class ProductBase(BaseModel):
     line_id: Optional[uuid.UUID] = None
     unit: ProductUnit = ProductUnit.pcs
     purchase_price: Decimal = Field(ge=0)
+    cost_price: Decimal = Field(default=0, ge=0)
     sell_price: Decimal = Field(ge=0)
     tax_rate: Decimal = Field(ge=0)
     is_active: bool = True
@@ -98,6 +99,7 @@ class ProductUpdate(BaseModel):
     line_id: Optional[uuid.UUID] = None
     unit: Optional[ProductUnit] = None
     purchase_price: Optional[Decimal] = Field(default=None, ge=0)
+    cost_price: Optional[Decimal] = Field(default=None, ge=0)
     sell_price: Optional[Decimal] = Field(default=None, ge=0)
     tax_rate: Optional[Decimal] = Field(default=None, ge=0)
     is_active: Optional[bool] = None

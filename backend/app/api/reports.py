@@ -5,7 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db_session, get_current_user, get_current_tenant, require_feature, require_module
 from app.services.reports_service import ReportsService
-from app.schemas.reports import SummaryReport, GroupReport, TopProductReport, PnlReport, TaxReportItem
+from app.schemas.reports import (
+    SummaryReport,
+    GroupReport,
+    TopProductReport,
+    PnlReport,
+    TaxReportItem,
+    FinanceOverviewReport,
+    TopProductPerformanceReport,
+    InventoryValuationReport,
+)
 from app.models.sales import PaymentProvider
 
 router = APIRouter(
@@ -87,3 +96,28 @@ async def taxes(
             )
         methods_list = normalized
     return await get_service(session).taxes(tenant.id, date_from, date_to, methods_list)
+
+
+@router.get("/finance-overview", response_model=FinanceOverviewReport)
+async def finance_overview(
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    session: AsyncSession = Depends(get_db_session),
+):
+    return await get_service(session).finance_overview(date_from, date_to)
+
+
+@router.get("/top-products-performance", response_model=list[TopProductPerformanceReport])
+async def top_products_performance(
+    sort: str = "revenue",
+    limit: int = 5,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    session: AsyncSession = Depends(get_db_session),
+):
+    return await get_service(session).top_products_performance(sort, limit, date_from, date_to)
+
+
+@router.get("/inventory-valuation", response_model=InventoryValuationReport)
+async def inventory_valuation(session: AsyncSession = Depends(get_db_session)):
+    return await get_service(session).inventory_valuation()
