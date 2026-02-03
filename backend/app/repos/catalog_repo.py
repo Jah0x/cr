@@ -115,6 +115,16 @@ class ProductRepo:
         result = await self.session.execute(select(Product).where(Product.id == product_id))
         return result.scalar_one_or_none()
 
+    async def exists_for_category(self, category_id) -> bool:
+        result = await self.session.execute(
+            select(Product.id).where(Product.category_id == category_id).limit(1)
+        )
+        return result.scalar_one_or_none() is not None
+
+    async def exists_for_brand(self, brand_id) -> bool:
+        result = await self.session.execute(select(Product.id).where(Product.brand_id == brand_id).limit(1))
+        return result.scalar_one_or_none() is not None
+
     async def soft_delete(self, product: Product) -> None:
         product.is_active = False
         await self.session.flush()
