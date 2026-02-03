@@ -52,6 +52,11 @@ class UserRepo:
             )
         await self.session.flush()
 
+    async def set_password_hash(self, user: User, password_hash: str):
+        user.password_hash = password_hash
+        self.session.add(user)
+        await self.session.flush()
+
 
 class RoleRepo:
     def __init__(self, session: AsyncSession):

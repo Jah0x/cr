@@ -10,6 +10,7 @@ import AdminCatalogPage from './pages/admin/AdminCatalogPage'
 import AdminPurchasingPage from './pages/admin/AdminPurchasingPage'
 import AdminStockPage from './pages/admin/AdminStockPage'
 import AdminReportsPage from './pages/admin/AdminReportsPage'
+import AdminUsersPage from './pages/admin/AdminUsersPage'
 import PosPage from './pages/PosPage'
 import TenantLayout from './components/TenantLayout'
 import PlatformLayout from './components/PlatformLayout'
@@ -62,6 +63,7 @@ const bootstrap = async () => {
                     <Route path="purchasing" element={<AdminPurchasingPage />} />
                     <Route path="stock" element={<AdminStockPage />} />
                     <Route path="reports" element={<AdminReportsPage />} />
+                    <Route path="users" element={<AdminUsersPage />} />
                   </Route>
                   <Route path="/pos" element={<PosPage />} />
                   <Route path="/finance" element={<FinancePage />} />

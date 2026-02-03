@@ -39,3 +39,11 @@ class UserService:
                 roles.append(role)
         await self.user_repo.set_roles(user, [role.id for role in roles])
         return await self.user_repo.get_by_id(user_id)
+
+    async def set_password(self, user_id, password: str):
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        password_hash = hash_password(password)
+        await self.user_repo.set_password_hash(user, password_hash)
+        return await self.user_repo.get_by_id(user_id)

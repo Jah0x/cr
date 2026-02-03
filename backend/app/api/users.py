@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_tenant, get_db_session, require_roles, require_module
 from app.repos.user_repo import RoleRepo, UserRepo
-from app.schemas.user import UserCreate, UserOut, UserRolesUpdate
+from app.schemas.user import UserCreate, UserOut, UserPasswordUpdate, UserRolesUpdate
 from app.services.user_service import UserService
 
 router = APIRouter(
@@ -41,4 +41,15 @@ async def set_roles(
     tenant=Depends(get_current_tenant),
 ):
     user = await get_service(session).set_roles(user_id, payload.roles)
+    return user
+
+
+@router.post("/{user_id}/password", response_model=UserOut)
+async def set_password(
+    user_id: str,
+    payload: UserPasswordUpdate,
+    session: AsyncSession = Depends(get_db_session),
+    tenant=Depends(get_current_tenant),
+):
+    user = await get_service(session).set_password(user_id, payload.password)
     return user

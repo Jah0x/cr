@@ -6,7 +6,8 @@ const adminRoutes = [
   { key: 'catalog', path: '/admin/catalog' },
   { key: 'purchasing', path: '/admin/purchasing' },
   { key: 'stock', path: '/admin/stock' },
-  { key: 'reports', path: '/admin/reports' }
+  { key: 'reports', path: '/admin/reports' },
+  { key: 'users', path: '/admin/users' }
 ]
 
 export default function AdminLayout() {
