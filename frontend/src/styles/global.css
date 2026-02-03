@@ -623,9 +623,53 @@ button:disabled:hover {
 
 .pos-cart-controls {
   display: grid;
-  grid-template-columns: 80px 1fr auto;
-  gap: 8px;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
   align-items: center;
+}
+
+.pos-qty-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  min-width: 88px;
+  justify-content: space-between;
+}
+
+.pos-qty-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pos-qty-button:hover {
+  background: #f8fafc;
+}
+
+.pos-cart-remove {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #ef4444;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pos-cart-remove:hover {
+  background: #fee2e2;
 }
 
 .pos-summary {
@@ -634,6 +678,9 @@ button:disabled:hover {
   background: var(--surface-2);
   padding: 12px;
   border-radius: 12px;
+  position: sticky;
+  top: 16px;
+  z-index: 1;
 }
 
 .pos-summary-row {
@@ -651,8 +698,36 @@ button:disabled:hover {
 
 .pos-payment-entry {
   display: grid;
-  grid-template-columns: 90px 1fr 1fr auto;
+  gap: 12px;
+}
+
+.pos-payment-methods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.pos-payment-method {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 12px 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+  text-align: center;
+}
+
+.pos-payment-method.is-selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  background: #eff6ff;
+}
+
+.pos-payment-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .pos-payments-list {
@@ -752,6 +827,10 @@ button:disabled:hover {
   }
 
   .pos-payment-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-payment-methods {
     grid-template-columns: 1fr;
   }
 

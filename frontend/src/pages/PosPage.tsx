@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -314,9 +314,16 @@ export default function PosPage() {
     })
   }
 
-  const updateQty = (productId: string, qty: number) => {
-    if (Number.isNaN(qty) || qty <= 0) return
-    setCartItems((prev) => prev.map((item) => (item.product.id === productId ? { ...item, qty } : item)))
+  const adjustQty = (productId: string, delta: number) => {
+    setCartItems((prev) =>
+      prev
+        .map((item) => {
+          if (item.product.id !== productId) return item
+          const nextQty = item.qty + delta
+          return nextQty > 0 ? { ...item, qty: nextQty } : item
+        })
+        .filter((item) => item.qty > 0)
+    )
   }
 
   const removeItem = (productId: string) => {
@@ -335,7 +342,20 @@ export default function PosPage() {
     setPayments((prev) => prev.filter((_, idx) => idx !== index))
   }
 
-  const finalizeSale = async () => {
+  const hasDraft = cartItems.length > 0 || payments.length > 0
+  const canFinalize = cartItems.length > 0
+
+  const clearDraft = useCallback(() => {
+    setCartItems([])
+    setPayments([])
+    setSale(null)
+    setError('')
+    setPaymentAmount('0')
+    setPaymentReference('')
+    setSendToTerminal(false)
+  }, [])
+
+  const finalizeSale = useCallback(async () => {
     setError('')
     if (cartItems.length === 0) {
       setError(t('errors.addItemsBeforeFinalize'))
@@ -376,7 +396,33 @@ export default function PosPage() {
       }
       setError(getApiErrorMessage(e, t, 'errors.finalizeSaleFailed'))
     }
-  }
+  }, [cartItems, currencyCode, payments, sendToTerminal, t])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) return
+      const target = event.target as HTMLElement | null
+      const isEditable =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      if (event.key === 'Escape') {
+        if (!hasDraft) return
+        const confirmClear = window.confirm('Очистить черновик продажи?')
+        if (!confirmClear) return
+        event.preventDefault()
+        clearDraft()
+      }
+      if (event.key === 'Enter') {
+        if (isEditable) return
+        if (!canFinalize) return
+        event.preventDefault()
+        void finalizeSale()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [canFinalize, clearDraft, finalizeSale, hasDraft])
 
   const toIsoDate = (value: string, endOfDay = false) => {
     if (!value) return undefined
@@ -465,13 +511,32 @@ export default function PosPage() {
                 <div key={item.product.id} className="pos-cart-item">
                   <div className="pos-cart-name">{item.product.name}</div>
                   <div className="pos-cart-controls">
-                    <input
-                      value={item.qty}
-                      onChange={(e) => updateQty(item.product.id, Number(e.target.value))}
-                    />
+                    <div className="pos-qty-controls">
+                      <button
+                        type="button"
+                        className="pos-qty-button"
+                        onClick={() => adjustQty(item.product.id, -1)}
+                        aria-label="Уменьшить количество"
+                      >
+                        -
+                      </button>
+                      <span>{item.qty}</span>
+                      <button
+                        type="button"
+                        className="pos-qty-button"
+                        onClick={() => adjustQty(item.product.id, 1)}
+                        aria-label="Увеличить количество"
+                      >
+                        +
+                      </button>
+                    </div>
                     <span>{formatCurrency(item.qty * item.product.price)}</span>
-                    <button className="secondary" onClick={() => removeItem(item.product.id)}>
-                      {t('pos.remove')}
+                    <button
+                      className="pos-cart-remove"
+                      onClick={() => removeItem(item.product.id)}
+                      aria-label={t('pos.remove')}
+                    >
+                      ✕
                     </button>
                   </div>
                 </div>
@@ -498,22 +563,40 @@ export default function PosPage() {
           </div>
           <h4>{t('pos.payments')}</h4>
           <div className="pos-payment-entry">
+            <div className="pos-payment-methods">
+              {paymentMethods.map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  className={`pos-payment-method ${paymentMethod === method ? 'is-selected' : ''}`}
+                  onClick={() => setPaymentMethod(method)}
+                  aria-pressed={paymentMethod === method}
+                >
+                  {paymentLabels[method]}
+                </button>
+              ))}
+            </div>
             <input
               placeholder={t('pos.amount')}
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
             />
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
-              <option value="cash">{t('pos.paymentMethodCash')}</option>
-              <option value="card">{t('pos.paymentMethodCard')}</option>
-              <option value="transfer">{t('pos.paymentMethodTransfer')}</option>
-            </select>
             <input
               placeholder={t('pos.reference')}
               value={paymentReference}
               onChange={(e) => setPaymentReference(e.target.value)}
             />
             <button onClick={addPayment}>{t('pos.addPayment')}</button>
+          </div>
+          <div className="pos-payment-options">
+            <label className="form-inline">
+              <input
+                type="checkbox"
+                checked={sendToTerminal}
+                onChange={(e) => setSendToTerminal(e.target.checked)}
+              />
+              <span>Отправлять в терминал (позже)</span>
+            </label>
           </div>
           <div className="pos-payments-list">
             {payments.map((payment, index) => (
@@ -532,15 +615,7 @@ export default function PosPage() {
             <span>{t('pos.due')}</span>
             <strong>{formatCurrency(totalDue)}</strong>
           </div>
-          <label className="form-inline">
-            <input
-              type="checkbox"
-              checked={sendToTerminal}
-              onChange={(e) => setSendToTerminal(e.target.checked)}
-            />
-            <span>{t('pos.sendToTerminal')}</span>
-          </label>
-          <button className="pos-finalize" onClick={finalizeSale}>
+          <button className="pos-finalize" onClick={finalizeSale} disabled={!canFinalize}>
             {t('pos.finalize')}
           </button>
           {error && <p className="pos-error">{error}</p>}
