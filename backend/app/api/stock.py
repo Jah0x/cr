@@ -22,8 +22,10 @@ def get_service(session: AsyncSession):
 
 
 @router.get("", response_model=list[StockQuery])
-async def stock_levels(request: Request, session: AsyncSession = Depends(get_db_session)):
-    return await get_service(session).list_stock()
+async def stock_levels(
+    request: Request, product_id: str | None = None, session: AsyncSession = Depends(get_db_session)
+):
+    return await get_service(session).list_stock(product_id)
 
 
 @router.get("/moves", response_model=list[StockMoveOut])
