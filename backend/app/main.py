@@ -1,8 +1,10 @@
 import logging
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, APIRouter, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -76,3 +78,8 @@ async def healthz():
 @app.get("/readyz")
 async def readyz(request: Request, session: AsyncSession = Depends(get_db_session)):
     return await readiness_check(session, request)
+
+
+frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if frontend_dist.is_dir():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")

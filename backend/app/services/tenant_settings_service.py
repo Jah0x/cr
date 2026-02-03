@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.platform import Module, TenantFeature, TenantModule, TenantUIPreference
+from app.models.sales import PaymentProvider
 from app.repos.tenant_settings_repo import TenantSettingsRepo
 
 
@@ -36,6 +37,17 @@ DEFAULT_TOBACCO_HIERARCHY_SETTINGS = {
         ]
     }
 }
+
+DEFAULT_TAX_SETTINGS = {
+    "enabled": False,
+    "mode": "exclusive",
+    "rounding": "round",
+    "rules": [],
+}
+
+TAX_MODES = {"exclusive", "inclusive"}
+TAX_ROUNDING = {"round", "ceil", "floor"}
+TAX_METHODS = [method.value for method in PaymentProvider]
 
 
 class TenantSettingsService:
@@ -191,11 +203,13 @@ class TenantSettingsService:
             patch = patch["settings"]
         settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
         current_settings = settings_row.settings or {}
-        merged = self._deep_merge(current_settings, patch)
-        settings_row.settings = merged
+        normalized_patch = self._normalize_settings(patch)
+        merged = self._deep_merge(current_settings, normalized_patch)
+        normalized = self._normalize_settings(merged)
+        settings_row.settings = normalized
         settings_row.updated_at = datetime.now(timezone.utc)
         await self.session.flush()
-        return merged
+        return normalized
 
     async def _load_ui_prefs(self):
         current = await self.session.scalar(
@@ -208,16 +222,12 @@ class TenantSettingsService:
     async def _load_tenant_settings(self, tenant_id):
         settings_row = await self.tenant_settings_repo.get_or_create(tenant_id)
         settings = settings_row.settings or {}
-        nested_settings = settings.get("settings")
-        if isinstance(nested_settings, dict):
-            flattened = dict(settings)
-            flattened.pop("settings", None)
-            normalized = {**flattened, **nested_settings}
+        normalized = self._normalize_settings(settings)
+        if normalized != settings:
             settings_row.settings = normalized
             settings_row.updated_at = datetime.now(timezone.utc)
             await self.session.flush()
-            return normalized
-        return settings
+        return normalized
 
     def _deep_merge(self, base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
         merged = dict(base)
@@ -227,3 +237,61 @@ class TenantSettingsService:
             else:
                 merged[key] = value
         return merged
+
+    def _normalize_settings(self, settings: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(settings)
+        nested_settings = normalized.pop("settings", None)
+        if isinstance(nested_settings, dict):
+            normalized = {**normalized, **nested_settings}
+        if "taxes" in normalized:
+            normalized["taxes"] = self._normalize_tax_settings(normalized.get("taxes"))
+        return normalized
+
+    def _normalize_tax_settings(self, raw: object) -> dict[str, Any]:
+        if not isinstance(raw, dict):
+            return DEFAULT_TAX_SETTINGS.copy()
+        enabled = raw.get("enabled") if isinstance(raw.get("enabled"), bool) else DEFAULT_TAX_SETTINGS["enabled"]
+        mode = raw.get("mode") if raw.get("mode") in TAX_MODES else DEFAULT_TAX_SETTINGS["mode"]
+        rounding = raw.get("rounding") if raw.get("rounding") in TAX_ROUNDING else DEFAULT_TAX_SETTINGS["rounding"]
+        rules_raw = raw.get("rules") if isinstance(raw.get("rules"), list) else []
+        rules = []
+        for index, rule in enumerate(rules_raw):
+            if not isinstance(rule, dict):
+                continue
+            rule_id = rule.get("id")
+            rule_name = rule.get("name")
+            rate = rule.get("rate")
+            is_active = rule.get("is_active")
+            applies_to = rule.get("applies_to")
+            if isinstance(rate, str):
+                try:
+                    rate = float(rate)
+                except ValueError:
+                    rate = 0
+            if not isinstance(rate, (int, float)) or rate < 0:
+                rate = 0
+            normalized_methods = []
+            if isinstance(applies_to, list):
+                for method in applies_to:
+                    if not isinstance(method, str):
+                        continue
+                    normalized_method = PaymentProvider.normalize(method)
+                    if normalized_method in TAX_METHODS:
+                        normalized_methods.append(normalized_method)
+            if not normalized_methods:
+                normalized_methods = TAX_METHODS.copy()
+            rules.append(
+                {
+                    "id": str(rule_id) if rule_id else f"tax-{index}",
+                    "name": str(rule_name) if isinstance(rule_name, str) else "",
+                    "rate": rate,
+                    "is_active": is_active if isinstance(is_active, bool) else True,
+                    "applies_to": normalized_methods,
+                }
+            )
+        return {
+            "enabled": enabled,
+            "mode": mode,
+            "rounding": rounding,
+            "rules": rules,
+        }
