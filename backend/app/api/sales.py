@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_tenant, get_current_user, get_db_session, require_roles, require_module
-from app.models.sales import SaleStatus
+from app.models.sales import PaymentProvider, SaleStatus
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.repos.catalog_repo import ProductRepo
@@ -115,6 +115,8 @@ async def list_sales(
     status: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
+    cashier_id: str | None = None,
+    payment_method: str | None = None,
     session: AsyncSession = Depends(get_db_session),
 ):
     status_filter = None
@@ -123,7 +125,19 @@ async def list_sales(
             status_filter = SaleStatus(status)
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
-    sales = await get_service(session).list_sales(status_filter, date_from, date_to)
+    payment_filter = None
+    if payment_method:
+        normalized_method = PaymentProvider.normalize(payment_method)
+        if not normalized_method:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payment method")
+        payment_filter = PaymentProvider(normalized_method)
+    sales = await get_service(session).list_sales(
+        status_filter,
+        date_from,
+        date_to,
+        cashier_id=cashier_id,
+        payment_method=payment_filter,
+    )
     return sales
 
 

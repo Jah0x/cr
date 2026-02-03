@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.sales import Sale, SaleItem
+from app.models.sales import Payment, PaymentProvider, Sale, SaleItem
 from app.models.stock import SaleItemCostAllocation
 
 
@@ -29,7 +29,14 @@ class SaleRepo:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list(self, status_filter=None, date_from=None, date_to=None) -> List[Sale]:
+    async def list(
+        self,
+        status_filter=None,
+        date_from=None,
+        date_to=None,
+        cashier_id=None,
+        payment_method: PaymentProvider | None = None,
+    ) -> List[Sale]:
         stmt = (
             select(Sale)
             .options(
@@ -46,6 +53,11 @@ class SaleRepo:
             stmt = stmt.where(Sale.created_at >= date_from)
         if date_to:
             stmt = stmt.where(Sale.created_at <= date_to)
+        if cashier_id:
+            stmt = stmt.where(Sale.created_by_user_id == cashier_id)
+        if payment_method:
+            stmt = stmt.join(Payment).where(Payment.method == payment_method).distinct()
+        stmt = stmt.order_by(Sale.created_at.desc())
         result = await self.session.execute(stmt)
         return result.scalars().all()
 

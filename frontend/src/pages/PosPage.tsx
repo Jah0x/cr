@@ -50,6 +50,23 @@ interface SaleDetail {
   send_to_terminal: boolean
 }
 
+interface SaleSummary {
+  id: string
+  status: string
+  total_amount: number
+  currency: string
+  created_at: string
+  created_by_user_id: string | null
+  send_to_terminal: boolean
+  payments: PaymentRecord[]
+}
+
+interface CashierUser {
+  id: string
+  email: string
+  roles: Array<{ id: string; name: string }>
+}
+
 type TaxRule = {
   id: string
   name: string
@@ -91,6 +108,14 @@ export default function PosPage() {
   const [sale, setSale] = useState<SaleDetail | null>(null)
   const [error, setError] = useState('')
   const [sendToTerminal, setSendToTerminal] = useState(false)
+  const [salesHistory, setSalesHistory] = useState<SaleSummary[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
+  const [cashiers, setCashiers] = useState<CashierUser[]>([])
+  const [cashierFilter, setCashierFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('')
   const { data: tenantSettings } = useTenantSettings()
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: t('pos.paymentMethodCash'),
@@ -109,6 +134,18 @@ export default function PosPage() {
         }))
       setProducts(normalized)
     })
+  }, [])
+
+  useEffect(() => {
+    const loadCashiers = async () => {
+      try {
+        const res = await api.get('/users')
+        setCashiers(res.data as CashierUser[])
+      } catch {
+        setCashiers([])
+      }
+    }
+    loadCashiers()
   }, [])
 
   const filteredProducts = useMemo(() => {
@@ -224,6 +261,47 @@ export default function PosPage() {
 
   const formatCurrency = (value: number) => currencyFormatter.format(value)
 
+  const formatDateTime = (value: string) => {
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return value
+    return new Intl.DateTimeFormat(i18n.language || undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(parsed)
+  }
+
+  const normalizeSaleStatus = (status: string) => {
+    switch (status) {
+      case 'draft':
+        return t('pos.statusDraft')
+      case 'completed':
+        return t('pos.statusCompleted')
+      case 'cancelled':
+        return t('pos.statusCancelled')
+      default:
+        return status
+    }
+  }
+
+  const paymentSummary = (salePayments: PaymentRecord[]) => {
+    if (!salePayments || salePayments.length === 0) return '—'
+    const methods = Array.from(
+      new Set(
+        salePayments.map((payment) => {
+          const normalized = normalizePaymentMethod(String(payment.method))
+          return paymentLabels[normalized] ?? String(payment.method)
+        })
+      )
+    )
+    return methods.join(', ')
+  }
+
+  const cashierLabel = (cashierId: string | null) => {
+    if (!cashierId) return '—'
+    const cashier = cashiers.find((user) => user.id === cashierId)
+    return cashier ? cashier.email : cashierId
+  }
+
   const addToCart = (product: Product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id)
@@ -299,6 +377,50 @@ export default function PosPage() {
       setError(getApiErrorMessage(e, t, 'errors.finalizeSaleFailed'))
     }
   }
+
+  const toIsoDate = (value: string, endOfDay = false) => {
+    if (!value) return undefined
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return undefined
+    if (endOfDay) {
+      parsed.setHours(23, 59, 59, 999)
+    } else {
+      parsed.setHours(0, 0, 0, 0)
+    }
+    return parsed.toISOString()
+  }
+
+  const loadSalesHistory = async () => {
+    setHistoryLoading(true)
+    setHistoryError('')
+    const params: Record<string, string> = {}
+    if (cashierFilter) params.cashier_id = cashierFilter
+    const isoFrom = toIsoDate(dateFrom)
+    if (isoFrom) params.date_from = isoFrom
+    const isoTo = toIsoDate(dateTo, true)
+    if (isoTo) params.date_to = isoTo
+    if (paymentMethodFilter) params.payment_method = paymentMethodFilter
+    try {
+      const res = await api.get('/sales', { params })
+      setSalesHistory(res.data as SaleSummary[])
+    } catch (e) {
+      setHistoryError(getApiErrorMessage(e, t, 'common.error'))
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const resetHistoryFilters = () => {
+    setCashierFilter('')
+    setDateFrom('')
+    setDateTo('')
+    setPaymentMethodFilter('')
+  }
+
+  useEffect(() => {
+    loadSalesHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="page pos-page">
@@ -437,6 +559,88 @@ export default function PosPage() {
           )}
         </section>
       </div>
+      <section className="card pos-history">
+        <div className="pos-history-header">
+          <div>
+            <h3>{t('pos.historyTitle')}</h3>
+            <p className="page-subtitle">{t('pos.historySubtitle')}</p>
+          </div>
+          <div className="pos-history-actions">
+            <button className="secondary" onClick={resetHistoryFilters}>
+              {t('pos.historyReset')}
+            </button>
+            <button onClick={loadSalesHistory}>{t('pos.historyApply')}</button>
+          </div>
+        </div>
+        <div className="pos-history-filters">
+          <label>
+            <span>{t('pos.historyCashier')}</span>
+            <select value={cashierFilter} onChange={(e) => setCashierFilter(e.target.value)}>
+              <option value="">{t('pos.historyAllCashiers')}</option>
+              {cashiers
+                .filter((user) => user.roles.some((role) => role.name === 'cashier' || role.name === 'owner'))
+                .map((cashier) => (
+                  <option key={cashier.id} value={cashier.id}>
+                    {cashier.email}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            <span>{t('pos.historyDateFrom')}</span>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </label>
+          <label>
+            <span>{t('pos.historyDateTo')}</span>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </label>
+          <label>
+            <span>{t('pos.historyPaymentMethod')}</span>
+            <select value={paymentMethodFilter} onChange={(e) => setPaymentMethodFilter(e.target.value)}>
+              <option value="">{t('pos.historyAllPayments')}</option>
+              <option value="cash">{t('pos.paymentMethodCash')}</option>
+              <option value="card">{t('pos.paymentMethodCard')}</option>
+              <option value="transfer">{t('pos.paymentMethodTransfer')}</option>
+            </select>
+          </label>
+        </div>
+        {historyLoading ? (
+          <p className="page-subtitle">{t('common.loading')}</p>
+        ) : historyError ? (
+          <p className="pos-error">{historyError}</p>
+        ) : salesHistory.length === 0 ? (
+          <p className="page-subtitle">{t('pos.historyEmpty')}</p>
+        ) : (
+          <div className="pos-history-table-wrapper">
+            <table className="pos-history-table">
+              <thead>
+                <tr>
+                  <th>{t('common.created')}</th>
+                  <th>{t('pos.sale')}</th>
+                  <th>{t('pos.historyCashier')}</th>
+                  <th>{t('pos.historyPaymentMethod')}</th>
+                  <th>{t('pos.status')}</th>
+                  <th>{t('pos.sendToTerminal')}</th>
+                  <th>{t('pos.total')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {salesHistory.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{formatDateTime(entry.created_at)}</td>
+                    <td>{entry.id}</td>
+                    <td>{cashierLabel(entry.created_by_user_id)}</td>
+                    <td>{paymentSummary(entry.payments)}</td>
+                    <td>{normalizeSaleStatus(entry.status)}</td>
+                    <td>{entry.send_to_terminal ? t('common.yes') : t('common.no')}</td>
+                    <td>{formatCurrency(Number(entry.total_amount))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }
