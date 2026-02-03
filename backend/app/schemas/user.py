@@ -36,3 +36,7 @@ class LoginPayload(BaseModel):
 
 class UserRolesUpdate(BaseModel):
     roles: list[str]
+
+
+class UserPasswordUpdate(BaseModel):
+    password: str

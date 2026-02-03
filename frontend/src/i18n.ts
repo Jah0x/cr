@@ -44,7 +44,8 @@ const resources = {
         catalog: 'Catalog',
         purchasing: 'Suppliers & Purchasing',
         stock: 'Stock',
-        reports: 'Reports'
+        reports: 'Reports',
+        users: 'Users'
       },
       adminTabs: {
         categories: 'Categories',
@@ -215,6 +216,20 @@ const resources = {
         totalSales: 'Total sales',
         totalPurchases: 'Total purchases',
         grossMargin: 'Gross margin'
+      },
+      adminUsers: {
+        subtitle: 'Manage access, roles, and reset passwords.',
+        roles: 'Roles',
+        active: 'Active',
+        empty: 'No users yet.',
+        noRoles: 'No roles',
+        assignCashier: 'Assign cashier',
+        removeCashier: 'Remove cashier',
+        newPasswordPlaceholder: 'New password',
+        setPassword: 'Set password',
+        passwordRequired: 'Enter a new password.',
+        rolesUpdated: 'Roles updated.',
+        passwordUpdated: 'Password updated.'
       },
       adminSections: {
         createCategory: 'Create category',
@@ -460,7 +475,8 @@ const resources = {
         catalog: 'Каталог',
         purchasing: 'Поставщики и закупки',
         stock: 'Склад',
-        reports: 'Отчеты'
+        reports: 'Отчеты',
+        users: 'Пользователи'
       },
       adminTabs: {
         categories: 'Категории',
@@ -631,6 +647,20 @@ const resources = {
         totalSales: 'Продажи',
         totalPurchases: 'Закупки',
         grossMargin: 'Валовая маржа'
+      },
+      adminUsers: {
+        subtitle: 'Управляйте доступом, ролями и сбросом пароля.',
+        roles: 'Роли',
+        active: 'Активен',
+        empty: 'Пользователей пока нет.',
+        noRoles: 'Без ролей',
+        assignCashier: 'Назначить кассира',
+        removeCashier: 'Снять кассира',
+        newPasswordPlaceholder: 'Новый пароль',
+        setPassword: 'Задать пароль',
+        passwordRequired: 'Введите новый пароль.',
+        rolesUpdated: 'Роли обновлены.',
+        passwordUpdated: 'Пароль обновлен.'
       },
       adminSections: {
         createCategory: 'Создать категорию',
