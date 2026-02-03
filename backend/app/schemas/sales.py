@@ -27,6 +27,20 @@ class SaleCreate(BaseModel):
     cash_register_id: uuid.UUID | None = None
 
 
+class SaleDraftCreate(BaseModel):
+    currency: str | None = None
+
+
+class SaleDraftUpdate(BaseModel):
+    items: list[SaleItemIn]
+    currency: str | None = None
+
+
+class SaleComplete(BaseModel):
+    payments: list[PaymentIn] | None = None
+    cash_register_id: uuid.UUID | None = None
+
+
 class SaleItemOut(BaseModel):
     id: uuid.UUID
     product_id: uuid.UUID | None

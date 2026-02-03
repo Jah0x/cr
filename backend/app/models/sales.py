@@ -9,8 +9,9 @@ from app.core.db import Base
 
 
 class SaleStatus(str, enum.Enum):
+    draft = "draft"
     completed = "completed"
-    void = "void"
+    cancelled = "cancelled"
 
 
 class PaymentProvider(str, enum.Enum):
@@ -32,7 +33,7 @@ class Sale(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
-    status = Column(Enum(SaleStatus), default=SaleStatus.completed, nullable=False)
+    status = Column(Enum(SaleStatus), default=SaleStatus.draft, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False, server_default="0")
     currency = Column(String, default="")
 

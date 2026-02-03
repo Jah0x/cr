@@ -55,7 +55,9 @@ class SalesService:
         product_ids = [item["product_id"] for item in items]
         products = {str(p.id): p for p in await self._fetch_products(product_ids)}
         total_amount = Decimal("0")
-        sale = await self.sale_repo.create({"currency": currency, "created_by_user_id": user_id})
+        sale = await self.sale_repo.create(
+            {"currency": currency, "created_by_user_id": user_id, "status": SaleStatus.completed}
+        )
         for item in items:
             product = products.get(str(item["product_id"]))
             if not product:
@@ -119,12 +121,146 @@ class SalesService:
         sale = await self.sale_repo.get(sale.id)
         return sale, receipt
 
+    async def create_draft_sale(self, payload: dict, user_id=None, tenant_id: str | None = None):
+        currency = (payload.get("currency") or "").strip()
+        if not currency:
+            currency = await self._resolve_currency(tenant_id)
+        sale = await self.sale_repo.create(
+            {
+                "currency": currency,
+                "created_by_user_id": user_id,
+                "status": SaleStatus.draft,
+            }
+        )
+        return await self.sale_repo.get(sale.id)
+
+    async def update_draft_sale_items(self, sale_id, payload: dict, tenant_id: str | None = None):
+        items = payload.get("items") or []
+        currency = (payload.get("currency") or "").strip()
+        sale = await self.sale_repo.get(sale_id)
+        if not sale:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
+        if sale.status != SaleStatus.draft:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale is not draft")
+        for existing_item in sale.items:
+            await self.session.delete(existing_item)
+        if currency:
+            sale.currency = currency
+        elif not sale.currency:
+            sale.currency = await self._resolve_currency(tenant_id)
+        total_amount = Decimal("0")
+        if items:
+            product_ids = [item["product_id"] for item in items]
+            products = {str(p.id): p for p in await self._fetch_products(product_ids)}
+            for item in items:
+                product = products.get(str(item["product_id"]))
+                if not product:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+                qty = Decimal(item["qty"])
+                unit_price = item.get("unit_price")
+                if unit_price is None:
+                    unit_price = product.sell_price
+                unit_price = Decimal(unit_price)
+                if qty <= 0 or unit_price < 0:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
+                line_total = qty * unit_price
+                total_amount += line_total
+                await self.item_repo.add(
+                    sale.id,
+                    {
+                        "product_id": product.id,
+                        "qty": qty,
+                        "unit_price": unit_price,
+                        "line_total": line_total,
+                    },
+                )
+        sale.total_amount = total_amount
+        await self.session.flush()
+        return await self.sale_repo.get(sale.id)
+
+    async def complete_sale(self, sale_id, payload: dict, user_id=None, tenant_id: str | None = None):
+        settings = get_settings()
+        payments = payload.get("payments", [])
+        cash_register_id = payload.get("cash_register_id")
+        sale = await self.sale_repo.get(sale_id)
+        if not sale:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
+        if sale.status != SaleStatus.draft:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale is not draft")
+        if not sale.items:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Items required")
+        total_amount = Decimal("0")
+        for item in sale.items:
+            if not item.product_id:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+            product = await self.product_repo.get(item.product_id)
+            if not product:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+            qty = Decimal(item.qty)
+            unit_price = Decimal(item.unit_price)
+            if qty <= 0 or unit_price < 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
+            on_hand = await self.stock_repo.on_hand(product.id)
+            if not on_hand >= float(qty) and not settings.allow_negative_stock:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
+            line_total = qty * unit_price
+            total_amount += line_total
+            for allocation in item.allocations:
+                await self.session.delete(allocation)
+            consumed, remaining = await self.batch_repo.consume_with_fallback(product.id, float(qty))
+            if remaining > 0:
+                remaining_decimal = Decimal(str(remaining))
+                fallback_batch = await self.batch_repo.create(
+                    {
+                        "product_id": product.id,
+                        "quantity": remaining_decimal,
+                        "unit_cost": product.purchase_price,
+                    }
+                )
+                fallback_batch.quantity = Decimal("0")
+                consumed.append((fallback_batch, remaining))
+            for batch, consumed_qty in consumed:
+                allocation = SaleItemCostAllocation(
+                    sale_item_id=item.id,
+                    batch_id=batch.id,
+                    quantity=Decimal(str(consumed_qty)),
+                )
+                self.session.add(allocation)
+            await self.stock_repo.record_move(
+                {
+                    "product_id": product.id,
+                    "delta_qty": -qty,
+                    "reason": "sale",
+                    "ref_id": sale.id,
+                    "reference": str(sale.id),
+                    "created_by_user_id": user_id,
+                }
+            )
+        sale.total_amount = total_amount
+        sale.status = SaleStatus.completed
+        await self.session.flush()
+        await self._create_sale_tax_lines(sale.id, total_amount, payments, tenant_id, sale.status)
+        await self._create_payments(sale.id, payments, sale.currency or await self._resolve_currency(tenant_id))
+        register = await self._resolve_cash_register(cash_register_id)
+        await register.register_sale(sale.id)
+        return await self.sale_repo.get(sale.id)
+
+    async def cancel_sale(self, sale_id):
+        sale = await self.sale_repo.get(sale_id)
+        if not sale:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
+        if sale.status != SaleStatus.draft:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale is not draft")
+        sale.status = SaleStatus.cancelled
+        await self.session.flush()
+        return await self.sale_repo.get(sale.id)
+
     async def void_sale(self, sale_id, user_id):
         sale = await self.sale_repo.get(sale_id)
         if not sale:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
-        if sale.status == SaleStatus.void:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale already void")
+        if sale.status == SaleStatus.cancelled:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sale already cancelled")
         for item in sale.items:
             await self._restore_batches(item, item.qty)
             await self.stock_repo.record_move(
@@ -137,7 +273,7 @@ class SalesService:
                     "created_by_user_id": user_id,
                 }
             )
-        sale.status = SaleStatus.void
+        sale.status = SaleStatus.cancelled
         await self.session.flush()
         register = await self._resolve_cash_register()
         await register.refund_sale(sale.id)

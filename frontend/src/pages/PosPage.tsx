@@ -253,25 +253,38 @@ export default function PosPage() {
       setError(t('errors.addItemsBeforeFinalize'))
       return
     }
-    const payload = {
+    const itemPayload = {
       items: cartItems.map((item) => ({
         product_id: item.product.id,
         qty: item.qty,
         unit_price: item.product.price
       })),
-      currency: currencyCode,
+      currency: currencyCode
+    }
+    const completePayload = {
       payments: payments.map((payment) => ({
         amount: payment.amount,
         method: payment.method,
         reference: payment.reference
       }))
     }
+    let draftId: string | null = null
     try {
-      const res = await api.post('/sales', payload)
-      setSale(res.data)
+      const draftRes = await api.post('/sales/draft', { currency: currencyCode })
+      draftId = draftRes.data.id
+      await api.put(`/sales/${draftId}`, itemPayload)
+      const completeRes = await api.post(`/sales/${draftId}/complete`, completePayload)
+      setSale(completeRes.data)
       setCartItems([])
       setPayments([])
     } catch (e) {
+      if (draftId) {
+        try {
+          await api.post(`/sales/${draftId}/cancel`)
+        } catch {
+          // ignore draft cleanup errors
+        }
+      }
       setError(getApiErrorMessage(e, t, 'errors.finalizeSaleFailed'))
     }
   }
