@@ -62,6 +62,12 @@ type TaxReportItem = {
   by_method: Partial<Record<PaymentMethod, number>>
 }
 
+type FinanceFiltersState = {
+  dateFrom: string
+  dateTo: string
+  taxMethods: PaymentMethod[]
+}
+
 const paymentMethods: PaymentMethod[] = ['cash', 'card', 'transfer']
 
 const toDateParam = (value: string, endOfDay = false) => {
@@ -73,9 +79,72 @@ const toDateParam = (value: string, endOfDay = false) => {
   return date.toISOString()
 }
 
+const decodeTokenPayload = (token: string) => {
+  if (!token) return null
+  const tokenParts = token.split('.')
+  if (tokenParts.length < 2) return null
+  try {
+    const normalized = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+    const decoded = atob(padded)
+    return JSON.parse(decoded) as { tenant_id?: string; sub?: string }
+  } catch (error) {
+    console.warn('Failed to decode auth token payload', error)
+    return null
+  }
+}
+
+const getStoredUser = () => {
+  const rawUser = localStorage.getItem('user')
+  if (!rawUser) return null
+  try {
+    return JSON.parse(rawUser) as { id?: string }
+  } catch (error) {
+    console.warn('Failed to parse stored user', error)
+    return null
+  }
+}
+
+const defaultFilters: FinanceFiltersState = {
+  dateFrom: '',
+  dateTo: '',
+  taxMethods: paymentMethods
+}
+
+const isPaymentMethod = (value: unknown): value is PaymentMethod => {
+  return typeof value === 'string' && paymentMethods.includes(value as PaymentMethod)
+}
+
+const normalizeFiltersState = (value: unknown): FinanceFiltersState | null => {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Partial<FinanceFiltersState>
+  const dateFrom = typeof record.dateFrom === 'string' ? record.dateFrom : defaultFilters.dateFrom
+  const dateTo = typeof record.dateTo === 'string' ? record.dateTo : defaultFilters.dateTo
+  const taxMethods = Array.isArray(record.taxMethods)
+    ? record.taxMethods.filter(isPaymentMethod)
+    : defaultFilters.taxMethods
+  return { dateFrom, dateTo, taxMethods }
+}
+
+const readStoredFilters = (storageKey: string) => {
+  const raw = localStorage.getItem(storageKey)
+  if (!raw) return null
+  try {
+    return normalizeFiltersState(JSON.parse(raw))
+  } catch (error) {
+    console.warn('Failed to parse stored finance filters', error)
+    return null
+  }
+}
+
 export default function FinancePage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const tokenPayload = useMemo(() => decodeTokenPayload(localStorage.getItem('token') ?? ''), [])
+  const storedUser = useMemo(() => getStoredUser(), [])
+  const userId = storedUser?.id ?? tokenPayload?.sub
+  const tenantId = tokenPayload?.tenant_id
+  const storageKey = tenantId && userId ? `finance_filters:${tenantId}:${userId}` : null
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categoryName, setCategoryName] = useState('')
@@ -109,6 +178,29 @@ export default function FinancePage() {
       methods
     }
   }, [params, taxMethods])
+
+  useEffect(() => {
+    if (!storageKey) return
+    const savedFilters = readStoredFilters(storageKey)
+    if (savedFilters) {
+      setDateFrom(savedFilters.dateFrom)
+      setDateTo(savedFilters.dateTo)
+      setTaxMethods(savedFilters.taxMethods)
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    if (!storageKey) return
+    const handle = window.setTimeout(() => {
+      const payload: FinanceFiltersState = {
+        dateFrom,
+        dateTo,
+        taxMethods
+      }
+      localStorage.setItem(storageKey, JSON.stringify(payload))
+    }, 400)
+    return () => window.clearTimeout(handle)
+  }, [dateFrom, dateTo, taxMethods, storageKey])
 
   const loadCategories = async () => {
     const res = await api.get('/finance/expense-categories')
@@ -221,6 +313,15 @@ export default function FinancePage() {
     })
   }
 
+  const resetFilters = () => {
+    if (storageKey) {
+      localStorage.removeItem(storageKey)
+    }
+    setDateFrom(defaultFilters.dateFrom)
+    setDateTo(defaultFilters.dateTo)
+    setTaxMethods(defaultFilters.taxMethods)
+  }
+
   const taxTotal = useMemo(() => {
     return taxes.reduce((sum, item) => sum + Number(item.total_tax || 0), 0)
   }, [taxes])
@@ -237,6 +338,9 @@ export default function FinancePage() {
     <div className="page">
       <div className="page-header">
         <h2 className="page-title">{t('finance.title')}</h2>
+        <button type="button" onClick={resetFilters}>
+          {t('finance.resetFilters')}
+        </button>
       </div>
       <div className="grid grid-cards">
         <section className="card">

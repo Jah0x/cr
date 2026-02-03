@@ -335,6 +335,7 @@ const resources = {
       },
       finance: {
         title: 'Finance',
+        resetFilters: 'Reset filters',
         expenseCategories: 'Expense Categories',
         categoryName: 'Category name',
         addCategory: 'Add Category',
@@ -800,6 +801,7 @@ const resources = {
       },
       finance: {
         title: 'Финансы',
+        resetFilters: 'Сбросить фильтры',
         expenseCategories: 'Категории расходов',
         categoryName: 'Название категории',
         addCategory: 'Добавить категорию',
