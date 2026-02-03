@@ -9,6 +9,13 @@ type Role = { id: string; name: string }
 
 type User = { id: string; email: string; is_active: boolean; roles: Role[] }
 
+const ROLE_ORDER = ['owner', 'manager', 'cashier'] as const
+
+const getRoleOrder = (role: string) => {
+  const index = ROLE_ORDER.indexOf(role as (typeof ROLE_ORDER)[number])
+  return index === -1 ? ROLE_ORDER.length : index
+}
+
 export default function AdminUsersPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
@@ -154,17 +161,12 @@ export default function AdminUsersPage() {
     }
   }
 
-  const assignCashier = async (user: User) => {
+  const toggleRole = async (user: User, roleName: 'cashier' | 'manager') => {
     const roleNames = user.roles.map((role) => role.name)
-    if (!roleNames.includes('cashier')) {
-      roleNames.push('cashier')
-    }
-    await updateRoles(user, roleNames)
-  }
-
-  const removeCashier = async (user: User) => {
-    const roleNames = user.roles.map((role) => role.name).filter((role) => role !== 'cashier')
-    await updateRoles(user, roleNames)
+    const nextRoles = roleNames.includes(roleName)
+      ? roleNames.filter((role) => role !== roleName)
+      : [...roleNames, roleName]
+    await updateRoles(user, nextRoles)
   }
 
   const handlePasswordChange = async (user: User) => {
@@ -226,7 +228,12 @@ export default function AdminUsersPage() {
               ) : (
                 users.map((user) => {
                   const roleNames = user.roles.map((role) => role.name)
+                  const sortedRoleNames = [...roleNames].sort(
+                    (a, b) => getRoleOrder(a) - getRoleOrder(b)
+                  )
                   const hasCashier = roleNames.includes('cashier')
+                  const hasManager = roleNames.includes('manager')
+                  const hasOwner = roleNames.includes('owner')
                   const isBusy = Boolean(busyUsers[user.id])
                   return (
                     <tr key={user.id}>
@@ -235,9 +242,9 @@ export default function AdminUsersPage() {
                         {roleNames.length === 0 ? (
                           <span className="muted">{t('adminUsers.noRoles')}</span>
                         ) : (
-                          <div className="form-inline">
-                            {roleNames.map((role) => (
-                              <span key={role} className="pill">
+                          <div className="badge-list">
+                            {sortedRoleNames.map((role) => (
+                              <span key={role} className="badge badge--role">
                                 {role}
                               </span>
                             ))}
@@ -247,15 +254,30 @@ export default function AdminUsersPage() {
                       <td>{user.is_active ? t('common.yes') : t('common.no')}</td>
                       <td>
                         <div className="form-stack">
-                          <div className="form-inline">
-                            {hasCashier ? (
-                              <button type="button" onClick={() => removeCashier(user)} disabled={isBusy}>
-                                {t('adminUsers.removeCashier')}
-                              </button>
-                            ) : (
-                              <button type="button" onClick={() => assignCashier(user)} disabled={isBusy}>
-                                {t('adminUsers.assignCashier')}
-                              </button>
+                          <div className="role-toggle">
+                            <span className="role-toggle__label">
+                              {t('adminUsers.roles', { defaultValue: 'Роли' })}
+                            </span>
+                            <button
+                              type="button"
+                              className={`secondary role-toggle__button${hasCashier ? ' role-toggle__button--active' : ''}`}
+                              onClick={() => toggleRole(user, 'cashier')}
+                              disabled={isBusy || hasOwner}
+                            >
+                              cashier
+                            </button>
+                            <button
+                              type="button"
+                              className={`secondary role-toggle__button${hasManager ? ' role-toggle__button--active' : ''}`}
+                              onClick={() => toggleRole(user, 'manager')}
+                              disabled={isBusy || hasOwner}
+                            >
+                              manager
+                            </button>
+                            {hasOwner && (
+                              <span className="muted role-toggle__hint">
+                                {t('adminUsers.ownerLocked', { defaultValue: 'Owner роли нельзя менять' })}
+                              </span>
                             )}
                           </div>
                           <div className="form-inline">
