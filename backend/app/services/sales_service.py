@@ -43,7 +43,6 @@ class SalesService:
         self.tenant_settings_repo = tenant_settings_repo
 
     async def create_sale(self, payload: dict, user_id=None, tenant_id: str | None = None):
-        settings = get_settings()
         items = payload.get("items", [])
         currency = (payload.get("currency") or "").strip()
         payments = payload.get("payments", [])
@@ -60,7 +59,7 @@ class SalesService:
             {
                 "currency": currency,
                 "created_by_user_id": user_id,
-                "status": SaleStatus.completed,
+                "status": SaleStatus.draft,
                 "send_to_terminal": send_to_terminal,
             }
         )
@@ -75,12 +74,9 @@ class SalesService:
             unit_price = Decimal(unit_price)
             if qty <= 0 or unit_price < 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item values")
-            on_hand = await self.stock_repo.on_hand(product.id)
-            if not on_hand >= float(qty) and not settings.allow_negative_stock:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
             line_total = qty * unit_price
             total_amount += line_total
-            sale_item = await self.item_repo.add(
+            await self.item_repo.add(
                 sale.id,
                 {
                     "product_id": product.id,
@@ -89,43 +85,10 @@ class SalesService:
                     "line_total": line_total,
                 },
             )
-            consumed, remaining = await self.batch_repo.consume_with_fallback(product.id, float(qty))
-            if remaining > 0:
-                remaining_decimal = Decimal(str(remaining))
-                fallback_batch = await self.batch_repo.create(
-                    {
-                        "product_id": product.id,
-                        "quantity": remaining_decimal,
-                        "unit_cost": product.purchase_price,
-                    }
-                )
-                fallback_batch.quantity = Decimal("0")
-                consumed.append((fallback_batch, remaining))
-            for batch, consumed_qty in consumed:
-                allocation = SaleItemCostAllocation(
-                    sale_item_id=sale_item.id,
-                    batch_id=batch.id,
-                    quantity=Decimal(str(consumed_qty)),
-                )
-                self.session.add(allocation)
-            await self.stock_repo.record_move(
-                {
-                    "product_id": product.id,
-                    "delta_qty": -qty,
-                    "reason": "sale",
-                    "ref_id": sale.id,
-                    "reference": str(sale.id),
-                    "created_by_user_id": user_id,
-                }
-            )
         sale.total_amount = total_amount
         await self.session.flush()
-        await self._create_sale_tax_lines(sale.id, total_amount, payments, tenant_id, sale.status)
-        await self._create_payments(sale.id, payments, currency)
-        register = await self._resolve_cash_register(cash_register_id)
-        receipt = await register.register_sale(sale.id)
-        sale = await self.sale_repo.get(sale.id)
-        return sale, receipt
+        sale = await self.complete_sale(sale.id, payload, user_id, tenant_id)
+        return sale, None
 
     async def create_draft_sale(self, payload: dict, user_id=None, tenant_id: str | None = None):
         currency = (payload.get("currency") or "").strip()

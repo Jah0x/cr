@@ -25,6 +25,17 @@ type Product = {
   line_id?: string | null
 }
 
+type StockLevel = { product_id: string; on_hand: number }
+
+type StockMove = {
+  id: string
+  product_id: string
+  delta_qty: number
+  reason: string
+  reference: string
+  created_at: string
+}
+
 type FastApiValidationError = { loc?: Array<string | number>; msg: string; type?: string }
 
 type ApiErrorPayload = { detail?: string | FastApiValidationError[]; message?: string }
@@ -68,10 +79,19 @@ export default function AdminCatalogPage() {
   const [editId, setEditId] = useState('')
   const [editName, setEditName] = useState('')
   const [editSku, setEditSku] = useState('')
+  const [stockLevels, setStockLevels] = useState<StockLevel[]>([])
+  const [stockLevelLoading, setStockLevelLoading] = useState(false)
+  const [stockMoves, setStockMoves] = useState<StockMove[]>([])
+  const [stockMovesLoading, setStockMovesLoading] = useState(false)
+  const [editStockOnHand, setEditStockOnHand] = useState<number | null>(null)
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
   const lineMap = useMemo(() => new Map(lines.map((item) => [item.id, item.name])), [lines])
+  const stockMap = useMemo(
+    () => new Map(stockLevels.map((item) => [item.product_id, item.on_hand])),
+    [stockLevels]
+  )
 
   const loadData = async () => {
     setCatalogLoading(true)
@@ -169,6 +189,23 @@ export default function AdminCatalogPage() {
     addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
   }
 
+  const loadStockLevels = async () => {
+    setStockLevelLoading(true)
+    try {
+      const res = await api.get('/stock')
+      setStockLevels(res.data)
+    } catch (error) {
+      handleApiError(error)
+    } finally {
+      setStockLevelLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'products') return
+    void loadStockLevels()
+  }, [activeTab])
+
   const validateRequired = (fields: Array<string | number | null | undefined>) =>
     fields.every((field) => {
       if (typeof field === 'number') {
@@ -180,6 +217,22 @@ export default function AdminCatalogPage() {
   const isNonNegativeNumber = (value: string) => {
     const parsed = Number(value)
     return Number.isFinite(parsed) && parsed >= 0
+  }
+
+  const formatMoveType = (move: StockMove) => {
+    if (move.reason === 'adjustment') {
+      return t('adminStock.moveAdjust', { defaultValue: 'ADJUST' })
+    }
+    if (move.delta_qty >= 0) {
+      return t('adminStock.moveIn', { defaultValue: 'IN' })
+    }
+    return t('adminStock.moveOut', { defaultValue: 'OUT' })
+  }
+
+  const formatMoveDate = (value: string) => {
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.valueOf())) return value
+    return parsed.toLocaleString()
   }
 
   const confirmDeletion = () =>
@@ -210,6 +263,32 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     void loadCategoryBrands(categoryLinkId, setCategoryBrands, setCategoryBrandsLoading)
   }, [categoryLinkId])
+
+  useEffect(() => {
+    if (!editOpen || editType !== 'products' || !editId) {
+      setStockMoves([])
+      setEditStockOnHand(null)
+      setStockMovesLoading(false)
+      return
+    }
+    const loadProductStock = async () => {
+      setStockMovesLoading(true)
+      try {
+        const [levelsRes, movesRes] = await Promise.all([
+          api.get('/stock', { params: { product_id: editId } }),
+          api.get('/stock/moves', { params: { product_id: editId } })
+        ])
+        const levels = levelsRes.data as StockLevel[]
+        setEditStockOnHand(levels[0]?.on_hand ?? 0)
+        setStockMoves(movesRes.data)
+      } catch (error) {
+        handleApiError(error)
+      } finally {
+        setStockMovesLoading(false)
+      }
+    }
+    void loadProductStock()
+  }, [editId, editOpen, editType])
 
   useEffect(() => {
     setProductBrandId('')
@@ -956,17 +1035,18 @@ export default function AdminCatalogPage() {
                     <th scope="col">{t('admin.table.unit')}</th>
                     <th scope="col">{t('admin.table.purchasePrice')}</th>
                     <th scope="col">{t('admin.table.sellPrice')}</th>
+                    <th scope="col">{t('adminStock.onHand', { defaultValue: 'On hand' })}</th>
                     <th scope="col">{t('admin.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {catalogLoading ? (
                     <tr>
-                      <td colSpan={10}>{t('common.loading')}</td>
+                      <td colSpan={11}>{t('common.loading')}</td>
                     </tr>
                   ) : products.length === 0 ? (
                     <tr>
-                      <td colSpan={10}>{t('admin.emptyProducts')}</td>
+                      <td colSpan={11}>{t('admin.emptyProducts')}</td>
                     </tr>
                   ) : (
                     products.map((product) => (
@@ -990,6 +1070,11 @@ export default function AdminCatalogPage() {
                         <td>{product.unit}</td>
                         <td>{product.purchase_price}</td>
                         <td>{product.sell_price}</td>
+                        <td>
+                          {stockLevelLoading
+                            ? t('common.loading')
+                            : stockMap.get(product.id) ?? 0}
+                        </td>
                         <td>
                           <button
                             className="secondary"
@@ -1032,6 +1117,60 @@ export default function AdminCatalogPage() {
                   value={editSku}
                   onChange={(e) => setEditSku(e.target.value)}
                 />
+              )}
+              {editType === 'products' && (
+                <div className="form-stack">
+                  <div>
+                    <h5>{t('adminStock.movesTitle', { defaultValue: 'Stock moves' })}</h5>
+                    <p className="page-subtitle">
+                      {t('adminStock.movesSubtitle', { defaultValue: 'History of stock changes for this product.' })}
+                    </p>
+                  </div>
+                  <div className="form-row">
+                    <span className="muted">
+                      {t('adminStock.onHand', { defaultValue: 'On hand' })}
+                    </span>
+                    <strong>
+                      {editStockOnHand === null ? t('common.loading') : editStockOnHand}
+                    </strong>
+                  </div>
+                  <div className="table-wrapper">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th scope="col">{t('adminStock.moveDate', { defaultValue: 'Date' })}</th>
+                          <th scope="col">{t('adminStock.moveType', { defaultValue: 'Type' })}</th>
+                          <th scope="col">{t('adminStock.moveQty', { defaultValue: 'Qty' })}</th>
+                          <th scope="col">{t('adminStock.moveReason', { defaultValue: 'Reason' })}</th>
+                          <th scope="col">{t('adminStock.moveReference', { defaultValue: 'Reference' })}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stockMovesLoading ? (
+                          <tr>
+                            <td colSpan={5}>{t('common.loading')}</td>
+                          </tr>
+                        ) : stockMoves.length === 0 ? (
+                          <tr>
+                            <td colSpan={5}>
+                              {t('adminStock.movesEmpty', { defaultValue: 'No stock moves yet.' })}
+                            </td>
+                          </tr>
+                        ) : (
+                          stockMoves.map((move) => (
+                            <tr key={move.id}>
+                              <td>{formatMoveDate(move.created_at)}</td>
+                              <td>{formatMoveType(move)}</td>
+                              <td>{Math.abs(move.delta_qty)}</td>
+                              <td>{move.reason}</td>
+                              <td>{move.reference || '—'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
               <div className="form-row">
                 <button onClick={handleEditSave}>{t('common.save', { defaultValue: 'Сохранить' })}</button>
