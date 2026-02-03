@@ -48,6 +48,7 @@ class SalesService:
         currency = (payload.get("currency") or "").strip()
         payments = payload.get("payments", [])
         cash_register_id = payload.get("cash_register_id")
+        send_to_terminal = bool(payload.get("send_to_terminal", False))
         if not items:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Items required")
         if not currency:
@@ -56,7 +57,12 @@ class SalesService:
         products = {str(p.id): p for p in await self._fetch_products(product_ids)}
         total_amount = Decimal("0")
         sale = await self.sale_repo.create(
-            {"currency": currency, "created_by_user_id": user_id, "status": SaleStatus.completed}
+            {
+                "currency": currency,
+                "created_by_user_id": user_id,
+                "status": SaleStatus.completed,
+                "send_to_terminal": send_to_terminal,
+            }
         )
         for item in items:
             product = products.get(str(item["product_id"]))
@@ -123,6 +129,7 @@ class SalesService:
 
     async def create_draft_sale(self, payload: dict, user_id=None, tenant_id: str | None = None):
         currency = (payload.get("currency") or "").strip()
+        send_to_terminal = bool(payload.get("send_to_terminal", False))
         if not currency:
             currency = await self._resolve_currency(tenant_id)
         sale = await self.sale_repo.create(
@@ -130,6 +137,7 @@ class SalesService:
                 "currency": currency,
                 "created_by_user_id": user_id,
                 "status": SaleStatus.draft,
+                "send_to_terminal": send_to_terminal,
             }
         )
         return await self.sale_repo.get(sale.id)
@@ -137,6 +145,7 @@ class SalesService:
     async def update_draft_sale_items(self, sale_id, payload: dict, tenant_id: str | None = None):
         items = payload.get("items") or []
         currency = (payload.get("currency") or "").strip()
+        send_to_terminal = payload.get("send_to_terminal")
         sale = await self.sale_repo.get(sale_id)
         if not sale:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
@@ -148,6 +157,8 @@ class SalesService:
             sale.currency = currency
         elif not sale.currency:
             sale.currency = await self._resolve_currency(tenant_id)
+        if send_to_terminal is not None:
+            sale.send_to_terminal = bool(send_to_terminal)
         total_amount = Decimal("0")
         if items:
             product_ids = [item["product_id"] for item in items]
