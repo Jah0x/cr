@@ -72,11 +72,18 @@ async def taxes(
         if not raw:
             return await get_service(session).taxes(tenant.id, date_from, date_to, None)
         valid = {method.value for method in PaymentProvider}
-        invalid = [value for value in raw if value not in valid]
+        normalized: list[str] = []
+        invalid = []
+        for value in raw:
+            normalized_value = PaymentProvider.normalize(value)
+            if normalized_value not in valid:
+                invalid.append(value)
+            else:
+                normalized.append(normalized_value)
         if invalid:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid methods: {', '.join(invalid)}",
             )
-        methods_list = raw
+        methods_list = normalized
     return await get_service(session).taxes(tenant.id, date_from, date_to, methods_list)

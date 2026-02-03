@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useToast } from '../components/ToastProvider'
 
-type PaymentMethod = 'cash' | 'card' | 'external'
+type PaymentMethod = 'cash' | 'card' | 'transfer'
 
 type TaxRule = {
   id: string
@@ -27,7 +27,12 @@ type TaxSettings = {
   rules: TaxRule[]
 }
 
-const paymentMethods: PaymentMethod[] = ['cash', 'card', 'external']
+const paymentMethods: PaymentMethod[] = ['cash', 'card', 'transfer']
+
+const normalizePaymentMethod = (method: string): PaymentMethod => {
+  if (method === 'external') return 'transfer'
+  return method as PaymentMethod
+}
 
 const defaultTaxSettings: TaxSettings = {
   enabled: false,
@@ -86,7 +91,10 @@ export default function TenantSettingsPage() {
       ...(settings as Partial<TaxSettings>),
       rules: rules.map((rule) => ({
         ...rule,
-        applies_to: Array.isArray(rule.applies_to) && rule.applies_to.length > 0 ? rule.applies_to : paymentMethods
+        applies_to:
+          Array.isArray(rule.applies_to) && rule.applies_to.length > 0
+            ? rule.applies_to.map((method) => normalizePaymentMethod(method))
+            : paymentMethods
       }))
     }
   }, [data.settings])

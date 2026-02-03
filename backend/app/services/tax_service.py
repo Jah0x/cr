@@ -17,7 +17,10 @@ def _round_amount(value: Decimal, rounding: str) -> Decimal:
 
 def _normalize_applies_to(raw_value: object) -> list[str]:
     if isinstance(raw_value, list):
-        filtered = [value for value in raw_value if value in PAYMENT_METHODS]
+        normalized = [
+            PaymentProvider.normalize(value) if isinstance(value, str) else value for value in raw_value
+        ]
+        filtered = [value for value in normalized if value in PAYMENT_METHODS]
         if filtered:
             return filtered
     return PAYMENT_METHODS.copy()
@@ -56,9 +59,7 @@ def calculate_sale_tax_lines(
     payments = payments or []
     method_totals: dict[str, Decimal] = {method: Decimal("0") for method in PAYMENT_METHODS}
     for payment in payments:
-        method = payment.get("method")
-        if isinstance(method, PaymentProvider):
-            method = method.value
+        method = PaymentProvider.normalize(payment.get("method"))
         if method not in method_totals:
             continue
         amount = Decimal(str(payment.get("amount", 0) or 0))
