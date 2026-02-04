@@ -379,58 +379,60 @@ export default function FinancePage() {
           <p className="page-subtitle">{t('finance.filtersSubtitle')}</p>
         </div>
         <div className="card-body">
-          <div className="form-inline">
-            <button type="button" onClick={() => setQuickRange(1)}>
-              {t('finance.today')}
-            </button>
-            <button type="button" onClick={() => setQuickRange(7)}>
-              {t('finance.week')}
-            </button>
-            <button type="button" onClick={() => setQuickRange(30)}>
-              {t('finance.month')}
-            </button>
-          </div>
-          <div className="form-row">
-            <div className="form-field">
-              <span>{t('finance.dateFrom')}</span>
-              <input
-                type="date"
-                value={draftFilters.dateFrom}
-                onChange={(event) =>
-                  setDraftFilters((prev) => ({ ...prev, dateFrom: event.target.value }))
-                }
-              />
+          <div className="filters-panel__row">
+            <div className="filters-panel__presets form-inline">
+              <button type="button" onClick={() => setQuickRange(1)}>
+                {t('finance.today')}
+              </button>
+              <button type="button" onClick={() => setQuickRange(7)}>
+                {t('finance.week')}
+              </button>
+              <button type="button" onClick={() => setQuickRange(30)}>
+                {t('finance.month')}
+              </button>
             </div>
-            <div className="form-field">
-              <span>{t('finance.dateTo')}</span>
-              <input
-                type="date"
-                value={draftFilters.dateTo}
-                onChange={(event) =>
-                  setDraftFilters((prev) => ({ ...prev, dateTo: event.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="filters-panel__taxes">
-            {paymentMethods.map((method) => (
-              <label key={method} className="form-inline">
+            <div className="filters-panel__dates">
+              <div className="form-field">
+                <span>{t('finance.dateFrom')}</span>
                 <input
-                  type="checkbox"
-                  checked={draftFilters.taxMethods.includes(method)}
-                  onChange={() => toggleTaxMethod(method)}
+                  type="date"
+                  value={draftFilters.dateFrom}
+                  onChange={(event) =>
+                    setDraftFilters((prev) => ({ ...prev, dateFrom: event.target.value }))
+                  }
                 />
-                <span>{t(`finance.taxMethod.${method}`)}</span>
-              </label>
-            ))}
-          </div>
-          <div className="filters-panel__actions">
-            <button type="button" onClick={applyFilters}>
-              {t('finance.applyFilters')}
-            </button>
-            <button type="button" className="secondary" onClick={resetFilters}>
-              {t('finance.resetFilters')}
-            </button>
+              </div>
+              <div className="form-field">
+                <span>{t('finance.dateTo')}</span>
+                <input
+                  type="date"
+                  value={draftFilters.dateTo}
+                  onChange={(event) =>
+                    setDraftFilters((prev) => ({ ...prev, dateTo: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="filters-panel__taxes">
+              {paymentMethods.map((method) => (
+                <label key={method} className="form-inline">
+                  <input
+                    type="checkbox"
+                    checked={draftFilters.taxMethods.includes(method)}
+                    onChange={() => toggleTaxMethod(method)}
+                  />
+                  <span>{t(`finance.taxMethod.${method}`)}</span>
+                </label>
+              ))}
+            </div>
+            <div className="filters-panel__actions">
+              <button type="button" onClick={applyFilters}>
+                {t('finance.applyFilters')}
+              </button>
+              <button type="button" className="secondary" onClick={resetFilters}>
+                {t('finance.resetFilters')}
+              </button>
+            </div>
           </div>
         </div>
       </section>

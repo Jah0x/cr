@@ -167,16 +167,41 @@ button {
   gap: 16px;
 }
 
+.filters-panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.filters-panel__presets {
+  flex-wrap: wrap;
+}
+
+.filters-panel__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filters-panel__dates .form-field {
+  min-width: 160px;
+}
+
 .filters-panel__taxes {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: center;
 }
 
 .filters-panel__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: center;
+  margin-left: auto;
 }
 
 .skeleton {
