@@ -603,7 +603,7 @@ export default function PosPage() {
               )}
             </div>
             <div className="pos-payment-options">
-              <label className="form-inline">
+              <label className="form-inline pos-payment-options__label">
                 <input
                   type="checkbox"
                   checked={sendToTerminal}

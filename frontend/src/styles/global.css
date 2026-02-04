@@ -812,6 +812,11 @@ button:disabled:hover {
   gap: 12px;
 }
 
+.pos-payment-options__label span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .pos-payments-list {
   display: grid;
   gap: 8px;
