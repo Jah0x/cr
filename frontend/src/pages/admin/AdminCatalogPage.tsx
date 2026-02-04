@@ -97,6 +97,8 @@ export default function AdminCatalogPage() {
   const [stockMoves, setStockMoves] = useState<StockMove[]>([])
   const [stockMovesLoading, setStockMovesLoading] = useState(false)
   const [editStockOnHand, setEditStockOnHand] = useState<number | null>(null)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createModalTab, setCreateModalTab] = useState<CatalogTab>('categories')
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
@@ -371,6 +373,7 @@ export default function AdminCatalogPage() {
       setCategoryName('')
       addToast(t('common.created'), 'success')
       loadData()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -399,6 +402,7 @@ export default function AdminCatalogPage() {
       setBrandName('')
       addToast(t('common.created'), 'success')
       loadData()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -428,6 +432,7 @@ export default function AdminCatalogPage() {
       setLineBrand('')
       addToast(t('common.created'), 'success')
       loadData()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -505,6 +510,7 @@ export default function AdminCatalogPage() {
       setProductLineId('')
       addToast(t('common.created'), 'success')
       loadData()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -727,11 +733,27 @@ export default function AdminCatalogPage() {
     reader.readAsDataURL(file)
   }
 
+  const openCreateModal = () => {
+    setCreateModalTab(activeTab)
+    setCreateModalOpen(true)
+  }
+
+  const closeCreateModal = () => {
+    setCreateModalOpen(false)
+  }
+
   return (
     <div className="admin-page">
       <div className="page-header">
-        <h2 className="page-title">{t('adminNav.catalog')}</h2>
-        <p className="page-subtitle">{t('admin.catalogSubtitle')}</p>
+        <div className="page-header-row">
+          <div>
+            <h2 className="page-title">{t('adminNav.catalog')}</h2>
+            <p className="page-subtitle">{t('admin.catalogSubtitle')}</p>
+          </div>
+          <button type="button" onClick={openCreateModal}>
+            {t('common.add', { defaultValue: 'Добавить' })}
+          </button>
+        </div>
       </div>
       <div className="tabs">
         <button
@@ -765,22 +787,8 @@ export default function AdminCatalogPage() {
       </div>
 
       {activeTab === 'categories' && (
-        <div className="split">
+        <div className="split" style={{ gridTemplateColumns: '320px minmax(0, 1fr)' }}>
           <section className="card">
-            <div>
-              <h3>{t('adminSections.createCategory')}</h3>
-              <p className="page-subtitle">{t('adminSections.createCategorySubtitle')}</p>
-            </div>
-            <div className="form-row">
-              <input
-                placeholder={t('admin.categoryPlaceholder')}
-                value={categoryName}
-                onChange={(e) => setCategoryName(e.target.value)}
-              />
-              <button onClick={createCategory} disabled={!canCreateCategory}>
-                {t('admin.addCategory')}
-              </button>
-            </div>
             <div>
               <h4>{t('admin.catalogLinkTitle')}</h4>
               <div className="form-row">
@@ -891,357 +899,375 @@ export default function AdminCatalogPage() {
       )}
 
       {activeTab === 'brands' && (
-        <div className="split">
-          <section className="card">
-            <div>
-              <h3>{t('adminSections.createBrand')}</h3>
-              <p className="page-subtitle">{t('adminSections.createBrandSubtitle')}</p>
-            </div>
-            <div className="form-row">
-              <input
-                placeholder={t('admin.brandPlaceholder')}
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-              />
-              <button onClick={createBrand} disabled={!canCreateBrand}>
-                {t('admin.addBrand')}
-              </button>
-            </div>
-          </section>
-          <section className="card">
-            <h3>{t('adminSections.brandList')}</h3>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
+        <section className="card">
+          <h3>{t('adminSections.brandList')}</h3>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('admin.table.name')}</th>
+                  <th scope="col">{t('admin.table.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalogLoading ? (
                   <tr>
-                    <th scope="col">{t('admin.table.name')}</th>
-                    <th scope="col">{t('admin.table.actions')}</th>
+                    <td colSpan={2}>{t('common.loading')}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {catalogLoading ? (
-                    <tr>
-                      <td colSpan={2}>{t('common.loading')}</td>
+                ) : brands.length === 0 ? (
+                  <tr>
+                    <td colSpan={2}>{t('admin.emptyBrands')}</td>
+                  </tr>
+                ) : (
+                  brands.map((brand) => (
+                    <tr key={brand.id}>
+                      <td>{brand.name}</td>
+                      <td>
+                        <button className="secondary" onClick={() => openEditModal('brands', brand)}>
+                          {t('common.edit', { defaultValue: 'Редактировать' })}
+                        </button>
+                        <button className="secondary" onClick={() => deleteBrand(brand.id)}>
+                          {t('common.delete')}
+                        </button>
+                      </td>
                     </tr>
-                  ) : brands.length === 0 ? (
-                    <tr>
-                      <td colSpan={2}>{t('admin.emptyBrands')}</td>
-                    </tr>
-                  ) : (
-                    brands.map((brand) => (
-                      <tr key={brand.id}>
-                        <td>{brand.name}</td>
-                        <td>
-                          <button
-                            className="secondary"
-                            onClick={() => openEditModal('brands', brand)}
-                          >
-                            {t('common.edit', { defaultValue: 'Редактировать' })}
-                          </button>
-                          <button className="secondary" onClick={() => deleteBrand(brand.id)}>
-                            {t('common.delete')}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {activeTab === 'lines' && (
-        <div className="split">
-          <section className="card">
-            <div>
-              <h3>{t('adminSections.createLine')}</h3>
-              <p className="page-subtitle">{t('adminSections.createLineSubtitle')}</p>
-            </div>
-            <div className="form-row">
-              <input
-                placeholder={t('admin.linePlaceholder')}
-                value={lineName}
-                onChange={(e) => setLineName(e.target.value)}
-              />
-              <select value={lineBrand} onChange={(e) => setLineBrand(e.target.value)}>
-                <option value="">{t('admin.brandSelect')}</option>
-                {brands.map((brand) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={createLine}
-                disabled={!canCreateLine}
-                title={lineBrandMissing ? t('admin.validation.selectBrandForLine') : undefined}
-              >
-                {t('admin.addLine')}
-              </button>
-            </div>
-            {lineBrandMissing && <p className="page-subtitle">{t('admin.validation.selectBrandForLine')}</p>}
-          </section>
-          <section className="card">
-            <h3>{t('adminSections.lineList')}</h3>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
+        <section className="card">
+          <h3>{t('adminSections.lineList')}</h3>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('admin.table.name')}</th>
+                  <th scope="col">{t('admin.table.brand')}</th>
+                  <th scope="col">{t('admin.table.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalogLoading ? (
                   <tr>
-                    <th scope="col">{t('admin.table.name')}</th>
-                    <th scope="col">{t('admin.table.brand')}</th>
-                    <th scope="col">{t('admin.table.actions')}</th>
+                    <td colSpan={3}>{t('common.loading')}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {catalogLoading ? (
-                    <tr>
-                      <td colSpan={3}>{t('common.loading')}</td>
+                ) : lines.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>{t('admin.emptyLines')}</td>
+                  </tr>
+                ) : (
+                  lines.map((line) => (
+                    <tr key={line.id}>
+                      <td>{line.name}</td>
+                      <td>{brandMap.get(line.brand_id) ?? '—'}</td>
+                      <td>
+                        <button className="secondary" onClick={() => openEditModal('lines', line)}>
+                          {t('common.edit', { defaultValue: 'Редактировать' })}
+                        </button>
+                        <button className="secondary" onClick={() => deleteLine(line.id)}>
+                          {t('common.delete')}
+                        </button>
+                      </td>
                     </tr>
-                  ) : lines.length === 0 ? (
-                    <tr>
-                      <td colSpan={3}>{t('admin.emptyLines')}</td>
-                    </tr>
-                  ) : (
-                    lines.map((line) => (
-                      <tr key={line.id}>
-                        <td>{line.name}</td>
-                        <td>{brandMap.get(line.brand_id) ?? '—'}</td>
-                        <td>
-                          <button
-                            className="secondary"
-                            onClick={() => openEditModal('lines', line)}
-                          >
-                            {t('common.edit', { defaultValue: 'Редактировать' })}
-                          </button>
-                          <button className="secondary" onClick={() => deleteLine(line.id)}>
-                            {t('common.delete')}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {activeTab === 'products' && (
-        <div className="split">
-          <section className="card">
-            <div>
-              <h3>{t('adminSections.createProduct')}</h3>
-              <p className="page-subtitle">{t('adminSections.createProductSubtitle')}</p>
+        <section className="card">
+          <h3>{t('adminSections.productList')}</h3>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('admin.table.image')}</th>
+                  <th scope="col">{t('admin.table.name')}</th>
+                  <th scope="col">{t('admin.table.sku')}</th>
+                  <th scope="col">{t('admin.table.category')}</th>
+                  <th scope="col">{t('admin.table.brand')}</th>
+                  <th scope="col">{t('admin.table.line')}</th>
+                  <th scope="col">{t('admin.table.unit')}</th>
+                  <th scope="col">{t('admin.table.purchasePrice')}</th>
+                  <th scope="col">{t('admin.table.costPrice')}</th>
+                  <th scope="col">{t('admin.table.sellPrice')}</th>
+                  <th scope="col">{t('adminStock.onHand', { defaultValue: 'On hand' })}</th>
+                  <th scope="col">{t('admin.table.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalogLoading ? (
+                  <tr>
+                    <td colSpan={12}>{t('common.loading')}</td>
+                  </tr>
+                ) : products.length === 0 ? (
+                  <tr>
+                    <td colSpan={12}>{t('admin.emptyProducts')}</td>
+                  </tr>
+                ) : (
+                  products.map((product) => (
+                    <tr key={product.id}>
+                      <td>
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="table-image" />
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      <td>{product.name}</td>
+                      <td>{product.sku || '—'}</td>
+                      <td>{categoryMap.get(product.category_id) ?? '—'}</td>
+                      <td>{brandMap.get(product.brand_id) ?? '—'}</td>
+                      <td>{product.line_id ? lineMap.get(product.line_id) ?? '—' : '—'}</td>
+                      <td>{product.unit}</td>
+                      <td>{product.purchase_price}</td>
+                      <td>{product.cost_price}</td>
+                      <td>{product.sell_price}</td>
+                      <td>
+                        {stockLevelLoading ? t('common.loading') : stockMap.get(product.id) ?? 0}
+                      </td>
+                      <td>
+                        <button
+                          className="secondary"
+                          onClick={() => openEditModal('products', product)}
+                        >
+                          {t('common.edit', { defaultValue: 'Редактировать' })}
+                        </button>
+                        <button className="secondary" onClick={() => deleteProduct(product.id)}>
+                          {t('common.delete')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {createModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h4>
+                {createModalTab === 'categories'
+                  ? t('adminSections.createCategory')
+                  : createModalTab === 'brands'
+                    ? t('adminSections.createBrand')
+                    : createModalTab === 'lines'
+                      ? t('adminSections.createLine')
+                      : t('adminSections.createProduct')}
+              </h4>
+              <button className="ghost" onClick={closeCreateModal}>
+                {t('common.cancel')}
+              </button>
             </div>
-            <div className="form-stack">
-              <select value={productCategoryId} onChange={(e) => setProductCategoryId(e.target.value)}>
-                <option value="">{t('admin.categorySelect')}</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={productBrandId}
-                onChange={(e) => setProductBrandId(e.target.value)}
-                disabled={!productCategoryId}
-              >
-                <option value="">{t('admin.brandSelect')}</option>
-                {productCategoryBrands.map((brand) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={productLineId}
-                onChange={(e) => setProductLineId(e.target.value)}
-                disabled={!productBrandId}
-              >
-                <option value="">{t('admin.lineSelect')}</option>
-                {productBrandLines.map((line) => (
-                  <option key={line.id} value={line.id}>
-                    {line.name}
-                  </option>
-                ))}
-              </select>
-              <div className="form-row">
-                <input
-                  placeholder={t('admin.productPlaceholder')}
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                />
-                <input
-                  placeholder={t('admin.skuPlaceholder')}
-                  value={productSku}
-                  onChange={(e) => setProductSku(e.target.value)}
-                />
-                <input
-                  placeholder={t('admin.barcodePlaceholder')}
-                  value={productBarcode}
-                  onChange={(e) => setProductBarcode(e.target.value)}
-                />
+            {createModalTab === 'categories' && (
+              <div className="form-stack">
+                <p className="page-subtitle">{t('adminSections.createCategorySubtitle')}</p>
+                <div className="form-row">
+                  <input
+                    placeholder={t('admin.categoryPlaceholder')}
+                    value={categoryName}
+                    onChange={(e) => setCategoryName(e.target.value)}
+                  />
+                  <button onClick={createCategory} disabled={!canCreateCategory}>
+                    {t('admin.addCategory')}
+                  </button>
+                </div>
               </div>
-              <p className="page-subtitle">
-                {t('admin.productNameHelp', {
-                  defaultValue: 'Можно оставить пустым — возьмём название из линейки.'
-                })}
-              </p>
-              <div className="form-row">
-                <label className="form-field">
-                  <span>{t('admin.productImageLabel')}</span>
+            )}
+            {createModalTab === 'brands' && (
+              <div className="form-stack">
+                <p className="page-subtitle">{t('adminSections.createBrandSubtitle')}</p>
+                <div className="form-row">
                   <input
-                    type="url"
-                    placeholder={t('admin.productImagePlaceholder')}
-                    value={productImageUrl}
-                    onChange={(e) => setProductImageUrl(e.target.value)}
+                    placeholder={t('admin.brandPlaceholder')}
+                    value={brandName}
+                    onChange={(e) => setBrandName(e.target.value)}
                   />
-                </label>
-                <label className="form-field">
-                  <span>{t('admin.productImageUpload')}</span>
+                  <button onClick={createBrand} disabled={!canCreateBrand}>
+                    {t('admin.addBrand')}
+                  </button>
+                </div>
+              </div>
+            )}
+            {createModalTab === 'lines' && (
+              <div className="form-stack">
+                <p className="page-subtitle">{t('adminSections.createLineSubtitle')}</p>
+                <div className="form-row">
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleProductImageUpload(e.target.files?.[0])}
+                    placeholder={t('admin.linePlaceholder')}
+                    value={lineName}
+                    onChange={(e) => setLineName(e.target.value)}
                   />
-                </label>
-                {productImageUrl && (
-                  <div className="image-preview">
-                    <img src={productImageUrl} alt={t('admin.productImagePreview')} />
-                    <button
-                      type="button"
-                      className="ghost"
-                      onClick={() => setProductImageUrl('')}
-                    >
-                      {t('admin.clearImage')}
-                    </button>
-                  </div>
+                  <select value={lineBrand} onChange={(e) => setLineBrand(e.target.value)}>
+                    <option value="">{t('admin.brandSelect')}</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={createLine}
+                    disabled={!canCreateLine}
+                    title={lineBrandMissing ? t('admin.validation.selectBrandForLine') : undefined}
+                  >
+                    {t('admin.addLine')}
+                  </button>
+                </div>
+                {lineBrandMissing && (
+                  <p className="page-subtitle">{t('admin.validation.selectBrandForLine')}</p>
                 )}
               </div>
-              <div className="form-row">
-                <label className="form-field">
-                  <span>{t('admin.unitLabel')}</span>
-                  <select value={productUnit} onChange={(e) => setProductUnit(e.target.value)}>
-                    <option value="pcs">{t('admin.unitPcs')}</option>
-                    <option value="ml">{t('admin.unitMl')}</option>
-                    <option value="g">{t('admin.unitG')}</option>
-                  </select>
-                </label>
-                <label className="form-field">
-                  <span>{t('admin.purchasePriceLabel')}</span>
+            )}
+            {createModalTab === 'products' && (
+              <div className="form-stack">
+                <p className="page-subtitle">{t('adminSections.createProductSubtitle')}</p>
+                <select
+                  value={productCategoryId}
+                  onChange={(e) => setProductCategoryId(e.target.value)}
+                >
+                  <option value="">{t('admin.categorySelect')}</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={productBrandId}
+                  onChange={(e) => setProductBrandId(e.target.value)}
+                  disabled={!productCategoryId}
+                >
+                  <option value="">{t('admin.brandSelect')}</option>
+                  {productCategoryBrands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={productLineId}
+                  onChange={(e) => setProductLineId(e.target.value)}
+                  disabled={!productBrandId}
+                >
+                  <option value="">{t('admin.lineSelect')}</option>
+                  {productBrandLines.map((line) => (
+                    <option key={line.id} value={line.id}>
+                      {line.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="form-row">
                   <input
-                    type="number"
-                    min="0"
-                    placeholder={t('admin.purchasePricePlaceholder')}
-                    value={productPurchasePrice}
-                    onChange={(e) => setProductPurchasePrice(e.target.value)}
+                    placeholder={t('admin.productPlaceholder')}
+                    value={productName}
+                    onChange={(e) => setProductName(e.target.value)}
                   />
-                </label>
-                <label className="form-field">
-                  <span>{t('admin.costPriceLabel')}</span>
                   <input
-                    type="number"
-                    min="0"
-                    placeholder={t('admin.costPricePlaceholder')}
-                    value={productCostPrice}
-                    onChange={(e) => setProductCostPrice(e.target.value)}
+                    placeholder={t('admin.skuPlaceholder')}
+                    value={productSku}
+                    onChange={(e) => setProductSku(e.target.value)}
                   />
-                </label>
-                <label className="form-field">
-                  <span>{t('admin.sellPriceLabel')}</span>
                   <input
-                    type="number"
-                    min="0"
-                    placeholder={t('admin.sellPricePlaceholder')}
-                    value={productSellPrice}
-                    onChange={(e) => setProductSellPrice(e.target.value)}
+                    placeholder={t('admin.barcodePlaceholder')}
+                    value={productBarcode}
+                    onChange={(e) => setProductBarcode(e.target.value)}
                   />
-                </label>
-                <button onClick={createProduct} disabled={!canCreateProduct}>
-                  {t('admin.saveProduct')}
-                </button>
-              </div>
-            </div>
-          </section>
-          <section className="card">
-            <h3>{t('adminSections.productList')}</h3>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th scope="col">{t('admin.table.image')}</th>
-                    <th scope="col">{t('admin.table.name')}</th>
-                    <th scope="col">{t('admin.table.sku')}</th>
-                    <th scope="col">{t('admin.table.category')}</th>
-                    <th scope="col">{t('admin.table.brand')}</th>
-                    <th scope="col">{t('admin.table.line')}</th>
-                    <th scope="col">{t('admin.table.unit')}</th>
-                    <th scope="col">{t('admin.table.purchasePrice')}</th>
-                    <th scope="col">{t('admin.table.costPrice')}</th>
-                    <th scope="col">{t('admin.table.sellPrice')}</th>
-                    <th scope="col">{t('adminStock.onHand', { defaultValue: 'On hand' })}</th>
-                    <th scope="col">{t('admin.table.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {catalogLoading ? (
-                    <tr>
-                      <td colSpan={12}>{t('common.loading')}</td>
-                    </tr>
-                  ) : products.length === 0 ? (
-                    <tr>
-                      <td colSpan={12}>{t('admin.emptyProducts')}</td>
-                    </tr>
-                  ) : (
-                    products.map((product) => (
-                      <tr key={product.id}>
-                        <td>
-                          {product.image_url ? (
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="table-image"
-                            />
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                        <td>{product.name}</td>
-                        <td>{product.sku || '—'}</td>
-                        <td>{categoryMap.get(product.category_id) ?? '—'}</td>
-                        <td>{brandMap.get(product.brand_id) ?? '—'}</td>
-                        <td>{product.line_id ? lineMap.get(product.line_id) ?? '—' : '—'}</td>
-                        <td>{product.unit}</td>
-                        <td>{product.purchase_price}</td>
-                        <td>{product.cost_price}</td>
-                        <td>{product.sell_price}</td>
-                        <td>
-                          {stockLevelLoading
-                            ? t('common.loading')
-                            : stockMap.get(product.id) ?? 0}
-                        </td>
-                        <td>
-                          <button
-                            className="secondary"
-                            onClick={() => openEditModal('products', product)}
-                          >
-                            {t('common.edit', { defaultValue: 'Редактировать' })}
-                          </button>
-                          <button className="secondary" onClick={() => deleteProduct(product.id)}>
-                            {t('common.delete')}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                </div>
+                <p className="page-subtitle">
+                  {t('admin.productNameHelp', {
+                    defaultValue: 'Можно оставить пустым — возьмём название из линейки.'
+                  })}
+                </p>
+                <div className="form-row">
+                  <label className="form-field">
+                    <span>{t('admin.productImageLabel')}</span>
+                    <input
+                      type="url"
+                      placeholder={t('admin.productImagePlaceholder')}
+                      value={productImageUrl}
+                      onChange={(e) => setProductImageUrl(e.target.value)}
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.productImageUpload')}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleProductImageUpload(e.target.files?.[0])}
+                    />
+                  </label>
+                  {productImageUrl && (
+                    <div className="image-preview">
+                      <img src={productImageUrl} alt={t('admin.productImagePreview')} />
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => setProductImageUrl('')}
+                      >
+                        {t('admin.clearImage')}
+                      </button>
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                </div>
+                <div className="form-row">
+                  <label className="form-field">
+                    <span>{t('admin.unitLabel')}</span>
+                    <select value={productUnit} onChange={(e) => setProductUnit(e.target.value)}>
+                      <option value="pcs">{t('admin.unitPcs')}</option>
+                      <option value="ml">{t('admin.unitMl')}</option>
+                      <option value="g">{t('admin.unitG')}</option>
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.purchasePriceLabel')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('admin.purchasePricePlaceholder')}
+                      value={productPurchasePrice}
+                      onChange={(e) => setProductPurchasePrice(e.target.value)}
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.costPriceLabel')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('admin.costPricePlaceholder')}
+                      value={productCostPrice}
+                      onChange={(e) => setProductCostPrice(e.target.value)}
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>{t('admin.sellPriceLabel')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('admin.sellPricePlaceholder')}
+                      value={productSellPrice}
+                      onChange={(e) => setProductSellPrice(e.target.value)}
+                    />
+                  </label>
+                  <button onClick={createProduct} disabled={!canCreateProduct}>
+                    {t('admin.saveProduct')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

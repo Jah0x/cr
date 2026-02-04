@@ -23,6 +23,7 @@ export default function AdminStockPage() {
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([])
   const [stockProduct, setStockProduct] = useState('')
   const [stockQty, setStockQty] = useState('0')
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false)
 
   const productMap = useMemo(() => new Map(products.map((item) => [item.id, item.name])), [products])
 
@@ -115,16 +116,32 @@ export default function AdminStockPage() {
       addToast(t('common.updated'), 'success')
       setStockQty('0')
       loadStockLevels()
+      setAdjustModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
   }
 
+  const openAdjustModal = () => {
+    setAdjustModalOpen(true)
+  }
+
+  const closeAdjustModal = () => {
+    setAdjustModalOpen(false)
+  }
+
   return (
     <div className="admin-page">
       <div className="page-header">
-        <h2 className="page-title">{t('adminNav.stock')}</h2>
-        <p className="page-subtitle">{t('adminStock.subtitle')}</p>
+        <div className="page-header-row">
+          <div>
+            <h2 className="page-title">{t('adminNav.stock')}</h2>
+            <p className="page-subtitle">{t('adminStock.subtitle')}</p>
+          </div>
+          <button type="button" onClick={openAdjustModal}>
+            {t('common.add', { defaultValue: 'Добавить' })}
+          </button>
+        </div>
       </div>
       <div className="tabs">
         <button
@@ -179,25 +196,42 @@ export default function AdminStockPage() {
             <h3>{t('adminStock.adjustmentsTitle')}</h3>
             <p className="page-subtitle">{t('adminStock.adjustmentsSubtitle')}</p>
           </div>
-          <div className="form-row">
-            <select value={stockProduct} onChange={(e) => setStockProduct(e.target.value)}>
-              <option value="">{t('admin.productSelect')}</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              min="0"
-              placeholder={t('admin.qtyPlaceholder')}
-              value={stockQty}
-              onChange={(e) => setStockQty(e.target.value)}
-            />
-            <button onClick={adjustStock}>{t('admin.adjust')}</button>
-          </div>
+          <p className="page-subtitle">{t('common.useAddButton', { defaultValue: 'Используйте кнопку “Добавить”.' })}</p>
         </section>
+      )}
+
+      {adjustModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h4>{t('adminStock.adjustmentsTitle')}</h4>
+              <button className="ghost" onClick={closeAdjustModal}>
+                {t('common.cancel')}
+              </button>
+            </div>
+            <div className="form-stack">
+              <p className="page-subtitle">{t('adminStock.adjustmentsSubtitle')}</p>
+              <div className="form-row">
+                <select value={stockProduct} onChange={(e) => setStockProduct(e.target.value)}>
+                  <option value="">{t('admin.productSelect')}</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder={t('admin.qtyPlaceholder')}
+                  value={stockQty}
+                  onChange={(e) => setStockQty(e.target.value)}
+                />
+                <button onClick={adjustStock}>{t('admin.adjust')}</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
