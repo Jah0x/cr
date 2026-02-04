@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useEffect, useState, type FormEvent } from 'react'
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useToast } from '../../components/ToastProvider'
@@ -16,13 +17,149 @@ const getRoleOrder = (role: string) => {
   return index === -1 ? ROLE_ORDER.length : index
 }
 
+type RoleModalProps = {
+  user: User
+  isBusy: boolean
+  onClose: () => void
+  onSubmit: (nextRoles: string[]) => void
+  t: TFunction
+}
+
+const getRoleSelection = (user: User) => ({
+  cashier: user.roles.some((role) => role.name === 'cashier'),
+  manager: user.roles.some((role) => role.name === 'manager'),
+  owner: user.roles.some((role) => role.name === 'owner')
+})
+
+function RoleAssignmentModal({ user, isBusy, onClose, onSubmit, t }: RoleModalProps) {
+  const [roles, setRoles] = useState(() => getRoleSelection(user))
+
+  useEffect(() => {
+    setRoles(getRoleSelection(user))
+  }, [user])
+
+  const hasOwner = roles.owner
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nextRoles = Object.entries(roles)
+      .filter(([, checked]) => checked)
+      .map(([role]) => role)
+    onSubmit(nextRoles)
+  }
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal">
+        <div className="modal-header">
+          <h4>{t('adminUsers.assignRoles', { defaultValue: 'Назначить роли' })}</h4>
+          <button className="ghost" onClick={onClose} disabled={isBusy}>
+            {t('common.cancel')}
+          </button>
+        </div>
+        <div className="muted">{user.email}</div>
+        <form className="form-stack" onSubmit={handleSubmit}>
+          <div className="form-stack">
+            <span className="muted">{t('adminUsers.roles')}</span>
+            <label className="form-inline">
+              <input
+                type="checkbox"
+                checked={roles.cashier}
+                disabled={isBusy || hasOwner}
+                onChange={(event) => setRoles((prev) => ({ ...prev, cashier: event.target.checked }))}
+              />
+              <span>cashier</span>
+            </label>
+            <label className="form-inline">
+              <input
+                type="checkbox"
+                checked={roles.manager}
+                disabled={isBusy || hasOwner}
+                onChange={(event) => setRoles((prev) => ({ ...prev, manager: event.target.checked }))}
+              />
+              <span>manager</span>
+            </label>
+            <label className="form-inline">
+              <input type="checkbox" checked={roles.owner} disabled />
+              <span>owner</span>
+            </label>
+            {hasOwner && (
+              <span className="muted">
+                {t('adminUsers.ownerLocked', { defaultValue: 'Owner роли нельзя менять' })}
+              </span>
+            )}
+          </div>
+          <div className="form-row">
+            <button type="submit" disabled={isBusy || hasOwner}>
+              {t('common.save', { defaultValue: 'Сохранить' })}
+            </button>
+            <button type="button" className="ghost" onClick={onClose} disabled={isBusy}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+type PasswordModalProps = {
+  user: User
+  isBusy: boolean
+  onClose: () => void
+  onSubmit: (password: string) => void
+  t: TFunction
+}
+
+function PasswordUpdateModal({ user, isBusy, onClose, onSubmit, t }: PasswordModalProps) {
+  const [password, setPassword] = useState('')
+
+  useEffect(() => {
+    setPassword('')
+  }, [user])
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onSubmit(password)
+  }
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal">
+        <div className="modal-header">
+          <h4>{t('adminUsers.setPassword')}</h4>
+          <button className="ghost" onClick={onClose} disabled={isBusy}>
+            {t('common.cancel')}
+          </button>
+        </div>
+        <div className="muted">{user.email}</div>
+        <form className="form-stack" onSubmit={handleSubmit}>
+          <input
+            type="password"
+            placeholder={t('adminUsers.newPasswordPlaceholder')}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            disabled={isBusy}
+          />
+          <div className="form-row">
+            <button type="submit" disabled={isBusy}>
+              {t('adminUsers.setPassword')}
+            </button>
+            <button type="button" className="ghost" onClick={onClose} disabled={isBusy}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminUsersPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [busyUsers, setBusyUsers] = useState<Record<string, boolean>>({})
-  const [passwords, setPasswords] = useState<Record<string, string>>({})
   const [createOpen, setCreateOpen] = useState(false)
   const [createEmail, setCreateEmail] = useState('')
   const [createPassword, setCreatePassword] = useState('')
@@ -30,6 +167,8 @@ export default function AdminUsersPage() {
   const [createRoles, setCreateRoles] = useState({ cashier: false, manager: false, owner: false })
   const [createActive, setCreateActive] = useState(true)
   const [creatingUser, setCreatingUser] = useState(false)
+  const [roleModalUser, setRoleModalUser] = useState<User | null>(null)
+  const [passwordModalUser, setPasswordModalUser] = useState<User | null>(null)
 
   const setUserBusy = (userId: string, isBusy: boolean) => {
     setBusyUsers((prev) => ({ ...prev, [userId]: isBusy }))
@@ -154,23 +293,23 @@ export default function AdminUsersPage() {
       const res = await api.post<User>(`/users/${user.id}/roles`, { roles: nextRoles })
       updateUserState(res.data)
       addToast(t('adminUsers.rolesUpdated'), 'success')
+      return true
     } catch (error) {
       handleApiError(error)
+      return false
     } finally {
       setUserBusy(user.id, false)
     }
   }
 
-  const toggleRole = async (user: User, roleName: 'cashier' | 'manager') => {
-    const roleNames = user.roles.map((role) => role.name)
-    const nextRoles = roleNames.includes(roleName)
-      ? roleNames.filter((role) => role !== roleName)
-      : [...roleNames, roleName]
-    await updateRoles(user, nextRoles)
+  const handleRoleSubmit = async (user: User, nextRoles: string[]) => {
+    const updated = await updateRoles(user, nextRoles)
+    if (updated) {
+      setRoleModalUser(null)
+    }
   }
 
-  const handlePasswordChange = async (user: User) => {
-    const password = passwords[user.id] ?? ''
+  const handlePasswordSubmit = async (user: User, password: string) => {
     if (!password) {
       addToast(t('adminUsers.passwordRequired'), 'error')
       return
@@ -183,8 +322,8 @@ export default function AdminUsersPage() {
     try {
       const res = await api.post<User>(`/users/${user.id}/password`, { password })
       updateUserState(res.data)
-      setPasswords((prev) => ({ ...prev, [user.id]: '' }))
       addToast(t('adminUsers.passwordUpdated'), 'success')
+      setPasswordModalUser(null)
     } catch (error) {
       handleApiError(error)
     } finally {
@@ -231,8 +370,6 @@ export default function AdminUsersPage() {
                   const sortedRoleNames = [...roleNames].sort(
                     (a, b) => getRoleOrder(a) - getRoleOrder(b)
                   )
-                  const hasCashier = roleNames.includes('cashier')
-                  const hasManager = roleNames.includes('manager')
                   const hasOwner = roleNames.includes('owner')
                   const isBusy = Boolean(busyUsers[user.id])
                   return (
@@ -254,45 +391,26 @@ export default function AdminUsersPage() {
                       <td>{user.is_active ? t('common.yes') : t('common.no')}</td>
                       <td>
                         <div className="form-stack">
-                          <div className="role-toggle">
-                            <span className="role-toggle__label">
-                              {t('adminUsers.roles', { defaultValue: 'Роли' })}
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => setRoleModalUser(user)}
+                            disabled={isBusy}
+                          >
+                            {t('adminUsers.assignRoles', { defaultValue: 'Назначить роли' })}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPasswordModalUser(user)}
+                            disabled={isBusy}
+                          >
+                            {t('adminUsers.setPassword')}
+                          </button>
+                          {hasOwner && (
+                            <span className="muted">
+                              {t('adminUsers.ownerLocked', { defaultValue: 'Owner роли нельзя менять' })}
                             </span>
-                            <button
-                              type="button"
-                              className={`secondary role-toggle__button${hasCashier ? ' role-toggle__button--active' : ''}`}
-                              onClick={() => toggleRole(user, 'cashier')}
-                              disabled={isBusy || hasOwner}
-                            >
-                              cashier
-                            </button>
-                            <button
-                              type="button"
-                              className={`secondary role-toggle__button${hasManager ? ' role-toggle__button--active' : ''}`}
-                              onClick={() => toggleRole(user, 'manager')}
-                              disabled={isBusy || hasOwner}
-                            >
-                              manager
-                            </button>
-                            {hasOwner && (
-                              <span className="muted role-toggle__hint">
-                                {t('adminUsers.ownerLocked', { defaultValue: 'Owner роли нельзя менять' })}
-                              </span>
-                            )}
-                          </div>
-                          <div className="form-inline">
-                            <input
-                              type="password"
-                              placeholder={t('adminUsers.newPasswordPlaceholder')}
-                              value={passwords[user.id] ?? ''}
-                              onChange={(event) =>
-                                setPasswords((prev) => ({ ...prev, [user.id]: event.target.value }))
-                              }
-                            />
-                            <button type="button" onClick={() => handlePasswordChange(user)} disabled={isBusy}>
-                              {t('adminUsers.setPassword')}
-                            </button>
-                          </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -406,6 +524,26 @@ export default function AdminUsersPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {roleModalUser && (
+        <RoleAssignmentModal
+          user={roleModalUser}
+          isBusy={Boolean(busyUsers[roleModalUser.id])}
+          onClose={() => setRoleModalUser(null)}
+          onSubmit={(nextRoles) => handleRoleSubmit(roleModalUser, nextRoles)}
+          t={t}
+        />
+      )}
+
+      {passwordModalUser && (
+        <PasswordUpdateModal
+          user={passwordModalUser}
+          isBusy={Boolean(busyUsers[passwordModalUser.id])}
+          onClose={() => setPasswordModalUser(null)}
+          onSubmit={(password) => handlePasswordSubmit(passwordModalUser, password)}
+          t={t}
+        />
       )}
     </div>
   )
