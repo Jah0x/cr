@@ -3,6 +3,10 @@ import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useToast } from '../components/ToastProvider'
+import Card from '../components/Card'
+import { PrimaryButton, SecondaryButton } from '../components/Buttons'
+import { Checkbox, Input, Select } from '../components/FormField'
+import PageTitle from '../components/PageTitle'
 
 type ExpenseCategory = { id: string; name: string }
 
@@ -370,442 +374,391 @@ export default function FinancePage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h2 className="page-title">{t('finance.title')}</h2>
-      </div>
-      <section className="card filters-panel">
-        <div className="card-header">
-          <h3>{t('finance.filtersTitle')}</h3>
-          <p className="page-subtitle">{t('finance.filtersSubtitle')}</p>
-        </div>
-        <div className="card-body">
-          <div className="filters-panel__row">
-            <div className="filters-panel__presets form-inline">
-              <button type="button" onClick={() => setQuickRange(1)}>
-                {t('finance.today')}
-              </button>
-              <button type="button" onClick={() => setQuickRange(7)}>
-                {t('finance.week')}
-              </button>
-              <button type="button" onClick={() => setQuickRange(30)}>
-                {t('finance.month')}
-              </button>
-            </div>
-            <div className="filters-panel__dates">
-              <div className="form-field">
-                <span>{t('finance.dateFrom')}</span>
-                <input
-                  type="date"
-                  value={draftFilters.dateFrom}
-                  onChange={(event) =>
-                    setDraftFilters((prev) => ({ ...prev, dateFrom: event.target.value }))
-                  }
-                />
-              </div>
-              <div className="form-field">
-                <span>{t('finance.dateTo')}</span>
-                <input
-                  type="date"
-                  value={draftFilters.dateTo}
-                  onChange={(event) =>
-                    setDraftFilters((prev) => ({ ...prev, dateTo: event.target.value }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="filters-panel__taxes">
-              {paymentMethods.map((method) => (
-                <label key={method} className="form-inline">
-                  <input
-                    type="checkbox"
-                    checked={draftFilters.taxMethods.includes(method)}
-                    onChange={() => toggleTaxMethod(method)}
-                  />
-                  <span>{t(`finance.taxMethod.${method}`)}</span>
-                </label>
-              ))}
-            </div>
-            <div className="filters-panel__actions">
-              <button type="button" onClick={applyFilters}>
-                {t('finance.applyFilters')}
-              </button>
-              <button type="button" className="secondary" onClick={resetFilters}>
-                {t('finance.resetFilters')}
-              </button>
-            </div>
+      <PageTitle title={t('finance.title')} />
+      <Card title={t('finance.filtersTitle')} subtitle={t('finance.filtersSubtitle')} className="filters-panel">
+        <div className="filters-panel__row">
+          <div className="filters-panel__presets form-inline">
+            <PrimaryButton type="button" onClick={() => setQuickRange(1)}>
+              {t('finance.today')}
+            </PrimaryButton>
+            <PrimaryButton type="button" onClick={() => setQuickRange(7)}>
+              {t('finance.week')}
+            </PrimaryButton>
+            <PrimaryButton type="button" onClick={() => setQuickRange(30)}>
+              {t('finance.month')}
+            </PrimaryButton>
           </div>
-        </div>
-      </section>
-      <div className="grid finance-grid finance-grid--entry">
-        <section className="card">
-          <div className="card-header">
-            <h3>{t('finance.expenseCategories')}</h3>
-          </div>
-          <div className="card-body">
-            <div className="form-row">
-              <input
-                placeholder={t('finance.categoryName')}
-                value={categoryName}
-                onChange={(event) => setCategoryName(event.target.value)}
-              />
-              <button onClick={createCategory}>{t('finance.addCategory')}</button>
-            </div>
-            <ul className="pill-list">
-              {isLoading
-                ? Array.from({ length: 4 }).map((_, index) => (
-                    <li key={`category-skeleton-${index}`} className="pill skeleton-pill" />
-                  ))
-                : categories.map((category) => (
-                    <li key={category.id} className="pill">
-                      {category.name}
-                    </li>
-                  ))}
-            </ul>
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <h3>{t('finance.logExpense')}</h3>
-          </div>
-          <div className="card-body">
-            <input type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
-            <input placeholder={t('finance.amount')} value={amount} onChange={(event) => setAmount(event.target.value)} />
-            <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-              <option value="">{t('finance.category')}</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <input
-              placeholder={t('finance.paymentMethod')}
-              value={paymentMethod}
-              onChange={(event) => setPaymentMethod(event.target.value)}
+          <div className="filters-panel__dates">
+            <Input
+              label={t('finance.dateFrom')}
+              type="date"
+              value={draftFilters.dateFrom}
+              onChange={(event) => setDraftFilters((prev) => ({ ...prev, dateFrom: event.target.value }))}
             />
-            <input placeholder={t('finance.note')} value={note} onChange={(event) => setNote(event.target.value)} />
-            <button onClick={createExpense}>{t('finance.saveExpense')}</button>
+            <Input
+              label={t('finance.dateTo')}
+              type="date"
+              value={draftFilters.dateTo}
+              onChange={(event) => setDraftFilters((prev) => ({ ...prev, dateTo: event.target.value }))}
+            />
           </div>
-        </section>
+          <div className="filters-panel__taxes">
+            {paymentMethods.map((method) => (
+              <Checkbox
+                key={method}
+                checked={draftFilters.taxMethods.includes(method)}
+                onChange={() => toggleTaxMethod(method)}
+                label={t(`finance.taxMethod.${method}`)}
+              />
+            ))}
+          </div>
+          <div className="filters-panel__actions">
+            <PrimaryButton type="button" onClick={applyFilters}>
+              {t('finance.applyFilters')}
+            </PrimaryButton>
+            <SecondaryButton type="button" onClick={resetFilters}>
+              {t('finance.resetFilters')}
+            </SecondaryButton>
+          </div>
+        </div>
+      </Card>
+      <div className="grid finance-grid finance-grid--entry">
+        <Card title={t('finance.expenseCategories')}>
+          <div className="form-row">
+            <Input
+              placeholder={t('finance.categoryName')}
+              value={categoryName}
+              onChange={(event) => setCategoryName(event.target.value)}
+            />
+            <PrimaryButton onClick={createCategory}>{t('finance.addCategory')}</PrimaryButton>
+          </div>
+          <ul className="pill-list">
+            {isLoading
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <li key={`category-skeleton-${index}`} className="pill skeleton-pill" />
+                ))
+              : categories.map((category) => (
+                  <li key={category.id} className="pill">
+                    {category.name}
+                  </li>
+                ))}
+          </ul>
+        </Card>
+        <Card title={t('finance.logExpense')}>
+          <Input type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
+          <Input placeholder={t('finance.amount')} value={amount} onChange={(event) => setAmount(event.target.value)} />
+          <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+            <option value="">{t('finance.category')}</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+          <Input
+            placeholder={t('finance.paymentMethod')}
+            value={paymentMethod}
+            onChange={(event) => setPaymentMethod(event.target.value)}
+          />
+          <Input placeholder={t('finance.note')} value={note} onChange={(event) => setNote(event.target.value)} />
+          <PrimaryButton onClick={createExpense}>{t('finance.saveExpense')}</PrimaryButton>
+        </Card>
       </div>
       <div className="grid finance-grid">
-        <section className="card finance-card--wide">
-          <div className="card-header">
-            <h3>{t('finance.overviewTitle')}</h3>
-            <p className="page-subtitle">{t('finance.overviewSubtitle')}</p>
-          </div>
-          <div className="card-body">
-            {isLoading && !overview ? (
-              <>
-                <div className="table-wrapper">
-                  <table className="table table--skeleton">
-                    <tbody>{renderSkeletonRows(3, 2)}</tbody>
-                  </table>
-                </div>
-                <div className="table-wrapper">
-                  <table className="table table--skeleton">
-                    <tbody>{renderSkeletonRows(3, 3)}</tbody>
-                  </table>
-                </div>
-              </>
-            ) : (
-              overview && (
-                <>
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <tbody>
-                        <tr>
-                          <th scope="row">{t('finance.totalRevenue')}</th>
-                          <td>{formatCurrency(overview.total_revenue)}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">{t('finance.grossProfit')}</th>
-                          <td>{formatCurrency(overview.gross_profit)}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">{t('finance.totalTaxes')}</th>
-                          <td>{formatCurrency(overview.total_taxes)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>{t('finance.paymentMethodTitle')}</th>
-                          <th>{t('finance.totalRevenue')}</th>
-                          <th>{t('finance.totalTaxes')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paymentMethods.map((method) => (
-                          <tr key={method}>
-                            <td>{t(`finance.taxMethod.${method}`)}</td>
-                            <td>{formatCurrency(overview.revenue_by_method?.[method])}</td>
-                            <td>{formatCurrency(overview.taxes_by_method?.[method])}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )
-            )}
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <h3>{t('finance.pnlSummary')}</h3>
-          </div>
-          <div className="card-body">
-            {isLoading && !pnl ? (
+        <Card
+          title={t('finance.overviewTitle')}
+          subtitle={t('finance.overviewSubtitle')}
+          className="finance-card--wide"
+        >
+          {isLoading && !overview ? (
+            <>
               <div className="table-wrapper">
                 <table className="table table--skeleton">
-                  <tbody>{renderSkeletonRows(5, 2)}</tbody>
+                  <tbody>{renderSkeletonRows(3, 2)}</tbody>
                 </table>
               </div>
-            ) : (
-              pnl && (
+              <div className="table-wrapper">
+                <table className="table table--skeleton">
+                  <tbody>{renderSkeletonRows(3, 3)}</tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            overview && (
+              <>
                 <div className="table-wrapper">
                   <table className="table">
                     <tbody>
                       <tr>
-                        <th scope="row">{t('finance.totalSales')}</th>
-                        <td>{formatCurrency(pnl.total_sales)}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">{t('finance.cogs')}</th>
-                        <td>{formatCurrency(pnl.cogs)}</td>
+                        <th scope="row">{t('finance.totalRevenue')}</th>
+                        <td>{formatCurrency(overview.total_revenue)}</td>
                       </tr>
                       <tr>
                         <th scope="row">{t('finance.grossProfit')}</th>
-                        <td>{formatCurrency(pnl.gross_profit)}</td>
+                        <td>{formatCurrency(overview.gross_profit)}</td>
                       </tr>
                       <tr>
-                        <th scope="row">{t('finance.expenses')}</th>
-                        <td>{formatCurrency(pnl.expenses_total)}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">{t('finance.netProfit')}</th>
-                        <td>{formatCurrency(pnl.net_profit)}</td>
+                        <th scope="row">{t('finance.totalTaxes')}</th>
+                        <td>{formatCurrency(overview.total_taxes)}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-              )
-            )}
-          </div>
-        </section>
-        <section className="card finance-card--wide">
-          <div className="card-header">
-            <h3>{t('finance.topProductsTitle')}</h3>
-            <p className="page-subtitle">{t('finance.topProductsSubtitle')}</p>
-          </div>
-          <div className="card-body">
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>{t('finance.productName')}</th>
-                    <th>{t('finance.quantity')}</th>
-                    <th>{t('finance.totalRevenue')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading && topRevenue.length === 0 ? (
-                    renderSkeletonRows(4, 3)
-                  ) : topRevenue.length === 0 ? (
-                    <tr>
-                      <td colSpan={3}>{t('finance.noTopProducts')}</td>
-                    </tr>
-                  ) : (
-                    <>
-                      {topRevenue.map((item) => (
-                        <tr key={item.product_id}>
-                          <td>{item.name}</td>
-                          <td>{item.qty}</td>
-                          <td>{formatCurrency(item.revenue)}</td>
+                <div className="table-wrapper">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>{t('finance.paymentMethodTitle')}</th>
+                        <th>{t('finance.totalRevenue')}</th>
+                        <th>{t('finance.totalTaxes')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentMethods.map((method) => (
+                        <tr key={method}>
+                          <td>{t(`finance.taxMethod.${method}`)}</td>
+                          <td>{formatCurrency(overview.revenue_by_method?.[method])}</td>
+                          <td>{formatCurrency(overview.taxes_by_method?.[method])}</td>
                         </tr>
                       ))}
-                      <tr>
-                        <th colSpan={2}>{t('finance.totalRevenue')}</th>
-                        <th>{formatCurrency(topRevenueTotal)}</th>
-                      </tr>
-                    </>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )
+          )}
+        </Card>
+        <Card title={t('finance.pnlSummary')}>
+          {isLoading && !pnl ? (
             <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>{t('finance.productName')}</th>
-                    <th>{t('finance.quantity')}</th>
-                    <th>{t('finance.totalMargin')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading && topMargin.length === 0 ? (
-                    renderSkeletonRows(4, 3)
-                  ) : topMargin.length === 0 ? (
-                    <tr>
-                      <td colSpan={3}>{t('finance.noTopProducts')}</td>
-                    </tr>
-                  ) : (
-                    <>
-                      {topMargin.map((item) => (
-                        <tr key={item.product_id}>
-                          <td>{item.name}</td>
-                          <td>{item.qty}</td>
-                          <td>{formatCurrency(item.margin)}</td>
-                        </tr>
-                      ))}
-                      <tr>
-                        <th colSpan={2}>{t('finance.totalMargin')}</th>
-                        <th>{formatCurrency(topMarginTotal)}</th>
-                      </tr>
-                    </>
-                  )}
-                </tbody>
+              <table className="table table--skeleton">
+                <tbody>{renderSkeletonRows(5, 2)}</tbody>
               </table>
             </div>
-          </div>
-        </section>
-        <section className="card finance-card--wide">
-          <div className="card-header">
-            <h3>{t('finance.taxesTitle')}</h3>
-            <p className="page-subtitle">{t('finance.taxesSubtitle')}</p>
-          </div>
-          <div className="card-body">
-            {isLoading && taxes.length === 0 ? (
-              <div className="table-wrapper">
-                <table className="table table--skeleton">
-                  <tbody>{renderSkeletonRows(4, 6)}</tbody>
-                </table>
-              </div>
-            ) : taxes.length === 0 ? (
-              <p>{t('finance.taxesEmpty')}</p>
-            ) : (
+          ) : (
+            pnl && (
               <div className="table-wrapper">
                 <table className="table">
-                  <thead>
-                    <tr>
-                      <th>{t('finance.taxName')}</th>
-                      <th>{t('finance.taxRate')}</th>
-                      <th>{t('finance.taxTotal')}</th>
-                      <th>{t('finance.taxCash')}</th>
-                      <th>{t('finance.taxCard')}</th>
-                      <th>{t('finance.taxTransfer')}</th>
-                    </tr>
-                  </thead>
                   <tbody>
-                    {taxes.map((tax) => (
-                      <tr key={tax.rule_id}>
-                        <td>{tax.name}</td>
-                        <td>{tax.rate}</td>
-                        <td>{formatCurrency(tax.total_tax)}</td>
-                        <td>{formatCurrency(tax.by_method.cash)}</td>
-                        <td>{formatCurrency(tax.by_method.card)}</td>
-                        <td>{formatCurrency(tax.by_method.transfer)}</td>
-                      </tr>
-                    ))}
                     <tr>
-                      <th colSpan={2}>{t('finance.taxGrandTotal')}</th>
-                      <th>{formatCurrency(taxTotal)}</th>
-                      <td colSpan={3}></td>
+                      <th scope="row">{t('finance.totalSales')}</th>
+                      <td>{formatCurrency(pnl.total_sales)}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('finance.cogs')}</th>
+                      <td>{formatCurrency(pnl.cogs)}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('finance.grossProfit')}</th>
+                      <td>{formatCurrency(pnl.gross_profit)}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('finance.expenses')}</th>
+                      <td>{formatCurrency(pnl.expenses_total)}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">{t('finance.netProfit')}</th>
+                      <td>{formatCurrency(pnl.net_profit)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            )}
+            )
+          )}
+        </Card>
+        <Card
+          title={t('finance.topProductsTitle')}
+          subtitle={t('finance.topProductsSubtitle')}
+          className="finance-card--wide"
+        >
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.productName')}</th>
+                  <th>{t('finance.quantity')}</th>
+                  <th>{t('finance.totalRevenue')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading && topRevenue.length === 0 ? (
+                  renderSkeletonRows(4, 3)
+                ) : topRevenue.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>{t('finance.noTopProducts')}</td>
+                  </tr>
+                ) : (
+                  <>
+                    {topRevenue.map((item) => (
+                      <tr key={item.product_id}>
+                        <td>{item.name}</td>
+                        <td>{item.qty}</td>
+                        <td>{formatCurrency(item.revenue)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <th colSpan={2}>{t('finance.totalRevenue')}</th>
+                      <th>{formatCurrency(topRevenueTotal)}</th>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
           </div>
-        </section>
-        <section className="card finance-card--wide">
-          <div className="card-header">
-            <h3>{t('finance.inventoryTitle')}</h3>
-            <p className="page-subtitle">{t('finance.inventorySubtitle')}</p>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.productName')}</th>
+                  <th>{t('finance.quantity')}</th>
+                  <th>{t('finance.totalMargin')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading && topMargin.length === 0 ? (
+                  renderSkeletonRows(4, 3)
+                ) : topMargin.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>{t('finance.noTopProducts')}</td>
+                  </tr>
+                ) : (
+                  <>
+                    {topMargin.map((item) => (
+                      <tr key={item.product_id}>
+                        <td>{item.name}</td>
+                        <td>{item.qty}</td>
+                        <td>{formatCurrency(item.margin)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <th colSpan={2}>{t('finance.totalMargin')}</th>
+                      <th>{formatCurrency(topMarginTotal)}</th>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
           </div>
-          <div className="card-body">
-            {isLoading && !inventoryValuation ? (
-              <>
-                <span className="skeleton skeleton-text skeleton-text--wide" />
-                <div className="table-wrapper">
-                  <table className="table table--skeleton">
-                    <tbody>{renderSkeletonRows(4, 4)}</tbody>
-                  </table>
-                </div>
-              </>
-            ) : (
-              inventoryValuation && (
-                <>
-                  <p>
-                    <strong>{t('finance.inventoryTotal')}</strong>{' '}
-                    {formatCurrency(inventoryValuation.total_value)}
-                  </p>
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>{t('finance.productName')}</th>
-                          <th>{t('finance.quantity')}</th>
-                          <th>{t('finance.unitCost')}</th>
-                          <th>{t('finance.inventoryValue')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inventoryValuation.items.length === 0 ? (
-                          <tr>
-                            <td colSpan={4}>{t('finance.inventoryEmpty')}</td>
-                          </tr>
-                        ) : (
-                          inventoryValuation.items.map((item) => (
-                            <tr key={item.product_id}>
-                              <td>{item.name}</td>
-                              <td>{item.qty_on_hand}</td>
-                              <td>{formatCurrency(item.unit_cost)}</td>
-                              <td>{formatCurrency(item.total_value)}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )
-            )}
-          </div>
-        </section>
-        <section className="card finance-card--wide">
-          <div className="card-header">
-            <h3>{t('finance.expensesTitle')}</h3>
-          </div>
-          <div className="card-body">
+        </Card>
+        <Card title={t('finance.taxesTitle')} subtitle={t('finance.taxesSubtitle')} className="finance-card--wide">
+          {isLoading && taxes.length === 0 ? (
+            <div className="table-wrapper">
+              <table className="table table--skeleton">
+                <tbody>{renderSkeletonRows(4, 6)}</tbody>
+              </table>
+            </div>
+          ) : taxes.length === 0 ? (
+            <p>{t('finance.taxesEmpty')}</p>
+          ) : (
             <div className="table-wrapper">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>{t('finance.expensesTitle')}</th>
-                    <th>{t('finance.amount')}</th>
-                    <th>{t('finance.note')}</th>
+                    <th>{t('finance.taxName')}</th>
+                    <th>{t('finance.taxRate')}</th>
+                    <th>{t('finance.taxTotal')}</th>
+                    <th>{t('finance.taxCash')}</th>
+                    <th>{t('finance.taxCard')}</th>
+                    <th>{t('finance.taxTransfer')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {isLoading && expenses.length === 0
-                    ? renderSkeletonRows(4, 3)
-                    : expenses.map((expense) => (
-                        <tr key={expense.id}>
-                          <td>{new Date(expense.occurred_at).toLocaleDateString()}</td>
-                          <td>{formatCurrency(expense.amount)}</td>
-                          <td>{expense.note || t('finance.noNote')}</td>
-                        </tr>
-                      ))}
+                  {taxes.map((tax) => (
+                    <tr key={tax.rule_id}>
+                      <td>{tax.name}</td>
+                      <td>{tax.rate}</td>
+                      <td>{formatCurrency(tax.total_tax)}</td>
+                      <td>{formatCurrency(tax.by_method.cash)}</td>
+                      <td>{formatCurrency(tax.by_method.card)}</td>
+                      <td>{formatCurrency(tax.by_method.transfer)}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <th colSpan={2}>{t('finance.taxGrandTotal')}</th>
+                    <th>{formatCurrency(taxTotal)}</th>
+                    <td colSpan={3}></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
+          )}
+        </Card>
+        <Card
+          title={t('finance.inventoryTitle')}
+          subtitle={t('finance.inventorySubtitle')}
+          className="finance-card--wide"
+        >
+          {isLoading && !inventoryValuation ? (
+            <>
+              <span className="skeleton skeleton-text skeleton-text--wide" />
+              <div className="table-wrapper">
+                <table className="table table--skeleton">
+                  <tbody>{renderSkeletonRows(4, 4)}</tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            inventoryValuation && (
+              <>
+                <p>
+                  <strong>{t('finance.inventoryTotal')}</strong> {formatCurrency(inventoryValuation.total_value)}
+                </p>
+                <div className="table-wrapper">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>{t('finance.productName')}</th>
+                        <th>{t('finance.quantity')}</th>
+                        <th>{t('finance.unitCost')}</th>
+                        <th>{t('finance.inventoryValue')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inventoryValuation.items.length === 0 ? (
+                        <tr>
+                          <td colSpan={4}>{t('finance.inventoryEmpty')}</td>
+                        </tr>
+                      ) : (
+                        inventoryValuation.items.map((item) => (
+                          <tr key={item.product_id}>
+                            <td>{item.name}</td>
+                            <td>{item.qty_on_hand}</td>
+                            <td>{formatCurrency(item.unit_cost)}</td>
+                            <td>{formatCurrency(item.total_value)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )
+          )}
+        </Card>
+        <Card title={t('finance.expensesTitle')} className="finance-card--wide">
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.expensesTitle')}</th>
+                  <th>{t('finance.amount')}</th>
+                  <th>{t('finance.note')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading && expenses.length === 0
+                  ? renderSkeletonRows(4, 3)
+                  : expenses.map((expense) => (
+                      <tr key={expense.id}>
+                        <td>{new Date(expense.occurred_at).toLocaleDateString()}</td>
+                        <td>{formatCurrency(expense.amount)}</td>
+                        <td>{expense.note || t('finance.noNote')}</td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
           </div>
-        </section>
+        </Card>
       </div>
     </div>
   )

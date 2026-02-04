@@ -5,6 +5,11 @@ import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useToast } from '../../components/ToastProvider'
 import { getApiErrorMessage } from '../../utils/apiError'
+import Badge from '../../components/Badge'
+import Card from '../../components/Card'
+import { Button, PrimaryButton, SecondaryButton } from '../../components/Buttons'
+import { Checkbox, Input } from '../../components/FormField'
+import PageTitle from '../../components/PageTitle'
 
 type Role = { id: string; name: string }
 
@@ -52,36 +57,27 @@ function RoleAssignmentModal({ user, isBusy, onClose, onSubmit, t }: RoleModalPr
       <div className="modal">
         <div className="modal-header">
           <h4>{t('adminUsers.assignRoles', { defaultValue: 'Назначить роли' })}</h4>
-          <button className="ghost" onClick={onClose} disabled={isBusy}>
+          <Button variant="ghost" onClick={onClose} disabled={isBusy}>
             {t('common.cancel')}
-          </button>
+          </Button>
         </div>
         <div className="muted">{user.email}</div>
         <form className="form-stack" onSubmit={handleSubmit}>
           <div className="form-stack">
             <span className="muted">{t('adminUsers.roles')}</span>
-            <label className="form-inline">
-              <input
-                type="checkbox"
-                checked={roles.cashier}
-                disabled={isBusy || hasOwner}
-                onChange={(event) => setRoles((prev) => ({ ...prev, cashier: event.target.checked }))}
-              />
-              <span>cashier</span>
-            </label>
-            <label className="form-inline">
-              <input
-                type="checkbox"
-                checked={roles.manager}
-                disabled={isBusy || hasOwner}
-                onChange={(event) => setRoles((prev) => ({ ...prev, manager: event.target.checked }))}
-              />
-              <span>manager</span>
-            </label>
-            <label className="form-inline">
-              <input type="checkbox" checked={roles.owner} disabled />
-              <span>owner</span>
-            </label>
+            <Checkbox
+              checked={roles.cashier}
+              disabled={isBusy || hasOwner}
+              onChange={(event) => setRoles((prev) => ({ ...prev, cashier: event.target.checked }))}
+              label="cashier"
+            />
+            <Checkbox
+              checked={roles.manager}
+              disabled={isBusy || hasOwner}
+              onChange={(event) => setRoles((prev) => ({ ...prev, manager: event.target.checked }))}
+              label="manager"
+            />
+            <Checkbox checked={roles.owner} disabled label="owner" />
             {hasOwner && (
               <span className="muted">
                 {t('adminUsers.ownerLocked', { defaultValue: 'Owner роли нельзя менять' })}
@@ -89,12 +85,12 @@ function RoleAssignmentModal({ user, isBusy, onClose, onSubmit, t }: RoleModalPr
             )}
           </div>
           <div className="form-row">
-            <button type="submit" disabled={isBusy || hasOwner}>
+            <PrimaryButton type="submit" disabled={isBusy || hasOwner}>
               {t('common.save', { defaultValue: 'Сохранить' })}
-            </button>
-            <button type="button" className="ghost" onClick={onClose} disabled={isBusy}>
+            </PrimaryButton>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isBusy}>
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -127,13 +123,13 @@ function PasswordUpdateModal({ user, isBusy, onClose, onSubmit, t }: PasswordMod
       <div className="modal">
         <div className="modal-header">
           <h4>{t('adminUsers.setPassword')}</h4>
-          <button className="ghost" onClick={onClose} disabled={isBusy}>
+          <Button variant="ghost" onClick={onClose} disabled={isBusy}>
             {t('common.cancel')}
-          </button>
+          </Button>
         </div>
         <div className="muted">{user.email}</div>
         <form className="form-stack" onSubmit={handleSubmit}>
-          <input
+          <Input
             type="password"
             placeholder={t('adminUsers.newPasswordPlaceholder')}
             value={password}
@@ -141,12 +137,12 @@ function PasswordUpdateModal({ user, isBusy, onClose, onSubmit, t }: PasswordMod
             disabled={isBusy}
           />
           <div className="form-row">
-            <button type="submit" disabled={isBusy}>
+            <PrimaryButton type="submit" disabled={isBusy}>
               {t('adminUsers.setPassword')}
-            </button>
-            <button type="button" className="ghost" onClick={onClose} disabled={isBusy}>
+            </PrimaryButton>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isBusy}>
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -333,18 +329,16 @@ export default function AdminUsersPage() {
 
   return (
     <div className="admin-page">
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h2 className="page-title">{t('adminNav.users')}</h2>
-            <p className="page-subtitle">{t('adminUsers.subtitle')}</p>
-          </div>
-          <button type="button" onClick={openCreateModal}>
+      <PageTitle
+        title={t('adminNav.users')}
+        subtitle={t('adminUsers.subtitle')}
+        actions={
+          <PrimaryButton type="button" onClick={openCreateModal}>
             {t('adminUsers.createUser', { defaultValue: 'Создать пользователя' })}
-          </button>
-        </div>
-      </div>
-      <section className="card">
+          </PrimaryButton>
+        }
+      />
+      <Card>
         <div className="table-wrapper">
           <table className="table">
             <thead>
@@ -381,31 +375,26 @@ export default function AdminUsersPage() {
                         ) : (
                           <div className="badge-list">
                             {sortedRoleNames.map((role) => (
-                              <span key={role} className="badge badge--role">
+                              <Badge key={role} variant="role">
                                 {role}
-                              </span>
+                              </Badge>
                             ))}
                           </div>
                         )}
                       </td>
-                      <td>{user.is_active ? t('common.yes') : t('common.no')}</td>
+                      <td>
+                        <Badge variant={user.is_active ? 'default' : 'role'}>
+                          {user.is_active ? t('common.yes') : t('common.no')}
+                        </Badge>
+                      </td>
                       <td>
                         <div className="form-stack">
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => setRoleModalUser(user)}
-                            disabled={isBusy}
-                          >
+                          <SecondaryButton type="button" onClick={() => setRoleModalUser(user)} disabled={isBusy}>
                             {t('adminUsers.assignRoles', { defaultValue: 'Назначить роли' })}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPasswordModalUser(user)}
-                            disabled={isBusy}
-                          >
+                          </SecondaryButton>
+                          <SecondaryButton type="button" onClick={() => setPasswordModalUser(user)} disabled={isBusy}>
                             {t('adminUsers.setPassword')}
-                          </button>
+                          </SecondaryButton>
                           {hasOwner && (
                             <span className="muted">
                               {t('adminUsers.ownerLocked', { defaultValue: 'Owner роли нельзя менять' })}
@@ -420,19 +409,19 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
 
       {createOpen && (
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
               <h4>{t('adminUsers.createUser', { defaultValue: 'Создать пользователя' })}</h4>
-              <button className="ghost" onClick={closeCreateModal} disabled={creatingUser}>
+              <Button variant="ghost" onClick={closeCreateModal} disabled={creatingUser}>
                 {t('common.cancel')}
-              </button>
+              </Button>
             </div>
             <form className="form-stack" onSubmit={handleCreateSubmit}>
-              <input
+              <Input
                 type="email"
                 placeholder={t('common.email')}
                 value={createEmail}
@@ -441,7 +430,7 @@ export default function AdminUsersPage() {
               />
               <div className="form-stack">
                 <div className="form-inline">
-                  <input
+                  <Input
                     type="password"
                     placeholder={t('adminUsers.newPasswordPlaceholder')}
                     value={createPassword}
@@ -451,9 +440,8 @@ export default function AdminUsersPage() {
                     }}
                     disabled={createAutoPassword}
                   />
-                  <button
+                  <SecondaryButton
                     type="button"
-                    className="secondary"
                     onClick={() => {
                       const generated = generatePassword()
                       setCreatePassword(generated)
@@ -461,65 +449,46 @@ export default function AdminUsersPage() {
                     }}
                   >
                     {t('adminUsers.generatePassword', { defaultValue: 'Сгенерировать' })}
-                  </button>
+                  </SecondaryButton>
                 </div>
-                <label className="form-inline">
-                  <input
-                    type="checkbox"
-                    checked={createAutoPassword}
-                    onChange={(event) => {
-                      const nextValue = event.target.checked
-                      setCreateAutoPassword(nextValue)
-                      if (nextValue && !createPassword) {
-                        setCreatePassword(generatePassword())
-                      }
-                    }}
-                  />
-                  <span>{t('adminUsers.autoPassword', { defaultValue: 'Автогенерация пароля' })}</span>
-                </label>
+                <Checkbox
+                  checked={createAutoPassword}
+                  onChange={(event) => {
+                    const nextValue = event.target.checked
+                    setCreateAutoPassword(nextValue)
+                    if (nextValue && !createPassword) {
+                      setCreatePassword(generatePassword())
+                    }
+                  }}
+                  label={t('adminUsers.autoPassword', { defaultValue: 'Автогенерация пароля' })}
+                />
               </div>
               <div className="form-stack">
                 <span className="muted">{t('adminUsers.roles')}</span>
-                <label className="form-inline">
-                  <input
-                    type="checkbox"
-                    checked={createRoles.cashier}
-                    onChange={(event) =>
-                      setCreateRoles((prev) => ({ ...prev, cashier: event.target.checked }))
-                    }
-                  />
-                  <span>cashier</span>
-                </label>
-                <label className="form-inline">
-                  <input
-                    type="checkbox"
-                    checked={createRoles.manager}
-                    onChange={(event) =>
-                      setCreateRoles((prev) => ({ ...prev, manager: event.target.checked }))
-                    }
-                  />
-                  <span>manager</span>
-                </label>
-                <label className="form-inline">
-                  <input type="checkbox" checked={createRoles.owner} disabled />
-                  <span>owner</span>
-                </label>
-              </div>
-              <label className="form-inline">
-                <input
-                  type="checkbox"
-                  checked={createActive}
-                  onChange={(event) => setCreateActive(event.target.checked)}
+                <Checkbox
+                  checked={createRoles.cashier}
+                  onChange={(event) => setCreateRoles((prev) => ({ ...prev, cashier: event.target.checked }))}
+                  label="cashier"
                 />
-                <span>{t('adminUsers.active')}</span>
-              </label>
+                <Checkbox
+                  checked={createRoles.manager}
+                  onChange={(event) => setCreateRoles((prev) => ({ ...prev, manager: event.target.checked }))}
+                  label="manager"
+                />
+                <Checkbox checked={createRoles.owner} disabled label="owner" />
+              </div>
+              <Checkbox
+                checked={createActive}
+                onChange={(event) => setCreateActive(event.target.checked)}
+                label={t('adminUsers.active')}
+              />
               <div className="form-row">
-                <button type="submit" disabled={creatingUser}>
+                <PrimaryButton type="submit" disabled={creatingUser}>
                   {t('common.save', { defaultValue: 'Сохранить' })}
-                </button>
-                <button type="button" className="ghost" onClick={closeCreateModal} disabled={creatingUser}>
+                </PrimaryButton>
+                <Button type="button" variant="ghost" onClick={closeCreateModal} disabled={creatingUser}>
                   {t('common.cancel')}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

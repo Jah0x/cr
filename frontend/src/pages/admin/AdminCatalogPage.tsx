@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useToast } from '../../components/ToastProvider'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { PrimaryButton } from '../../components/Buttons'
+import PageTitle from '../../components/PageTitle'
 
 type Category = { id: string; name: string }
 
@@ -744,17 +746,15 @@ export default function AdminCatalogPage() {
 
   return (
     <div className="admin-page">
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h2 className="page-title">{t('adminNav.catalog')}</h2>
-            <p className="page-subtitle">{t('admin.catalogSubtitle')}</p>
-          </div>
-          <button type="button" onClick={openCreateModal}>
+      <PageTitle
+        title={t('adminNav.catalog')}
+        subtitle={t('admin.catalogSubtitle')}
+        actions={
+          <PrimaryButton type="button" onClick={openCreateModal}>
             {t('common.add', { defaultValue: 'Добавить' })}
-          </button>
-        </div>
-      </div>
+          </PrimaryButton>
+        }
+      />
       <div className="tabs">
         <button
           type="button"

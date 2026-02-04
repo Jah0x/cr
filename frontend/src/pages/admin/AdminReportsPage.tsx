@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useToast } from '../../components/ToastProvider'
 import { getApiErrorMessage } from '../../utils/apiError'
+import Card from '../../components/Card'
+import { PrimaryButton } from '../../components/Buttons'
+import { Input, Select } from '../../components/FormField'
+import PageTitle from '../../components/PageTitle'
 
 type ReportSummary = {
   total_sales?: number
@@ -95,45 +99,35 @@ export default function AdminReportsPage() {
 
   return (
     <div className="admin-page">
-      <div className="page-header">
-        <h2 className="page-title">{t('adminNav.reports')}</h2>
-        <p className="page-subtitle">{t('adminReports.subtitle')}</p>
-      </div>
+      <PageTitle title={t('adminNav.reports')} subtitle={t('adminReports.subtitle')} />
 
-      <section className="card">
+      <Card>
         <div className="form-stack">
           <div className="form-row">
-            <label className="form-field">
-              <span>{t('adminReports.period')}</span>
-              <select value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
-                <option value="today">{t('finance.today')}</option>
-                <option value="week">{t('finance.week')}</option>
-                <option value="month">{t('finance.month')}</option>
-                <option value="custom">{t('adminReports.customRange')}</option>
-              </select>
-            </label>
-            <label className="form-field">
-              <span>{t('adminReports.from')}</span>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                disabled={period !== 'custom'}
-              />
-            </label>
-            <label className="form-field">
-              <span>{t('adminReports.to')}</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                disabled={period !== 'custom'}
-              />
-            </label>
-            <button onClick={loadSummary}>{t('adminReports.load')}</button>
+            <Select label={t('adminReports.period')} value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
+              <option value="today">{t('finance.today')}</option>
+              <option value="week">{t('finance.week')}</option>
+              <option value="month">{t('finance.month')}</option>
+              <option value="custom">{t('adminReports.customRange')}</option>
+            </Select>
+            <Input
+              label={t('adminReports.from')}
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              disabled={period !== 'custom'}
+            />
+            <Input
+              label={t('adminReports.to')}
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              disabled={period !== 'custom'}
+            />
+            <PrimaryButton onClick={loadSummary}>{t('adminReports.load')}</PrimaryButton>
           </div>
         </div>
-      </section>
+      </Card>
 
       <section className="kpi-grid">
         {kpiCards.map((card) => (

@@ -3,6 +3,10 @@ import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useTenantSettings } from '../api/tenantSettings'
+import Card from '../components/Card'
+import { Button, PrimaryButton, SecondaryButton } from '../components/Buttons'
+import { Checkbox, Input, Select } from '../components/FormField'
+import PageTitle from '../components/PageTitle'
 
 type PaymentMethod = 'cash' | 'card' | 'transfer'
 
@@ -598,12 +602,9 @@ export default function PosPage() {
 
   return (
     <div className="page pos-page">
-      <div className="page-header">
-        <h2 className="page-title">{t('pos.title')}</h2>
-        <p className="page-subtitle">{t('pos.subtitle')}</p>
-      </div>
+      <PageTitle title={t('pos.title')} subtitle={t('pos.subtitle')} />
       <div className="pos-layout">
-        <section className="card pos-products">
+        <Card className="pos-products">
           <div className="pos-search">
             <input
               ref={searchInputRef}
@@ -629,10 +630,9 @@ export default function PosPage() {
               </button>
             ))}
           </div>
-        </section>
+        </Card>
         <div className="pos-cart-column">
-          <section className="card pos-cart">
-            <h3>{t('pos.cart')}</h3>
+          <Card title={t('pos.cart')} className="pos-cart">
             {cartItems.length === 0 ? (
               <p className="page-subtitle">{t('pos.emptyCart')}</p>
             ) : (
@@ -706,24 +706,23 @@ export default function PosPage() {
                   </button>
                 ))}
               </div>
-              <input
+              <Input
                 placeholder={t('pos.amount')}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
               />
-              <button onClick={addPayment}>{t('pos.addPayment')}</button>
+              <PrimaryButton onClick={addPayment}>{t('pos.addPayment')}</PrimaryButton>
             </div>
             <div className="pos-payment-extras">
-              <button
+              <SecondaryButton
                 type="button"
-                className="secondary"
                 onClick={() => setShowPaymentExtras((prev) => !prev)}
                 aria-expanded={showPaymentExtras}
               >
                 Дополнительно
-              </button>
+              </SecondaryButton>
               {showPaymentExtras && (
-                <input
+                <Input
                   placeholder={t('pos.reference')}
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
@@ -731,14 +730,12 @@ export default function PosPage() {
               )}
             </div>
             <div className="pos-payment-options">
-              <label className="form-inline pos-payment-options__label">
-                <input
-                  type="checkbox"
-                  checked={sendToTerminal}
-                  onChange={(e) => setSendToTerminal(e.target.checked)}
-                />
-                <span>Отправлять в терминал (позже)</span>
-              </label>
+              <Checkbox
+                className="pos-payment-options__label"
+                checked={sendToTerminal}
+                onChange={(e) => setSendToTerminal(e.target.checked)}
+                label="Отправлять в терминал (позже)"
+              />
             </div>
             <div className="pos-payments-list">
               {payments.map((payment, index) => (
@@ -747,9 +744,9 @@ export default function PosPage() {
                     {paymentLabels[payment.method]} {formatCurrency(payment.amount)}
                     {payment.reference ? ` (${payment.reference})` : ''}
                   </div>
-                  <button className="ghost" onClick={() => removePayment(index)}>
+                  <Button variant="ghost" onClick={() => removePayment(index)}>
                     {t('pos.remove')}
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -774,26 +771,24 @@ export default function PosPage() {
                 </p>
               </div>
             )}
-          </section>
+          </Card>
         </div>
       </div>
-      <section className="card pos-history">
-        <div className="pos-history-header">
-          <div>
-            <h3>{t('pos.historyTitle')}</h3>
-            <p className="page-subtitle">{t('pos.historySubtitle')}</p>
-          </div>
+      <Card
+        title={t('pos.historyTitle')}
+        subtitle={t('pos.historySubtitle')}
+        className="pos-history"
+        headerAction={
           <div className="pos-history-actions">
-            <button className="secondary" onClick={resetHistoryFilters}>
-              {t('pos.historyReset')}
-            </button>
-            <button onClick={loadSalesHistory}>{t('pos.historyApply')}</button>
+            <SecondaryButton onClick={resetHistoryFilters}>{t('pos.historyReset')}</SecondaryButton>
+            <PrimaryButton onClick={loadSalesHistory}>{t('pos.historyApply')}</PrimaryButton>
           </div>
-        </div>
+        }
+      >
         <div className="pos-history-filters">
           <label>
             <span>{t('pos.historyCashier')}</span>
-            <select value={cashierFilter} onChange={(e) => setCashierFilter(e.target.value)}>
+            <Select value={cashierFilter} onChange={(e) => setCashierFilter(e.target.value)}>
               <option value="">{t('pos.historyAllCashiers')}</option>
               {cashiers
                 .filter((user) => user.roles.some((role) => role.name === 'cashier' || role.name === 'owner'))
@@ -802,24 +797,24 @@ export default function PosPage() {
                     {cashier.email}
                   </option>
                 ))}
-            </select>
+            </Select>
           </label>
           <label>
             <span>{t('pos.historyDateFrom')}</span>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </label>
           <label>
             <span>{t('pos.historyDateTo')}</span>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </label>
           <label>
             <span>{t('pos.historyPaymentMethod')}</span>
-            <select value={paymentMethodFilter} onChange={(e) => setPaymentMethodFilter(e.target.value)}>
+            <Select value={paymentMethodFilter} onChange={(e) => setPaymentMethodFilter(e.target.value)}>
               <option value="">{t('pos.historyAllPayments')}</option>
               <option value="cash">{t('pos.paymentMethodCash')}</option>
               <option value="card">{t('pos.paymentMethodCard')}</option>
               <option value="transfer">{t('pos.paymentMethodTransfer')}</option>
-            </select>
+            </Select>
           </label>
         </div>
         {historyLoading ? (
@@ -871,20 +866,18 @@ export default function PosPage() {
         )}
         {!historyLoading && !historyError && salesHistory.length > 0 && historyHasMore && (
           <div className="pos-history-actions">
-            <button className="secondary" onClick={handleLoadMoreHistory}>
-              {t('pos.loadMore')}
-            </button>
+            <SecondaryButton onClick={handleLoadMoreHistory}>{t('pos.loadMore')}</SecondaryButton>
           </div>
         )}
-      </section>
+      </Card>
       {detailModalOpen && (
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
               <h4>{t('pos.saleDetails')}</h4>
-              <button className="ghost" onClick={closeSaleDetail}>
+              <Button variant="ghost" onClick={closeSaleDetail}>
                 {t('common.cancel')}
-              </button>
+              </Button>
             </div>
             <div className="form-stack">
               {detailLoading ? (

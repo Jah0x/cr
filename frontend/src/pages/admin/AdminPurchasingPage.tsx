@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useToast } from '../../components/ToastProvider'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { PrimaryButton } from '../../components/Buttons'
+import PageTitle from '../../components/PageTitle'
 
 type Supplier = { id: string; name: string }
 
@@ -249,17 +251,15 @@ export default function AdminPurchasingPage() {
 
   return (
     <div className="admin-page">
-      <div className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h2 className="page-title">{t('adminNav.purchasing')}</h2>
-            <p className="page-subtitle">{t('adminPurchasing.subtitle')}</p>
-          </div>
-          <button type="button" onClick={openCreateModal}>
+      <PageTitle
+        title={t('adminNav.purchasing')}
+        subtitle={t('adminPurchasing.subtitle')}
+        actions={
+          <PrimaryButton type="button" onClick={openCreateModal}>
             {t('common.add', { defaultValue: 'Добавить' })}
-          </button>
-        </div>
-      </div>
+          </PrimaryButton>
+        }
+      />
       <div className="tabs">
         <button
           type="button"

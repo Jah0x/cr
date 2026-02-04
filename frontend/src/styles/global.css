@@ -151,6 +151,14 @@ button {
   gap: 4px;
 }
 
+.card-header--with-action {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .card-body {
   display: grid;
   gap: 12px;
