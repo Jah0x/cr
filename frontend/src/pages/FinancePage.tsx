@@ -70,6 +70,19 @@ type FinanceFiltersState = {
 
 const paymentMethods: PaymentMethod[] = ['cash', 'card', 'transfer']
 
+const currencyFormatter = new Intl.NumberFormat('ru-RU', {
+  style: 'currency',
+  currency: 'RUB',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})
+
+const formatCurrency = (value: number | null | undefined) => {
+  const amount = typeof value === 'number' ? value : Number(value ?? 0)
+  const formatted = currencyFormatter.format(Number.isFinite(amount) ? amount : 0)
+  return formatted.replace(/\u00a0/g, ' ')
+}
+
 const toDateParam = (value: string, endOfDay = false) => {
   if (!value) return undefined
   const date = new Date(`${value}T00:00:00`)
@@ -501,15 +514,15 @@ export default function FinancePage() {
                       <tbody>
                         <tr>
                           <th scope="row">{t('finance.totalRevenue')}</th>
-                          <td>{overview.total_revenue}</td>
+                          <td>{formatCurrency(overview.total_revenue)}</td>
                         </tr>
                         <tr>
                           <th scope="row">{t('finance.grossProfit')}</th>
-                          <td>{overview.gross_profit}</td>
+                          <td>{formatCurrency(overview.gross_profit)}</td>
                         </tr>
                         <tr>
                           <th scope="row">{t('finance.totalTaxes')}</th>
-                          <td>{overview.total_taxes}</td>
+                          <td>{formatCurrency(overview.total_taxes)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -527,8 +540,8 @@ export default function FinancePage() {
                         {paymentMethods.map((method) => (
                           <tr key={method}>
                             <td>{t(`finance.taxMethod.${method}`)}</td>
-                            <td>{overview.revenue_by_method?.[method] ?? 0}</td>
-                            <td>{overview.taxes_by_method?.[method] ?? 0}</td>
+                            <td>{formatCurrency(overview.revenue_by_method?.[method])}</td>
+                            <td>{formatCurrency(overview.taxes_by_method?.[method])}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -557,23 +570,23 @@ export default function FinancePage() {
                     <tbody>
                       <tr>
                         <th scope="row">{t('finance.totalSales')}</th>
-                        <td>{pnl.total_sales}</td>
+                        <td>{formatCurrency(pnl.total_sales)}</td>
                       </tr>
                       <tr>
                         <th scope="row">{t('finance.cogs')}</th>
-                        <td>{pnl.cogs}</td>
+                        <td>{formatCurrency(pnl.cogs)}</td>
                       </tr>
                       <tr>
                         <th scope="row">{t('finance.grossProfit')}</th>
-                        <td>{pnl.gross_profit}</td>
+                        <td>{formatCurrency(pnl.gross_profit)}</td>
                       </tr>
                       <tr>
                         <th scope="row">{t('finance.expenses')}</th>
-                        <td>{pnl.expenses_total}</td>
+                        <td>{formatCurrency(pnl.expenses_total)}</td>
                       </tr>
                       <tr>
                         <th scope="row">{t('finance.netProfit')}</th>
-                        <td>{pnl.net_profit}</td>
+                        <td>{formatCurrency(pnl.net_profit)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -610,12 +623,12 @@ export default function FinancePage() {
                         <tr key={item.product_id}>
                           <td>{item.name}</td>
                           <td>{item.qty}</td>
-                          <td>{item.revenue}</td>
+                          <td>{formatCurrency(item.revenue)}</td>
                         </tr>
                       ))}
                       <tr>
                         <th colSpan={2}>{t('finance.totalRevenue')}</th>
-                        <th>{topRevenueTotal}</th>
+                        <th>{formatCurrency(topRevenueTotal)}</th>
                       </tr>
                     </>
                   )}
@@ -644,12 +657,12 @@ export default function FinancePage() {
                         <tr key={item.product_id}>
                           <td>{item.name}</td>
                           <td>{item.qty}</td>
-                          <td>{item.margin}</td>
+                          <td>{formatCurrency(item.margin)}</td>
                         </tr>
                       ))}
                       <tr>
                         <th colSpan={2}>{t('finance.totalMargin')}</th>
-                        <th>{topMarginTotal}</th>
+                        <th>{formatCurrency(topMarginTotal)}</th>
                       </tr>
                     </>
                   )}
@@ -690,15 +703,15 @@ export default function FinancePage() {
                       <tr key={tax.rule_id}>
                         <td>{tax.name}</td>
                         <td>{tax.rate}</td>
-                        <td>{tax.total_tax}</td>
-                        <td>{tax.by_method.cash ?? 0}</td>
-                        <td>{tax.by_method.card ?? 0}</td>
-                        <td>{tax.by_method.transfer ?? 0}</td>
+                        <td>{formatCurrency(tax.total_tax)}</td>
+                        <td>{formatCurrency(tax.by_method.cash)}</td>
+                        <td>{formatCurrency(tax.by_method.card)}</td>
+                        <td>{formatCurrency(tax.by_method.transfer)}</td>
                       </tr>
                     ))}
                     <tr>
                       <th colSpan={2}>{t('finance.taxGrandTotal')}</th>
-                      <th>{taxTotal}</th>
+                      <th>{formatCurrency(taxTotal)}</th>
                       <td colSpan={3}></td>
                     </tr>
                   </tbody>
@@ -726,7 +739,8 @@ export default function FinancePage() {
               inventoryValuation && (
                 <>
                   <p>
-                    <strong>{t('finance.inventoryTotal')}</strong> {inventoryValuation.total_value}
+                    <strong>{t('finance.inventoryTotal')}</strong>{' '}
+                    {formatCurrency(inventoryValuation.total_value)}
                   </p>
                   <div className="table-wrapper">
                     <table className="table">
@@ -748,8 +762,8 @@ export default function FinancePage() {
                             <tr key={item.product_id}>
                               <td>{item.name}</td>
                               <td>{item.qty_on_hand}</td>
-                              <td>{item.unit_cost}</td>
-                              <td>{item.total_value}</td>
+                              <td>{formatCurrency(item.unit_cost)}</td>
+                              <td>{formatCurrency(item.total_value)}</td>
                             </tr>
                           ))
                         )}
@@ -781,7 +795,7 @@ export default function FinancePage() {
                     : expenses.map((expense) => (
                         <tr key={expense.id}>
                           <td>{new Date(expense.occurred_at).toLocaleDateString()}</td>
-                          <td>{expense.amount}</td>
+                          <td>{formatCurrency(expense.amount)}</td>
                           <td>{expense.note || t('finance.noNote')}</td>
                         </tr>
                       ))}
