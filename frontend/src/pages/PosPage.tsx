@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -126,6 +126,7 @@ export default function PosPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState('')
   const [selectedSale, setSelectedSale] = useState<SaleDetail | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const { data: tenantSettings } = useTenantSettings()
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: t('pos.paymentMethodCash'),
@@ -481,6 +482,12 @@ export default function PosPage() {
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+        if (isEditable) return
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        return
+      }
       if (event.key === 'Escape') {
         if (!hasDraft) return
         const confirmClear = window.confirm('Очистить черновик продажи?')
@@ -599,6 +606,7 @@ export default function PosPage() {
         <section className="card pos-products">
           <div className="pos-search">
             <input
+              ref={searchInputRef}
               placeholder={t('pos.searchProducts')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
