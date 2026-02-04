@@ -35,6 +35,10 @@ export default function AdminPurchasingPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([])
+  const [suppliersLoading, setSuppliersLoading] = useState(true)
+  const [productsLoading, setProductsLoading] = useState(true)
+  const [invoicesLoading, setInvoicesLoading] = useState(true)
+  const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false)
   const [supplierName, setSupplierName] = useState('')
   const [invoiceSupplierId, setInvoiceSupplierId] = useState('')
   const [invoiceId, setInvoiceId] = useState('')
@@ -101,29 +105,38 @@ export default function AdminPurchasingPage() {
     )
 
   const loadSuppliers = async () => {
+    setSuppliersLoading(true)
     try {
       const res = await api.get('/suppliers')
       setSuppliers(res.data)
     } catch (error) {
       handleApiError(error)
+    } finally {
+      setSuppliersLoading(false)
     }
   }
 
   const loadProducts = async () => {
+    setProductsLoading(true)
     try {
       const res = await api.get('/products')
       setProducts(res.data)
     } catch (error) {
       handleApiError(error)
+    } finally {
+      setProductsLoading(false)
     }
   }
 
   const loadInvoices = async () => {
+    setInvoicesLoading(true)
     try {
       const res = await api.get('/purchase-invoices', { params: { status: 'draft' } })
       setInvoices(res.data)
     } catch (error) {
       handleApiError(error)
+    } finally {
+      setInvoicesLoading(false)
     }
   }
 
@@ -139,11 +152,14 @@ export default function AdminPurchasingPage() {
       return
     }
     const loadInvoiceDetail = async () => {
+      setInvoiceDetailLoading(true)
       try {
         const res = await api.get(`/purchase-invoices/${invoiceId}`)
         setInvoiceDetail(res.data)
       } catch (error) {
         handleApiError(error)
+      } finally {
+        setInvoiceDetailLoading(false)
       }
     }
     void loadInvoiceDetail()
@@ -249,6 +265,17 @@ export default function AdminPurchasingPage() {
     setCreateModalOpen(false)
   }
 
+  const renderSkeletonRows = (rows: number, columns: number) =>
+    Array.from({ length: rows }, (_, rowIndex) => (
+      <tr key={`skeleton-${rowIndex}`}>
+        {Array.from({ length: columns }, (_, columnIndex) => (
+          <td key={`skeleton-${rowIndex}-${columnIndex}`}>
+            <span className="skeleton skeleton-text" />
+          </td>
+        ))}
+      </tr>
+    ))
+
   return (
     <div className="admin-page">
       <PageTitle
@@ -281,7 +308,7 @@ export default function AdminPurchasingPage() {
         <section className="card">
           <h3>{t('adminPurchasing.suppliersList')}</h3>
           <div className="table-wrapper">
-            <table className="table">
+            <table className={suppliersLoading ? 'table table--skeleton' : 'table'}>
               <thead>
                 <tr>
                   <th scope="col">{t('admin.table.name')}</th>
@@ -289,9 +316,18 @@ export default function AdminPurchasingPage() {
                 </tr>
               </thead>
               <tbody>
-                {suppliers.length === 0 ? (
+                {suppliersLoading ? (
+                  renderSkeletonRows(4, 2)
+                ) : suppliers.length === 0 ? (
                   <tr>
-                    <td colSpan={2}>{t('adminPurchasing.emptySuppliers')}</td>
+                    <td colSpan={2}>
+                      <div className="form-stack">
+                        <span className="page-subtitle">{t('adminPurchasing.emptySuppliers')}</span>
+                        <PrimaryButton type="button" onClick={openCreateModal}>
+                          {t('adminPurchasing.createSupplier')}
+                        </PrimaryButton>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   suppliers.map((supplier) => (
@@ -321,7 +357,11 @@ export default function AdminPurchasingPage() {
             <div className="form-row">
               <label className="form-field">
                 <span>{t('adminPurchasing.selectInvoice')}</span>
-                <select value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)}>
+                <select
+                  value={invoiceId}
+                  onChange={(e) => setInvoiceId(e.target.value)}
+                  disabled={invoicesLoading}
+                >
                   <option value="">{t('adminPurchasing.selectInvoicePlaceholder')}</option>
                   {invoices.map((invoice) => (
                     <option key={invoice.id} value={invoice.id}>
@@ -333,6 +373,14 @@ export default function AdminPurchasingPage() {
                 </select>
               </label>
             </div>
+            {!invoicesLoading && invoices.length === 0 && (
+              <div className="form-stack">
+                <span className="page-subtitle">{t('adminPurchasing.selectInvoice')}</span>
+                <PrimaryButton type="button" onClick={openCreateModal}>
+                  {t('admin.newInvoice')}
+                </PrimaryButton>
+              </div>
+            )}
             {invoiceId && (
               <div className="page-subtitle">
                 {t('admin.workingInvoice', { id: invoiceId })}
@@ -346,7 +394,7 @@ export default function AdminPurchasingPage() {
               <p className="page-subtitle">{t('adminPurchasing.invoiceItemsSubtitle')}</p>
             </div>
             <div className="table-wrapper">
-              <table className="table">
+              <table className={invoiceDetailLoading ? 'table table--skeleton' : 'table'}>
                 <thead>
                   <tr>
                     <th scope="col">{t('admin.table.name')}</th>
@@ -356,7 +404,9 @@ export default function AdminPurchasingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoiceDetail?.items?.length ? (
+                  {invoiceDetailLoading ? (
+                    renderSkeletonRows(3, 4)
+                  ) : invoiceDetail?.items?.length ? (
                     invoiceDetail.items.map((item) => (
                       <tr key={item.id}>
                         <td>{productMap.get(item.product_id) ?? '—'}</td>
@@ -367,7 +417,14 @@ export default function AdminPurchasingPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4}>{t('adminPurchasing.emptyInvoiceItems')}</td>
+                      <td colSpan={4}>
+                        <div className="form-stack">
+                          <span className="page-subtitle">{t('adminPurchasing.emptyInvoiceItems')}</span>
+                          <PrimaryButton type="button" onClick={openCreateModal}>
+                            {t('adminPurchasing.addItemTitle')}
+                          </PrimaryButton>
+                        </div>
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -439,6 +496,7 @@ export default function AdminPurchasingPage() {
                   <select
                     value={purchaseProduct}
                     onChange={(e) => setPurchaseProduct(e.target.value)}
+                    disabled={productsLoading}
                   >
                     <option value="">{t('admin.productSelect')}</option>
                     {products.map((product) => (

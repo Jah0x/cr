@@ -59,7 +59,65 @@ export default function TenantSettingsPage() {
   const [newTaxRate, setNewTaxRate] = useState('0')
 
   if (isLoading) {
-    return <div className="page">{t('settings.loading')}</div>
+    const renderSkeletonRows = (rows: number, columns: number) =>
+      Array.from({ length: rows }, (_, rowIndex) => (
+        <tr key={`skeleton-${rowIndex}`}>
+          {Array.from({ length: columns }, (_, columnIndex) => (
+            <td key={`skeleton-${rowIndex}-${columnIndex}`}>
+              <span className="skeleton skeleton-text" />
+            </td>
+          ))}
+        </tr>
+      ))
+
+    return (
+      <div className="page">
+        <PageTitle title={t('settings.title')} subtitle={t('settings.subtitle')} />
+        <div className="grid tenant-settings-grid">
+          <div className="tenant-settings-grid__left">
+            <Card title={<span className="skeleton skeleton-text" />}>
+              <div className="form-stack">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <span key={`module-skeleton-${index}`} className="skeleton skeleton-text skeleton-text--wide" />
+                ))}
+              </div>
+            </Card>
+            <Card title={<span className="skeleton skeleton-text" />}>
+              <div className="form-stack">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <span key={`feature-skeleton-${index}`} className="skeleton skeleton-text skeleton-text--wide" />
+                ))}
+              </div>
+            </Card>
+          </div>
+          <div className="tenant-settings-grid__right">
+            <Card title={<span className="skeleton skeleton-text" />}>
+              <div className="form-stack">
+                {Array.from({ length: 2 }, (_, index) => (
+                  <span key={`prefs-skeleton-${index}`} className="skeleton skeleton-text skeleton-text--wide" />
+                ))}
+              </div>
+            </Card>
+            <Card title={<span className="skeleton skeleton-text" />}>
+              <div className="form-stack">
+                <span className="skeleton skeleton-text" />
+              </div>
+            </Card>
+          </div>
+          <Card
+            title={<span className="skeleton skeleton-text" />}
+            subtitle={<span className="skeleton skeleton-text skeleton-text--wide" />}
+            className="tenant-settings-grid__taxes"
+          >
+            <div className="table-wrapper">
+              <table className="table table--skeleton">
+                <tbody>{renderSkeletonRows(3, 5)}</tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   if (isError) {
@@ -78,7 +136,18 @@ export default function TenantSettingsPage() {
   }
 
   if (!data) {
-    return <div className="page">{t('settings.noSettings')}</div>
+    return (
+      <div className="page">
+        <Card>
+          <div className="form-stack">
+            <p className="page-subtitle">{t('settings.noSettings')}</p>
+            <PrimaryButton type="button" onClick={() => refetch()}>
+              {t('common.retry')}
+            </PrimaryButton>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   const uiPrefsFeatureEnabled =

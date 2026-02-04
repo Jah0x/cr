@@ -23,6 +23,8 @@ export default function AdminStockPage() {
   const [activeTab, setActiveTab] = useState<StockTab>('levels')
   const [products, setProducts] = useState<Product[]>([])
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([])
+  const [productsLoading, setProductsLoading] = useState(true)
+  const [stockLevelsLoading, setStockLevelsLoading] = useState(true)
   const [stockProduct, setStockProduct] = useState('')
   const [stockQty, setStockQty] = useState('0')
   const [adjustModalOpen, setAdjustModalOpen] = useState(false)
@@ -77,20 +79,26 @@ export default function AdminStockPage() {
   }
 
   const loadProducts = async () => {
+    setProductsLoading(true)
     try {
       const res = await api.get('/products')
       setProducts(res.data)
     } catch (error) {
       handleApiError(error)
+    } finally {
+      setProductsLoading(false)
     }
   }
 
   const loadStockLevels = async () => {
+    setStockLevelsLoading(true)
     try {
       const res = await api.get('/stock')
       setStockLevels(res.data)
     } catch (error) {
       handleApiError(error)
+    } finally {
+      setStockLevelsLoading(false)
     }
   }
 
@@ -132,6 +140,17 @@ export default function AdminStockPage() {
     setAdjustModalOpen(false)
   }
 
+  const renderSkeletonRows = (rows: number, columns: number) =>
+    Array.from({ length: rows }, (_, rowIndex) => (
+      <tr key={`skeleton-${rowIndex}`}>
+        {Array.from({ length: columns }, (_, columnIndex) => (
+          <td key={`skeleton-${rowIndex}-${columnIndex}`}>
+            <span className="skeleton skeleton-text" />
+          </td>
+        ))}
+      </tr>
+    ))
+
   return (
     <div className="admin-page">
       <PageTitle
@@ -164,7 +183,7 @@ export default function AdminStockPage() {
         <section className="card">
           <h3>{t('adminStock.levelsTitle')}</h3>
           <div className="table-wrapper">
-            <table className="table">
+            <table className={stockLevelsLoading ? 'table table--skeleton' : 'table'}>
               <thead>
                 <tr>
                   <th scope="col">{t('admin.table.name')}</th>
@@ -172,9 +191,18 @@ export default function AdminStockPage() {
                 </tr>
               </thead>
               <tbody>
-                {stockLevels.length === 0 ? (
+                {stockLevelsLoading ? (
+                  renderSkeletonRows(4, 2)
+                ) : stockLevels.length === 0 ? (
                   <tr>
-                    <td colSpan={2}>{t('adminStock.emptyLevels')}</td>
+                    <td colSpan={2}>
+                      <div className="form-stack">
+                        <span className="page-subtitle">{t('adminStock.emptyLevels')}</span>
+                        <PrimaryButton type="button" onClick={openAdjustModal}>
+                          {t('common.add', { defaultValue: 'Добавить' })}
+                        </PrimaryButton>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   stockLevels.map((item) => (
@@ -212,7 +240,11 @@ export default function AdminStockPage() {
             <div className="form-stack">
               <p className="page-subtitle">{t('adminStock.adjustmentsSubtitle')}</p>
               <div className="form-row">
-                <select value={stockProduct} onChange={(e) => setStockProduct(e.target.value)}>
+                <select
+                  value={stockProduct}
+                  onChange={(e) => setStockProduct(e.target.value)}
+                  disabled={productsLoading}
+                >
                   <option value="">{t('admin.productSelect')}</option>
                   {products.map((product) => (
                     <option key={product.id} value={product.id}>

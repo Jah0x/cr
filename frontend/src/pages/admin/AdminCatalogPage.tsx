@@ -736,13 +736,28 @@ export default function AdminCatalogPage() {
   }
 
   const openCreateModal = () => {
-    setCreateModalTab(activeTab)
-    setCreateModalOpen(true)
+    openCreateModalFor(activeTab)
   }
 
   const closeCreateModal = () => {
     setCreateModalOpen(false)
   }
+
+  const openCreateModalFor = (tab: CatalogTab) => {
+    setCreateModalTab(tab)
+    setCreateModalOpen(true)
+  }
+
+  const renderSkeletonRows = (rows: number, columns: number) =>
+    Array.from({ length: rows }, (_, rowIndex) => (
+      <tr key={`skeleton-${rowIndex}`}>
+        {Array.from({ length: columns }, (_, columnIndex) => (
+          <td key={`skeleton-${rowIndex}-${columnIndex}`}>
+            <span className="skeleton skeleton-text" />
+          </td>
+        ))}
+      </tr>
+    ))
 
   return (
     <div className="admin-page">
@@ -809,7 +824,7 @@ export default function AdminCatalogPage() {
                 </button>
               </div>
               <div className="table-wrapper">
-                <table className="table">
+                <table className={categoryBrandsLoading ? 'table table--skeleton' : 'table'}>
                   <thead>
                     <tr>
                       <th scope="col">{t('admin.table.brand')}</th>
@@ -818,12 +833,21 @@ export default function AdminCatalogPage() {
                   </thead>
                   <tbody>
                     {categoryBrandsLoading ? (
-                      <tr>
-                        <td colSpan={2}>{t('common.loading')}</td>
-                      </tr>
+                      renderSkeletonRows(3, 2)
                     ) : categoryLinkId && categoryBrands.length === 0 ? (
                       <tr>
-                        <td colSpan={2}>{t('admin.emptyLinkedBrands')}</td>
+                        <td colSpan={2}>
+                          <div className="form-stack">
+                            <span className="page-subtitle">{t('admin.emptyLinkedBrands')}</span>
+                            <button
+                              className="secondary"
+                              onClick={() => setLinkModalOpen(true)}
+                              disabled={!categoryLinkId}
+                            >
+                              {t('admin.linkBrand')}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ) : !categoryLinkId ? (
                       <tr>
@@ -849,7 +873,7 @@ export default function AdminCatalogPage() {
           <section className="card">
             <h3>{t('adminSections.categoryList')}</h3>
             <div className="table-wrapper">
-              <table className="table">
+              <table className={catalogLoading ? 'table table--skeleton' : 'table'}>
                 <thead>
                   <tr>
                     <th scope="col">{t('admin.table.name')}</th>
@@ -859,23 +883,30 @@ export default function AdminCatalogPage() {
                 </thead>
                 <tbody>
                   {catalogLoading ? (
-                    <tr>
-                      <td colSpan={3}>{t('common.loading')}</td>
-                    </tr>
+                    renderSkeletonRows(4, 3)
                   ) : categories.length === 0 ? (
                     <tr>
-                      <td colSpan={3}>{t('admin.emptyCategories')}</td>
+                      <td colSpan={3}>
+                        <div className="form-stack">
+                          <span className="page-subtitle">{t('admin.emptyCategories')}</span>
+                          <PrimaryButton type="button" onClick={() => openCreateModalFor('categories')}>
+                            {t('adminSections.createCategory')}
+                          </PrimaryButton>
+                        </div>
+                      </td>
                     </tr>
                   ) : (
                     categories.map((category) => (
                       <tr key={category.id}>
                         <td>{category.name}</td>
                         <td>
-                          {categoryBrandsTableLoading
-                            ? t('common.loading')
-                            : categoryBrandsById[category.id]?.length
-                              ? categoryBrandsById[category.id].map((brand) => brand.name).join(', ')
-                              : t('admin.emptyCategoryBrands')}
+                          {categoryBrandsTableLoading ? (
+                            <span className="skeleton skeleton-text" />
+                          ) : categoryBrandsById[category.id]?.length ? (
+                            categoryBrandsById[category.id].map((brand) => brand.name).join(', ')
+                          ) : (
+                            t('admin.emptyCategoryBrands')
+                          )}
                         </td>
                         <td>
                           <button
@@ -902,7 +933,7 @@ export default function AdminCatalogPage() {
         <section className="card">
           <h3>{t('adminSections.brandList')}</h3>
           <div className="table-wrapper">
-            <table className="table">
+            <table className={catalogLoading ? 'table table--skeleton' : 'table'}>
               <thead>
                 <tr>
                   <th scope="col">{t('admin.table.name')}</th>
@@ -911,12 +942,17 @@ export default function AdminCatalogPage() {
               </thead>
               <tbody>
                 {catalogLoading ? (
-                  <tr>
-                    <td colSpan={2}>{t('common.loading')}</td>
-                  </tr>
+                  renderSkeletonRows(4, 2)
                 ) : brands.length === 0 ? (
                   <tr>
-                    <td colSpan={2}>{t('admin.emptyBrands')}</td>
+                    <td colSpan={2}>
+                      <div className="form-stack">
+                        <span className="page-subtitle">{t('admin.emptyBrands')}</span>
+                        <PrimaryButton type="button" onClick={() => openCreateModalFor('brands')}>
+                          {t('adminSections.createBrand')}
+                        </PrimaryButton>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   brands.map((brand) => (
@@ -943,7 +979,7 @@ export default function AdminCatalogPage() {
         <section className="card">
           <h3>{t('adminSections.lineList')}</h3>
           <div className="table-wrapper">
-            <table className="table">
+            <table className={catalogLoading ? 'table table--skeleton' : 'table'}>
               <thead>
                 <tr>
                   <th scope="col">{t('admin.table.name')}</th>
@@ -953,12 +989,17 @@ export default function AdminCatalogPage() {
               </thead>
               <tbody>
                 {catalogLoading ? (
-                  <tr>
-                    <td colSpan={3}>{t('common.loading')}</td>
-                  </tr>
+                  renderSkeletonRows(4, 3)
                 ) : lines.length === 0 ? (
                   <tr>
-                    <td colSpan={3}>{t('admin.emptyLines')}</td>
+                    <td colSpan={3}>
+                      <div className="form-stack">
+                        <span className="page-subtitle">{t('admin.emptyLines')}</span>
+                        <PrimaryButton type="button" onClick={() => openCreateModalFor('lines')}>
+                          {t('adminSections.createLine')}
+                        </PrimaryButton>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   lines.map((line) => (
@@ -986,7 +1027,7 @@ export default function AdminCatalogPage() {
         <section className="card">
           <h3>{t('adminSections.productList')}</h3>
           <div className="table-wrapper">
-            <table className="table">
+            <table className={catalogLoading ? 'table table--skeleton' : 'table'}>
               <thead>
                 <tr>
                   <th scope="col">{t('admin.table.image')}</th>
@@ -1005,12 +1046,17 @@ export default function AdminCatalogPage() {
               </thead>
               <tbody>
                 {catalogLoading ? (
-                  <tr>
-                    <td colSpan={12}>{t('common.loading')}</td>
-                  </tr>
+                  renderSkeletonRows(4, 12)
                 ) : products.length === 0 ? (
                   <tr>
-                    <td colSpan={12}>{t('admin.emptyProducts')}</td>
+                    <td colSpan={12}>
+                      <div className="form-stack">
+                        <span className="page-subtitle">{t('admin.emptyProducts')}</span>
+                        <PrimaryButton type="button" onClick={() => openCreateModalFor('products')}>
+                          {t('adminSections.createProduct')}
+                        </PrimaryButton>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   products.map((product) => (
@@ -1032,7 +1078,7 @@ export default function AdminCatalogPage() {
                       <td>{product.cost_price}</td>
                       <td>{product.sell_price}</td>
                       <td>
-                        {stockLevelLoading ? t('common.loading') : stockMap.get(product.id) ?? 0}
+                        {stockLevelLoading ? <span className="skeleton skeleton-text" /> : stockMap.get(product.id) ?? 0}
                       </td>
                       <td>
                         <button
