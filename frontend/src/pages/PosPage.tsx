@@ -501,138 +501,140 @@ export default function PosPage() {
             ))}
           </div>
         </section>
-        <section className="card pos-cart">
-          <h3>{t('pos.cart')}</h3>
-          {cartItems.length === 0 ? (
-            <p className="page-subtitle">{t('pos.emptyCart')}</p>
-          ) : (
-            <div className="pos-cart-items">
-              {cartItems.map((item) => (
-                <div key={item.product.id} className="pos-cart-item">
-                  <div className="pos-cart-name">{item.product.name}</div>
-                  <div className="pos-cart-controls">
-                    <div className="pos-qty-controls">
+        <div className="pos-cart-column">
+          <section className="card pos-cart">
+            <h3>{t('pos.cart')}</h3>
+            {cartItems.length === 0 ? (
+              <p className="page-subtitle">{t('pos.emptyCart')}</p>
+            ) : (
+              <div className="pos-cart-items">
+                {cartItems.map((item) => (
+                  <div key={item.product.id} className="pos-cart-item">
+                    <div className="pos-cart-name">{item.product.name}</div>
+                    <div className="pos-cart-controls">
+                      <div className="pos-qty-controls">
+                        <button
+                          type="button"
+                          className="pos-qty-button"
+                          onClick={() => adjustQty(item.product.id, -1)}
+                          aria-label="Уменьшить количество"
+                        >
+                          -
+                        </button>
+                        <span>{item.qty}</span>
+                        <button
+                          type="button"
+                          className="pos-qty-button"
+                          onClick={() => adjustQty(item.product.id, 1)}
+                          aria-label="Увеличить количество"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span>{formatCurrency(item.qty * item.product.price)}</span>
                       <button
-                        type="button"
-                        className="pos-qty-button"
-                        onClick={() => adjustQty(item.product.id, -1)}
-                        aria-label="Уменьшить количество"
+                        className="pos-cart-remove"
+                        onClick={() => removeItem(item.product.id)}
+                        aria-label={t('pos.remove')}
                       >
-                        -
-                      </button>
-                      <span>{item.qty}</span>
-                      <button
-                        type="button"
-                        className="pos-qty-button"
-                        onClick={() => adjustQty(item.product.id, 1)}
-                        aria-label="Увеличить количество"
-                      >
-                        +
+                        ✕
                       </button>
                     </div>
-                    <span>{formatCurrency(item.qty * item.product.price)}</span>
-                    <button
-                      className="pos-cart-remove"
-                      onClick={() => removeItem(item.product.id)}
-                      aria-label={t('pos.remove')}
-                    >
-                      ✕
-                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="pos-summary">
-            <div className="pos-summary-row">
-              <span>{t('pos.subtotal')}</span>
-              <strong>{formatCurrency(subtotal)}</strong>
-            </div>
-            {taxSettings.enabled && totalTaxRate > 0 && (
-              <div className="pos-summary-row">
-                <span>
-                  {taxLabel} ({totalTaxRate.toFixed(2)}%)
-                </span>
-                <strong>{formatCurrency(taxAmount)}</strong>
+                ))}
               </div>
             )}
-            <div className="pos-summary-row total">
-              <span>{t('pos.total')}</span>
-              <strong>{formatCurrency(totalWithTax)}</strong>
+            <div className="pos-summary">
+              <div className="pos-summary-row">
+                <span>{t('pos.subtotal')}</span>
+                <strong>{formatCurrency(subtotal)}</strong>
+              </div>
+              {taxSettings.enabled && totalTaxRate > 0 && (
+                <div className="pos-summary-row">
+                  <span>
+                    {taxLabel} ({totalTaxRate.toFixed(2)}%)
+                  </span>
+                  <strong>{formatCurrency(taxAmount)}</strong>
+                </div>
+              )}
+              <div className="pos-summary-row total">
+                <span>{t('pos.total')}</span>
+                <strong>{formatCurrency(totalWithTax)}</strong>
+              </div>
             </div>
-          </div>
-          <h4>{t('pos.payments')}</h4>
-          <div className="pos-payment-entry">
-            <div className="pos-payment-methods">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method}
-                  type="button"
-                  className={`pos-payment-method ${paymentMethod === method ? 'is-selected' : ''}`}
-                  onClick={() => setPaymentMethod(method)}
-                  aria-pressed={paymentMethod === method}
-                >
-                  {paymentLabels[method]}
-                </button>
+            <h4>{t('pos.payments')}</h4>
+            <div className="pos-payment-entry">
+              <div className="pos-payment-methods">
+                {paymentMethods.map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    className={`pos-payment-method ${paymentMethod === method ? 'is-selected' : ''}`}
+                    onClick={() => setPaymentMethod(method)}
+                    aria-pressed={paymentMethod === method}
+                  >
+                    {paymentLabels[method]}
+                  </button>
+                ))}
+              </div>
+              <input
+                placeholder={t('pos.amount')}
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+              <input
+                placeholder={t('pos.reference')}
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+              />
+              <button onClick={addPayment}>{t('pos.addPayment')}</button>
+            </div>
+            <div className="pos-payment-options">
+              <label className="form-inline">
+                <input
+                  type="checkbox"
+                  checked={sendToTerminal}
+                  onChange={(e) => setSendToTerminal(e.target.checked)}
+                />
+                <span>Отправлять в терминал (позже)</span>
+              </label>
+            </div>
+            <div className="pos-payments-list">
+              {payments.map((payment, index) => (
+                <div key={`${payment.method}-${index}`} className="pos-payment-item">
+                  <div>
+                    {paymentLabels[payment.method]} {formatCurrency(payment.amount)}
+                    {payment.reference ? ` (${payment.reference})` : ''}
+                  </div>
+                  <button className="ghost" onClick={() => removePayment(index)}>
+                    {t('pos.remove')}
+                  </button>
+                </div>
               ))}
             </div>
-            <input
-              placeholder={t('pos.amount')}
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-            />
-            <input
-              placeholder={t('pos.reference')}
-              value={paymentReference}
-              onChange={(e) => setPaymentReference(e.target.value)}
-            />
-            <button onClick={addPayment}>{t('pos.addPayment')}</button>
-          </div>
-          <div className="pos-payment-options">
-            <label className="form-inline">
-              <input
-                type="checkbox"
-                checked={sendToTerminal}
-                onChange={(e) => setSendToTerminal(e.target.checked)}
-              />
-              <span>Отправлять в терминал (позже)</span>
-            </label>
-          </div>
-          <div className="pos-payments-list">
-            {payments.map((payment, index) => (
-              <div key={`${payment.method}-${index}`} className="pos-payment-item">
-                <div>
-                  {paymentLabels[payment.method]} {formatCurrency(payment.amount)}
-                  {payment.reference ? ` (${payment.reference})` : ''}
-                </div>
-                <button className="ghost" onClick={() => removePayment(index)}>
-                  {t('pos.remove')}
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="pos-summary-row total">
-            <span>{t('pos.due')}</span>
-            <strong>{formatCurrency(totalDue)}</strong>
-          </div>
-          <button className="pos-finalize" onClick={finalizeSale} disabled={!canFinalize}>
-            {t('pos.finalize')}
-          </button>
-          {error && <p className="pos-error">{error}</p>}
-          {sale && (
-            <div className="pos-sale-summary">
-              <p>
-                {t('pos.sale')} {sale.id}
-              </p>
-              <p>
-                {t('pos.status')}: {sale.status}
-              </p>
-              <p>
-                {t('pos.total')}: {formatCurrency(Number(sale.total_amount))}
-              </p>
+            <div className="pos-summary-row total">
+              <span>{t('pos.due')}</span>
+              <strong>{formatCurrency(totalDue)}</strong>
             </div>
-          )}
-        </section>
+            <button className="pos-finalize" onClick={finalizeSale} disabled={!canFinalize}>
+              {t('pos.finalize')}
+            </button>
+            {error && <p className="pos-error">{error}</p>}
+            {sale && (
+              <div className="pos-sale-summary">
+                <p>
+                  {t('pos.sale')} {sale.id}
+                </p>
+                <p>
+                  {t('pos.status')}: {sale.status}
+                </p>
+                <p>
+                  {t('pos.total')}: {formatCurrency(Number(sale.total_amount))}
+                </p>
+              </div>
+            )}
+          </section>
+        </div>
       </div>
       <section className="card pos-history">
         <div className="pos-history-header">

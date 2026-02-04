@@ -609,12 +609,18 @@ button:disabled:hover {
 
 .pos-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr);
   gap: 16px;
 }
 
 .pos-products {
   gap: 16px;
+}
+
+.pos-cart-column {
+  position: sticky;
+  top: 16px;
+  align-self: start;
 }
 
 .pos-search {
@@ -757,9 +763,6 @@ button:disabled:hover {
   background: var(--surface-2);
   padding: 12px;
   border-radius: 12px;
-  position: sticky;
-  top: 16px;
-  z-index: 1;
 }
 
 .pos-summary-row {
@@ -903,6 +906,10 @@ button:disabled:hover {
 
   .pos-layout {
     grid-template-columns: 1fr;
+  }
+
+  .pos-cart-column {
+    position: static;
   }
 
   .pos-payment-entry {
