@@ -45,6 +45,7 @@ interface SaleDetail {
   status: string
   total_amount: number
   currency: string
+  created_at: string
   items: SaleItem[]
   payments: PaymentRecord[]
   send_to_terminal: boolean
@@ -117,6 +118,14 @@ export default function PosPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('')
+  const historyPageSize = 20
+  const [historyVisibleCount, setHistoryVisibleCount] = useState(historyPageSize)
+  const [historyServerLimit, setHistoryServerLimit] = useState(historyPageSize)
+  const [historySupportsLimit, setHistorySupportsLimit] = useState(true)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
+  const [selectedSale, setSelectedSale] = useState<SaleDetail | null>(null)
   const { data: tenantSettings } = useTenantSettings()
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: t('pos.paymentMethodCash'),
@@ -303,6 +312,71 @@ export default function PosPage() {
     return cashier ? cashier.email : cashierId
   }
 
+  const productNameById = useMemo(() => {
+    return new Map(products.map((product) => [product.id, product.name]))
+  }, [products])
+
+  const getSaleSubtotal = (saleDetail: SaleDetail) =>
+    saleDetail.items.reduce((sum, item) => sum + Number(item.line_total ?? item.qty * item.unit_price), 0)
+
+  const getSaleTaxSummary = useCallback(
+    (saleDetail: SaleDetail) => {
+      const subtotalValue = getSaleSubtotal(saleDetail)
+      if (!taxSettings.enabled || activeTaxRules.length === 0) {
+        return { totalTax: 0, lines: [] as Array<{ rule: TaxRule; amount: number }> }
+      }
+      const totalsByMethod = saleDetail.payments.reduce<Record<PaymentMethod, number>>(
+        (acc, payment) => {
+          const normalized = normalizePaymentMethod(String(payment.method))
+          acc[normalized] += Number(payment.amount)
+          return acc
+        },
+        { cash: 0, card: 0, transfer: 0 }
+      )
+      const totalPaid = Object.values(totalsByMethod).reduce((sum, value) => sum + value, 0)
+      const methodShares =
+        totalPaid > 0
+          ? paymentMethods.map((method) => ({
+              method,
+              share: totalsByMethod[method] / totalPaid
+            }))
+          : [{ method: null, share: 1 }]
+      const ruleTotals = new Map<string, number>()
+      methodShares.forEach(({ method, share }) => {
+        const grossMethod = subtotalValue * share
+        const applicableRules =
+          method === null ? activeTaxRules : activeTaxRules.filter((rule) => rule.applies_to.includes(method))
+        if (applicableRules.length === 0) return
+        if (taxSettings.mode === 'inclusive') {
+          const totalRate = applicableRules.reduce((rateSum, rule) => rateSum + (Number(rule.rate) || 0), 0)
+          if (totalRate <= 0) return
+          const taxTotal = grossMethod - grossMethod / (1 + totalRate / 100)
+          applicableRules.forEach((rule) => {
+            const portion = taxTotal * ((Number(rule.rate) || 0) / totalRate)
+            ruleTotals.set(rule.id, (ruleTotals.get(rule.id) ?? 0) + portion)
+          })
+        } else {
+          applicableRules.forEach((rule) => {
+            const portion = grossMethod * ((Number(rule.rate) || 0) / 100)
+            ruleTotals.set(rule.id, (ruleTotals.get(rule.id) ?? 0) + portion)
+          })
+        }
+      })
+      const lines = activeTaxRules.map((rule) => ({
+        rule,
+        amount: applyRounding(ruleTotals.get(rule.id) ?? 0)
+      }))
+      const totalTax = applyRounding(lines.reduce((sum, line) => sum + line.amount, 0))
+      return { totalTax, lines }
+    },
+    [activeTaxRules, applyRounding, taxSettings.enabled, taxSettings.mode]
+  )
+
+  const saleTaxSummary = useMemo(() => {
+    if (!selectedSale) return null
+    return getSaleTaxSummary(selectedSale)
+  }, [getSaleTaxSummary, selectedSale])
+
   const addToCart = (product: Product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id)
@@ -437,7 +511,7 @@ export default function PosPage() {
     return parsed.toISOString()
   }
 
-  const loadSalesHistory = async () => {
+  const loadSalesHistory = async (nextLimit = historyPageSize) => {
     setHistoryLoading(true)
     setHistoryError('')
     const params: Record<string, string> = {}
@@ -447,9 +521,18 @@ export default function PosPage() {
     const isoTo = toIsoDate(dateTo, true)
     if (isoTo) params.date_to = isoTo
     if (paymentMethodFilter) params.payment_method = paymentMethodFilter
+    params.limit = String(nextLimit)
     try {
       const res = await api.get('/sales', { params })
-      setSalesHistory(res.data as SaleSummary[])
+      const data = res.data as SaleSummary[]
+      setSalesHistory(data)
+      setHistoryServerLimit(nextLimit)
+      setHistorySupportsLimit(data.length <= nextLimit)
+      if (nextLimit === historyPageSize) {
+        setHistoryVisibleCount(historyPageSize)
+      } else {
+        setHistoryVisibleCount(Math.min(nextLimit, data.length))
+      }
     } catch (e) {
       setHistoryError(getApiErrorMessage(e, t, 'common.error'))
     } finally {
@@ -463,6 +546,43 @@ export default function PosPage() {
     setDateTo('')
     setPaymentMethodFilter('')
   }
+
+  const handleLoadMoreHistory = () => {
+    if (historySupportsLimit && salesHistory.length >= historyServerLimit) {
+      void loadSalesHistory(historyServerLimit + historyPageSize)
+      return
+    }
+    setHistoryVisibleCount((prev) => Math.min(prev + historyPageSize, salesHistory.length))
+  }
+
+  const openSaleDetail = async (saleId: string) => {
+    setDetailModalOpen(true)
+    setDetailLoading(true)
+    setDetailError('')
+    setSelectedSale(null)
+    try {
+      const res = await api.get(`/sales/${saleId}`)
+      setSelectedSale(res.data as SaleDetail)
+    } catch (e) {
+      setDetailError(getApiErrorMessage(e, t, 'common.error'))
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const closeSaleDetail = () => {
+    setDetailModalOpen(false)
+    setDetailError('')
+    setSelectedSale(null)
+  }
+
+  const visibleSalesHistory = useMemo(
+    () => salesHistory.slice(0, historyVisibleCount),
+    [historyVisibleCount, salesHistory]
+  )
+  const historyHasMore = historySupportsLimit
+    ? salesHistory.length >= historyServerLimit
+    : historyVisibleCount < salesHistory.length
 
   useEffect(() => {
     loadSalesHistory()
@@ -715,8 +835,19 @@ export default function PosPage() {
                 </tr>
               </thead>
               <tbody>
-                {salesHistory.map((entry) => (
-                  <tr key={entry.id}>
+                {visibleSalesHistory.map((entry) => (
+                  <tr
+                    key={entry.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openSaleDetail(entry.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        void openSaleDetail(entry.id)
+                      }
+                    }}
+                  >
                     <td>{formatDateTime(entry.created_at)}</td>
                     <td>{entry.id}</td>
                     <td>{cashierLabel(entry.created_by_user_id)}</td>
@@ -730,7 +861,92 @@ export default function PosPage() {
             </table>
           </div>
         )}
+        {!historyLoading && !historyError && salesHistory.length > 0 && historyHasMore && (
+          <div className="pos-history-actions">
+            <button className="secondary" onClick={handleLoadMoreHistory}>
+              {t('pos.loadMore')}
+            </button>
+          </div>
+        )}
       </section>
+      {detailModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h4>{t('pos.saleDetails')}</h4>
+              <button className="ghost" onClick={closeSaleDetail}>
+                {t('common.cancel')}
+              </button>
+            </div>
+            <div className="form-stack">
+              {detailLoading ? (
+                <p className="page-subtitle">{t('common.loading')}</p>
+              ) : detailError ? (
+                <p className="pos-error">{detailError}</p>
+              ) : selectedSale ? (
+                <>
+                  <div className="form-stack">
+                    <div>
+                      <strong>{t('pos.sale')}</strong> {selectedSale.id}
+                    </div>
+                    <div>
+                      <strong>{t('common.created')}</strong> {formatDateTime(selectedSale.created_at)}
+                    </div>
+                    <div>
+                      <strong>{t('pos.status')}</strong> {normalizeSaleStatus(selectedSale.status)}
+                    </div>
+                  </div>
+                  <div className="table-wrapper">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>{t('pos.product')}</th>
+                          <th>{t('pos.qty')}</th>
+                          <th>{t('pos.price')}</th>
+                          <th>{t('pos.total')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSale.items.map((item) => (
+                          <tr key={item.id}>
+                            <td>{productNameById.get(item.product_id) ?? item.product_id}</td>
+                            <td>{item.qty}</td>
+                            <td>{formatCurrency(Number(item.unit_price))}</td>
+                            <td>{formatCurrency(Number(item.line_total))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="form-stack">
+                    <h5>{t('pos.taxes')}</h5>
+                    {taxSettings.enabled && activeTaxRules.length > 0 && saleTaxSummary ? (
+                      <>
+                        {saleTaxSummary.lines.map((line) => (
+                          <div key={line.rule.id} className="pos-summary-row">
+                            <span>
+                              {line.rule.name} ({Number(line.rule.rate).toFixed(2)}%)
+                            </span>
+                            <strong>{formatCurrency(line.amount)}</strong>
+                          </div>
+                        ))}
+                        <div className="pos-summary-row total">
+                          <span>{t('pos.total')}</span>
+                          <strong>{formatCurrency(saleTaxSummary.totalTax)}</strong>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="page-subtitle">—</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="page-subtitle">—</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
