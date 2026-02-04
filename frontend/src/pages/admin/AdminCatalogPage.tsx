@@ -81,6 +81,17 @@ export default function AdminCatalogPage() {
   const [editId, setEditId] = useState('')
   const [editName, setEditName] = useState('')
   const [editSku, setEditSku] = useState('')
+  const [editBarcode, setEditBarcode] = useState('')
+  const [editUnit, setEditUnit] = useState('pcs')
+  const [editPurchasePrice, setEditPurchasePrice] = useState('0')
+  const [editCostPrice, setEditCostPrice] = useState('0')
+  const [editSellPrice, setEditSellPrice] = useState('0')
+  const [editImageUrl, setEditImageUrl] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState('')
+  const [editBrandId, setEditBrandId] = useState('')
+  const [editLineId, setEditLineId] = useState('')
+  const [editCategoryBrands, setEditCategoryBrands] = useState<Brand[]>([])
+  const [editBrandLines, setEditBrandLines] = useState<ProductLine[]>([])
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([])
   const [stockLevelLoading, setStockLevelLoading] = useState(false)
   const [stockMoves, setStockMoves] = useState<StockMove[]>([])
@@ -293,6 +304,36 @@ export default function AdminCatalogPage() {
   }, [editId, editOpen, editType])
 
   useEffect(() => {
+    if (!editOpen || editType !== 'products') {
+      return
+    }
+    if (!editCategoryId) {
+      setEditCategoryBrands([])
+      return
+    }
+    void loadCategoryBrands(editCategoryId, setEditCategoryBrands)
+  }, [editCategoryId, editOpen, editType])
+
+  useEffect(() => {
+    if (!editOpen || editType !== 'products') {
+      return
+    }
+    if (!editBrandId) {
+      setEditBrandLines([])
+      return
+    }
+    const loadLines = async () => {
+      try {
+        const res = await api.get('/lines', { params: { brand_id: editBrandId } })
+        setEditBrandLines(res.data)
+      } catch (error) {
+        handleApiError(error)
+      }
+    }
+    void loadLines()
+  }, [editBrandId, editOpen, editType])
+
+  useEffect(() => {
     setProductBrandId('')
     setProductLineId('')
     setProductBrandLines([])
@@ -489,8 +530,26 @@ export default function AdminCatalogPage() {
     if (type === 'products') {
       const product = item as Product
       setEditSku(product.sku ?? '')
+      setEditBarcode(product.barcode ?? '')
+      setEditUnit(product.unit ?? 'pcs')
+      setEditPurchasePrice(String(product.purchase_price ?? 0))
+      setEditCostPrice(String(product.cost_price ?? 0))
+      setEditSellPrice(String(product.sell_price ?? 0))
+      setEditImageUrl(product.image_url ?? '')
+      setEditCategoryId(product.category_id ?? '')
+      setEditBrandId(product.brand_id ?? '')
+      setEditLineId(product.line_id ?? '')
     } else {
       setEditSku('')
+      setEditBarcode('')
+      setEditUnit('pcs')
+      setEditPurchasePrice('0')
+      setEditCostPrice('0')
+      setEditSellPrice('0')
+      setEditImageUrl('')
+      setEditCategoryId('')
+      setEditBrandId('')
+      setEditLineId('')
     }
     setEditOpen(true)
   }
@@ -500,6 +559,17 @@ export default function AdminCatalogPage() {
     setEditId('')
     setEditName('')
     setEditSku('')
+    setEditBarcode('')
+    setEditUnit('pcs')
+    setEditPurchasePrice('0')
+    setEditCostPrice('0')
+    setEditSellPrice('0')
+    setEditImageUrl('')
+    setEditCategoryId('')
+    setEditBrandId('')
+    setEditLineId('')
+    setEditCategoryBrands([])
+    setEditBrandLines([])
   }
 
   const updateCategory = async (id: string, name: string) => {
@@ -514,8 +584,8 @@ export default function AdminCatalogPage() {
     await api.patch(`/lines/${id}`, { name })
   }
 
-  const updateProduct = async (id: string, name: string, sku?: string) => {
-    await api.patch(`/products/${id}`, { name, sku: sku?.trim() || null })
+  const updateProduct = async (id: string, payload: Record<string, unknown>) => {
+    await api.patch(`/products/${id}`, payload)
   }
 
   const handleEditSave = async () => {
@@ -532,7 +602,50 @@ export default function AdminCatalogPage() {
       } else if (editType === 'lines') {
         await updateLine(editId, trimmedName)
       } else if (editType === 'products') {
-        await updateProduct(editId, trimmedName, editSku)
+        const purchasePrice = Number(editPurchasePrice)
+        const costPrice = Number(editCostPrice)
+        const sellPrice = Number(editSellPrice)
+
+        if (!validateRequired([editCategoryId, editBrandId, editUnit])) {
+          addToast(t('admin.validation.requiredFields'), 'error')
+          return
+        }
+
+        if (!trimmedName && !editLineId) {
+          addToast(
+            t('admin.validation.productNameOrLine', {
+              defaultValue: 'Введите название товара или выберите линейку'
+            }),
+            'error'
+          )
+          return
+        }
+
+        if (
+          !Number.isFinite(purchasePrice) ||
+          !Number.isFinite(costPrice) ||
+          !Number.isFinite(sellPrice) ||
+          purchasePrice < 0 ||
+          costPrice < 0 ||
+          sellPrice < 0
+        ) {
+          addToast(t('admin.validation.nonNegative'), 'error')
+          return
+        }
+
+        await updateProduct(editId, {
+          name: trimmedName || null,
+          sku: editSku.trim() || null,
+          barcode: editBarcode.trim() || null,
+          unit: editUnit,
+          purchase_price: purchasePrice,
+          cost_price: costPrice,
+          sell_price: sellPrice,
+          image_url: editImageUrl.trim() || null,
+          category_id: editCategoryId,
+          brand_id: editBrandId,
+          line_id: editLineId || null
+        })
       }
       addToast(t('common.updated', { defaultValue: 'Обновлено' }), 'success')
       closeEditModal()
@@ -598,6 +711,17 @@ export default function AdminCatalogPage() {
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setProductImageUrl(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleEditImageUpload = (file?: File | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setEditImageUrl(reader.result)
       }
     }
     reader.readAsDataURL(file)
@@ -1137,65 +1261,188 @@ export default function AdminCatalogPage() {
                 onChange={(e) => setEditName(e.target.value)}
               />
               {editType === 'products' && (
-                <input
-                  placeholder={t('admin.skuPlaceholder')}
-                  value={editSku}
-                  onChange={(e) => setEditSku(e.target.value)}
-                />
-              )}
-              {editType === 'products' && (
-                <div className="form-stack">
-                  <div>
-                    <h5>{t('adminStock.movesTitle', { defaultValue: 'Stock moves' })}</h5>
-                    <p className="page-subtitle">
-                      {t('adminStock.movesSubtitle', { defaultValue: 'History of stock changes for this product.' })}
-                    </p>
+                <>
+                  <div className="form-row">
+                    <select
+                      value={editCategoryId}
+                      onChange={(e) => {
+                        setEditCategoryId(e.target.value)
+                        setEditBrandId('')
+                        setEditLineId('')
+                        setEditBrandLines([])
+                      }}
+                    >
+                      <option value="">{t('admin.categorySelect')}</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={editBrandId}
+                      onChange={(e) => {
+                        setEditBrandId(e.target.value)
+                        setEditLineId('')
+                      }}
+                      disabled={!editCategoryId}
+                    >
+                      <option value="">{t('admin.brandSelect')}</option>
+                      {editCategoryBrands.map((brand) => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={editLineId}
+                      onChange={(e) => setEditLineId(e.target.value)}
+                      disabled={!editBrandId}
+                    >
+                      <option value="">{t('admin.lineSelect')}</option>
+                      {editBrandLines.map((line) => (
+                        <option key={line.id} value={line.id}>
+                          {line.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-row">
-                    <span className="muted">
-                      {t('adminStock.onHand', { defaultValue: 'On hand' })}
-                    </span>
-                    <strong>
-                      {editStockOnHand === null ? t('common.loading') : editStockOnHand}
-                    </strong>
+                    <input
+                      placeholder={t('admin.skuPlaceholder')}
+                      value={editSku}
+                      onChange={(e) => setEditSku(e.target.value)}
+                    />
+                    <input
+                      placeholder={t('admin.barcodePlaceholder')}
+                      value={editBarcode}
+                      onChange={(e) => setEditBarcode(e.target.value)}
+                    />
                   </div>
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th scope="col">{t('adminStock.moveDate', { defaultValue: 'Date' })}</th>
-                          <th scope="col">{t('adminStock.moveType', { defaultValue: 'Type' })}</th>
-                          <th scope="col">{t('adminStock.moveQty', { defaultValue: 'Qty' })}</th>
-                          <th scope="col">{t('adminStock.moveReason', { defaultValue: 'Reason' })}</th>
-                          <th scope="col">{t('adminStock.moveReference', { defaultValue: 'Reference' })}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stockMovesLoading ? (
+                  <div className="form-row">
+                    <label className="form-field">
+                      <span>{t('admin.unitLabel')}</span>
+                      <select value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
+                        <option value="pcs">{t('admin.unitPcs')}</option>
+                        <option value="ml">{t('admin.unitMl')}</option>
+                        <option value="g">{t('admin.unitG')}</option>
+                      </select>
+                    </label>
+                    <label className="form-field">
+                      <span>{t('admin.purchasePriceLabel')}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder={t('admin.purchasePricePlaceholder')}
+                        value={editPurchasePrice}
+                        onChange={(e) => setEditPurchasePrice(e.target.value)}
+                      />
+                    </label>
+                    <label className="form-field">
+                      <span>{t('admin.costPriceLabel')}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder={t('admin.costPricePlaceholder')}
+                        value={editCostPrice}
+                        onChange={(e) => setEditCostPrice(e.target.value)}
+                      />
+                    </label>
+                    <label className="form-field">
+                      <span>{t('admin.sellPriceLabel')}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder={t('admin.sellPricePlaceholder')}
+                        value={editSellPrice}
+                        onChange={(e) => setEditSellPrice(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="form-row">
+                    <label className="form-field">
+                      <span>{t('admin.productImageLabel')}</span>
+                      <input
+                        type="url"
+                        placeholder={t('admin.productImagePlaceholder')}
+                        value={editImageUrl}
+                        onChange={(e) => setEditImageUrl(e.target.value)}
+                      />
+                    </label>
+                    <label className="form-field">
+                      <span>{t('admin.productImageUpload')}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleEditImageUpload(e.target.files?.[0])}
+                      />
+                    </label>
+                    {editImageUrl && (
+                      <div className="image-preview">
+                        <img src={editImageUrl} alt={t('admin.productImagePreview')} />
+                        <button
+                          type="button"
+                          className="ghost"
+                          onClick={() => setEditImageUrl('')}
+                        >
+                          {t('admin.clearImage')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-stack">
+                    <div>
+                      <h5>{t('adminStock.movesTitle', { defaultValue: 'Stock moves' })}</h5>
+                      <p className="page-subtitle">
+                        {t('adminStock.movesSubtitle', { defaultValue: 'History of stock changes for this product.' })}
+                      </p>
+                    </div>
+                    <div className="form-row">
+                      <span className="muted">
+                        {t('adminStock.onHand', { defaultValue: 'On hand' })}
+                      </span>
+                      <strong>
+                        {editStockOnHand === null ? t('common.loading') : editStockOnHand}
+                      </strong>
+                    </div>
+                    <div className="table-wrapper">
+                      <table className="table">
+                        <thead>
                           <tr>
-                            <td colSpan={5}>{t('common.loading')}</td>
+                            <th scope="col">{t('adminStock.moveDate', { defaultValue: 'Date' })}</th>
+                            <th scope="col">{t('adminStock.moveType', { defaultValue: 'Type' })}</th>
+                            <th scope="col">{t('adminStock.moveQty', { defaultValue: 'Qty' })}</th>
+                            <th scope="col">{t('adminStock.moveReason', { defaultValue: 'Reason' })}</th>
+                            <th scope="col">{t('adminStock.moveReference', { defaultValue: 'Reference' })}</th>
                           </tr>
-                        ) : stockMoves.length === 0 ? (
-                          <tr>
-                            <td colSpan={5}>
-                              {t('adminStock.movesEmpty', { defaultValue: 'No stock moves yet.' })}
-                            </td>
-                          </tr>
-                        ) : (
-                          stockMoves.map((move) => (
-                            <tr key={move.id}>
-                              <td>{formatMoveDate(move.created_at)}</td>
-                              <td>{formatMoveType(move)}</td>
-                              <td>{Math.abs(move.delta_qty)}</td>
-                              <td>{move.reason}</td>
-                              <td>{move.reference || '—'}</td>
+                        </thead>
+                        <tbody>
+                          {stockMovesLoading ? (
+                            <tr>
+                              <td colSpan={5}>{t('common.loading')}</td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : stockMoves.length === 0 ? (
+                            <tr>
+                              <td colSpan={5}>
+                                {t('adminStock.movesEmpty', { defaultValue: 'No stock moves yet.' })}
+                              </td>
+                            </tr>
+                          ) : (
+                            stockMoves.map((move) => (
+                              <tr key={move.id}>
+                                <td>{formatMoveDate(move.created_at)}</td>
+                                <td>{formatMoveType(move)}</td>
+                                <td>{Math.abs(move.delta_qty)}</td>
+                                <td>{move.reason}</td>
+                                <td>{move.reference || '—'}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
               <div className="form-row">
                 <button onClick={handleEditSave}>{t('common.save', { defaultValue: 'Сохранить' })}</button>
