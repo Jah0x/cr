@@ -40,6 +40,8 @@ export default function AdminPurchasingPage() {
   const [purchaseProduct, setPurchaseProduct] = useState('')
   const [purchaseQty, setPurchaseQty] = useState('0')
   const [purchaseCost, setPurchaseCost] = useState('0')
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createModalTab, setCreateModalTab] = useState<PurchasingTab>('suppliers')
 
   const productMap = useMemo(() => new Map(products.map((item) => [item.id, item.name])), [products])
   const supplierMap = useMemo(() => new Map(suppliers.map((item) => [item.id, item.name])), [suppliers])
@@ -155,6 +157,7 @@ export default function AdminPurchasingPage() {
       setSupplierName('')
       addToast(t('common.created'), 'success')
       loadSuppliers()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -183,6 +186,7 @@ export default function AdminPurchasingPage() {
       setInvoiceId(res.data.id)
       addToast(t('common.created'), 'success')
       loadInvoices()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -212,6 +216,7 @@ export default function AdminPurchasingPage() {
       setInvoiceDetail(res.data)
       addToast(t('common.created'), 'success')
       loadInvoices()
+      setCreateModalOpen(false)
     } catch (error) {
       handleApiError(error)
     }
@@ -233,11 +238,27 @@ export default function AdminPurchasingPage() {
     }
   }
 
+  const openCreateModal = () => {
+    setCreateModalTab(activeTab)
+    setCreateModalOpen(true)
+  }
+
+  const closeCreateModal = () => {
+    setCreateModalOpen(false)
+  }
+
   return (
     <div className="admin-page">
       <div className="page-header">
-        <h2 className="page-title">{t('adminNav.purchasing')}</h2>
-        <p className="page-subtitle">{t('adminPurchasing.subtitle')}</p>
+        <div className="page-header-row">
+          <div>
+            <h2 className="page-title">{t('adminNav.purchasing')}</h2>
+            <p className="page-subtitle">{t('adminPurchasing.subtitle')}</p>
+          </div>
+          <button type="button" onClick={openCreateModal}>
+            {t('common.add', { defaultValue: 'Добавить' })}
+          </button>
+        </div>
       </div>
       <div className="tabs">
         <button
@@ -257,53 +278,37 @@ export default function AdminPurchasingPage() {
       </div>
 
       {activeTab === 'suppliers' && (
-        <div className="split">
-          <section className="card">
-            <div>
-              <h3>{t('adminPurchasing.createSupplier')}</h3>
-              <p className="page-subtitle">{t('adminPurchasing.createSupplierSubtitle')}</p>
-            </div>
-            <div className="form-row">
-              <input
-                placeholder={t('admin.supplierPlaceholder')}
-                value={supplierName}
-                onChange={(e) => setSupplierName(e.target.value)}
-              />
-              <button onClick={createSupplier}>{t('admin.addSupplier')}</button>
-            </div>
-          </section>
-          <section className="card">
-            <h3>{t('adminPurchasing.suppliersList')}</h3>
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
+        <section className="card">
+          <h3>{t('adminPurchasing.suppliersList')}</h3>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('admin.table.name')}</th>
+                  <th scope="col">{t('admin.table.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suppliers.length === 0 ? (
                   <tr>
-                    <th scope="col">{t('admin.table.name')}</th>
-                    <th scope="col">{t('admin.table.actions')}</th>
+                    <td colSpan={2}>{t('adminPurchasing.emptySuppliers')}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {suppliers.length === 0 ? (
-                    <tr>
-                      <td colSpan={2}>{t('adminPurchasing.emptySuppliers')}</td>
+                ) : (
+                  suppliers.map((supplier) => (
+                    <tr key={supplier.id}>
+                      <td>{supplier.name}</td>
+                      <td>
+                        <button className="secondary" onClick={() => deleteSupplier(supplier.id)}>
+                          {t('common.delete')}
+                        </button>
+                      </td>
                     </tr>
-                  ) : (
-                    suppliers.map((supplier) => (
-                      <tr key={supplier.id}>
-                        <td>{supplier.name}</td>
-                        <td>
-                          <button className="secondary" onClick={() => deleteSupplier(supplier.id)}>
-                            {t('common.delete')}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {activeTab === 'invoices' && (
@@ -315,27 +320,14 @@ export default function AdminPurchasingPage() {
             </div>
             <div className="form-row">
               <label className="form-field">
-                <span>{t('adminPurchasing.selectSupplier')}</span>
-                <select
-                  value={invoiceSupplierId}
-                  onChange={(e) => setInvoiceSupplierId(e.target.value)}
-                >
-                  <option value="">{t('admin.supplierPlaceholder')}</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button onClick={createInvoice}>{t('admin.newInvoice')}</button>
-              <label className="form-field">
                 <span>{t('adminPurchasing.selectInvoice')}</span>
                 <select value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)}>
                   <option value="">{t('adminPurchasing.selectInvoicePlaceholder')}</option>
                   {invoices.map((invoice) => (
                     <option key={invoice.id} value={invoice.id}>
-                      {invoice.id.slice(0, 8)} · {supplierMap.get(invoice.supplier_id ?? '') ?? t('adminPurchasing.unknownSupplier')}
+                      {invoice.id.slice(0, 8)} ·{' '}
+                      {supplierMap.get(invoice.supplier_id ?? '') ??
+                        t('adminPurchasing.unknownSupplier')}
                     </option>
                   ))}
                 </select>
@@ -346,40 +338,6 @@ export default function AdminPurchasingPage() {
                 {t('admin.workingInvoice', { id: invoiceId })}
               </div>
             )}
-          </section>
-
-          <section className="card">
-            <div>
-              <h3>{t('adminPurchasing.addItemTitle')}</h3>
-              <p className="page-subtitle">{t('adminPurchasing.addItemSubtitle')}</p>
-            </div>
-            <div className="form-row">
-              <select value={purchaseProduct} onChange={(e) => setPurchaseProduct(e.target.value)}>
-                <option value="">{t('admin.productSelect')}</option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0"
-                placeholder={t('admin.qtyPlaceholder')}
-                value={purchaseQty}
-                onChange={(e) => setPurchaseQty(e.target.value)}
-              />
-              <input
-                type="number"
-                min="0"
-                placeholder={t('admin.costPlaceholder')}
-                value={purchaseCost}
-                onChange={(e) => setPurchaseCost(e.target.value)}
-              />
-              <button onClick={addPurchaseItem} disabled={!invoiceId}>
-                {t('admin.addItem')}
-              </button>
-            </div>
           </section>
 
           <section className="card">
@@ -421,6 +379,98 @@ export default function AdminPurchasingPage() {
               </button>
             </div>
           </section>
+        </div>
+      )}
+
+      {createModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h4>
+                {createModalTab === 'suppliers'
+                  ? t('adminPurchasing.createSupplier')
+                  : t('adminPurchasing.addItemTitle')}
+              </h4>
+              <button className="ghost" onClick={closeCreateModal}>
+                {t('common.cancel')}
+              </button>
+            </div>
+            {createModalTab === 'suppliers' && (
+              <div className="form-stack">
+                <p className="page-subtitle">{t('adminPurchasing.createSupplierSubtitle')}</p>
+                <div className="form-row">
+                  <input
+                    placeholder={t('admin.supplierPlaceholder')}
+                    value={supplierName}
+                    onChange={(e) => setSupplierName(e.target.value)}
+                  />
+                  <button onClick={createSupplier}>{t('admin.addSupplier')}</button>
+                </div>
+              </div>
+            )}
+            {createModalTab === 'invoices' && (
+              <div className="form-stack">
+                <div>
+                  <h5>{t('adminPurchasing.workingInvoice')}</h5>
+                  <p className="page-subtitle">{t('adminPurchasing.workingInvoiceSubtitle')}</p>
+                </div>
+                <label className="form-field">
+                  <span>{t('adminPurchasing.selectSupplier')}</span>
+                  <select
+                    value={invoiceSupplierId}
+                    onChange={(e) => setInvoiceSupplierId(e.target.value)}
+                  >
+                    <option value="">{t('admin.supplierPlaceholder')}</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button onClick={createInvoice} disabled={!invoiceSupplierId}>
+                  {t('admin.newInvoice')}
+                </button>
+                <div>
+                  <h5>{t('adminPurchasing.addItemTitle')}</h5>
+                  <p className="page-subtitle">{t('adminPurchasing.addItemSubtitle')}</p>
+                </div>
+                <div className="form-row">
+                  <select
+                    value={purchaseProduct}
+                    onChange={(e) => setPurchaseProduct(e.target.value)}
+                  >
+                    <option value="">{t('admin.productSelect')}</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder={t('admin.qtyPlaceholder')}
+                    value={purchaseQty}
+                    onChange={(e) => setPurchaseQty(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder={t('admin.costPlaceholder')}
+                    value={purchaseCost}
+                    onChange={(e) => setPurchaseCost(e.target.value)}
+                  />
+                  <button onClick={addPurchaseItem} disabled={!invoiceId}>
+                    {t('admin.addItem')}
+                  </button>
+                </div>
+                {!invoiceId && (
+                  <p className="page-subtitle">{t('adminPurchasing.selectInvoice')}</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
