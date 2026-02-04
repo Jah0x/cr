@@ -130,6 +130,7 @@ export default function PosPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState('')
   const [selectedSale, setSelectedSale] = useState<SaleDetail | null>(null)
+  const [productsLoading, setProductsLoading] = useState(true)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { data: tenantSettings } = useTenantSettings()
   const paymentLabels: Record<PaymentMethod, string> = {
@@ -138,18 +139,29 @@ export default function PosPage() {
     transfer: t('pos.paymentMethodTransfer')
   }
 
-  useEffect(() => {
-    api.get('/products').then((res) => {
-      const normalized = (res.data as Array<{ id: string; name: string; sell_price: number; image_url?: string | null }>)
-        .map((product) => ({
-          id: product.id,
-          name: product.name,
-          price: Number(product.sell_price ?? 0),
-          image_url: product.image_url ?? null
-        }))
+  const loadProducts = useCallback(async () => {
+    setProductsLoading(true)
+    try {
+      const res = await api.get('/products')
+      const normalized = (
+        res.data as Array<{ id: string; name: string; sell_price: number; image_url?: string | null }>
+      ).map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: Number(product.sell_price ?? 0),
+        image_url: product.image_url ?? null
+      }))
       setProducts(normalized)
-    })
+    } catch {
+      setProducts([])
+    } finally {
+      setProductsLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void loadProducts()
+  }, [loadProducts])
 
   useEffect(() => {
     const loadCashiers = async () => {
@@ -595,6 +607,17 @@ export default function PosPage() {
     ? salesHistory.length >= historyServerLimit
     : historyVisibleCount < salesHistory.length
 
+  const renderSkeletonRows = (rows: number, columns: number) =>
+    Array.from({ length: rows }, (_, rowIndex) => (
+      <tr key={`skeleton-${rowIndex}`}>
+        {Array.from({ length: columns }, (_, columnIndex) => (
+          <td key={`skeleton-${rowIndex}-${columnIndex}`}>
+            <span className="skeleton skeleton-text" />
+          </td>
+        ))}
+      </tr>
+    ))
+
   useEffect(() => {
     loadSalesHistory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -614,21 +637,54 @@ export default function PosPage() {
             />
           </div>
           <div className="pos-products-grid">
-            {filteredProducts.map((product) => (
-              <button key={product.id} onClick={() => addToCart(product)} className="pos-product-card">
-                <div className="pos-product-image">
-                  {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} loading="lazy" />
+            {productsLoading ? (
+              Array.from({ length: 8 }, (_, index) => (
+                <div key={`product-skeleton-${index}`} className="pos-product-card" aria-hidden="true">
+                  <div className="pos-product-image">
+                    <span className="skeleton" style={{ height: '100%', width: '100%', borderRadius: '12px' }} />
+                  </div>
+                  <div className="pos-product-info">
+                    <span className="skeleton skeleton-text skeleton-text--wide" />
+                    <span className="skeleton skeleton-text" />
+                  </div>
+                </div>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <div className="form-stack">
+                <p className="page-subtitle">
+                  {search
+                    ? t('pos.noProductsSearch', { defaultValue: 'Нет товаров по этому запросу.' })
+                    : t('pos.noProducts', { defaultValue: 'Товары пока не добавлены.' })}
+                </p>
+                <div className="form-row">
+                  {search ? (
+                    <SecondaryButton type="button" onClick={() => setSearch('')}>
+                      {t('common.clear', { defaultValue: 'Очистить' })}
+                    </SecondaryButton>
                   ) : (
-                    <span>{t('pos.noImage')}</span>
+                    <PrimaryButton type="button" onClick={loadProducts}>
+                      {t('common.retry')}
+                    </PrimaryButton>
                   )}
                 </div>
-                <div className="pos-product-info">
-                  <div className="pos-product-name">{product.name}</div>
-                  <div className="pos-product-price">{formatCurrency(product.price)}</div>
-                </div>
-              </button>
-            ))}
+              </div>
+            ) : (
+              filteredProducts.map((product) => (
+                <button key={product.id} onClick={() => addToCart(product)} className="pos-product-card">
+                  <div className="pos-product-image">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} loading="lazy" />
+                    ) : (
+                      <span>{t('pos.noImage')}</span>
+                    )}
+                  </div>
+                  <div className="pos-product-info">
+                    <div className="pos-product-name">{product.name}</div>
+                    <div className="pos-product-price">{formatCurrency(product.price)}</div>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </Card>
         <div className="pos-cart-column">
@@ -818,11 +874,32 @@ export default function PosPage() {
           </label>
         </div>
         {historyLoading ? (
-          <p className="page-subtitle">{t('common.loading')}</p>
+          <div className="pos-history-table-wrapper">
+            <table className="pos-history-table table--skeleton">
+              <thead>
+                <tr>
+                  <th>{t('common.created')}</th>
+                  <th>{t('pos.sale')}</th>
+                  <th>{t('pos.historyCashier')}</th>
+                  <th>{t('pos.historyPaymentMethod')}</th>
+                  <th>{t('pos.status')}</th>
+                  <th>{t('pos.sendToTerminal')}</th>
+                  <th>{t('pos.total')}</th>
+                </tr>
+              </thead>
+              <tbody>{renderSkeletonRows(5, 7)}</tbody>
+            </table>
+          </div>
         ) : historyError ? (
           <p className="pos-error">{historyError}</p>
         ) : salesHistory.length === 0 ? (
-          <p className="page-subtitle">{t('pos.historyEmpty')}</p>
+          <div className="form-stack">
+            <p className="page-subtitle">{t('pos.historyEmpty')}</p>
+            <div className="form-row">
+              <SecondaryButton onClick={resetHistoryFilters}>{t('pos.historyReset')}</SecondaryButton>
+              <PrimaryButton onClick={loadSalesHistory}>{t('pos.historyApply')}</PrimaryButton>
+            </div>
+          </div>
         ) : (
           <div className="pos-history-table-wrapper">
             <table className="pos-history-table">

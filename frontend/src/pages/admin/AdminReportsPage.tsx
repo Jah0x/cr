@@ -26,6 +26,7 @@ export default function AdminReportsPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const [summary, setSummary] = useState<ReportSummary | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
   const [period, setPeriod] = useState<Period>('week')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -78,12 +79,15 @@ export default function AdminReportsPage() {
   }
 
   const loadSummary = async () => {
+    setSummaryLoading(true)
     try {
       const res = await api.get('/reports/summary')
       setSummary(res.data)
       addToast(t('common.saved'), 'success')
     } catch (error) {
       handleApiError(error)
+    } finally {
+      setSummaryLoading(false)
     }
   }
 
@@ -130,13 +134,31 @@ export default function AdminReportsPage() {
       </Card>
 
       <section className="kpi-grid">
-        {kpiCards.map((card) => (
-          <div key={card.label} className="card kpi-card">
-            <span className="muted">{card.label}</span>
-            <strong>{card.value}</strong>
-          </div>
-        ))}
+        {summaryLoading
+          ? Array.from({ length: 4 }, (_, index) => (
+              <div key={`kpi-skeleton-${index}`} className="card kpi-card" aria-hidden="true">
+                <span className="skeleton skeleton-text" />
+                <span className="skeleton skeleton-text skeleton-text--wide" />
+              </div>
+            ))
+          : kpiCards.map((card) => (
+              <div key={card.label} className="card kpi-card">
+                <span className="muted">{card.label}</span>
+                <strong>{card.value}</strong>
+              </div>
+            ))}
       </section>
+
+      {!summaryLoading && !summary && (
+        <div className="card">
+          <div className="form-stack">
+            <p className="page-subtitle">
+              {t('adminReports.noSummary', { defaultValue: 'Сначала загрузите сводку отчета.' })}
+            </p>
+            <PrimaryButton onClick={loadSummary}>{t('adminReports.load')}</PrimaryButton>
+          </div>
+        </div>
+      )}
 
       <section className="card">
         <div>

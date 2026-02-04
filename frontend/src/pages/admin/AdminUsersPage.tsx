@@ -242,6 +242,17 @@ export default function AdminUsersPage() {
     resetCreateForm()
   }
 
+  const renderSkeletonRows = (rows: number, columns: number) =>
+    Array.from({ length: rows }, (_, rowIndex) => (
+      <tr key={`skeleton-${rowIndex}`}>
+        {Array.from({ length: columns }, (_, columnIndex) => (
+          <td key={`skeleton-${rowIndex}-${columnIndex}`}>
+            <span className="skeleton skeleton-text" />
+          </td>
+        ))}
+      </tr>
+    ))
+
   const handleCreateSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmedEmail = createEmail.trim()
@@ -340,7 +351,7 @@ export default function AdminUsersPage() {
       />
       <Card>
         <div className="table-wrapper">
-          <table className="table">
+          <table className={loading ? 'table table--skeleton' : 'table'}>
             <thead>
               <tr>
                 <th scope="col">{t('common.email')}</th>
@@ -351,12 +362,17 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={4}>{t('common.loading')}</td>
-                </tr>
+                renderSkeletonRows(4, 4)
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>{t('adminUsers.empty')}</td>
+                  <td colSpan={4}>
+                    <div className="form-stack">
+                      <span className="page-subtitle">{t('adminUsers.empty')}</span>
+                      <PrimaryButton type="button" onClick={openCreateModal}>
+                        {t('adminUsers.createUser', { defaultValue: 'Создать пользователя' })}
+                      </PrimaryButton>
+                    </div>
+                  </td>
                 </tr>
               ) : (
                 users.map((user) => {
