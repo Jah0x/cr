@@ -79,6 +79,29 @@ button {
   align-items: start;
 }
 
+.tenant-settings-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+}
+
+.tenant-settings-grid__left {
+  grid-column: span 8;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.tenant-settings-grid__right {
+  grid-column: span 4;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.tenant-settings-grid__taxes {
+  grid-column: span 12;
+}
+
 .finance-grid {
   grid-template-columns: repeat(12, minmax(0, 1fr));
   align-items: start;
@@ -97,6 +120,12 @@ button {
 }
 
 @media (max-width: 1024px) {
+  .tenant-settings-grid__left,
+  .tenant-settings-grid__right,
+  .tenant-settings-grid__taxes {
+    grid-column: span 12;
+  }
+
   .finance-grid > .card,
   .finance-grid--entry > .card,
   .finance-card--wide {
