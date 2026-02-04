@@ -105,6 +105,7 @@ export default function PosPage() {
   const [paymentAmount, setPaymentAmount] = useState('0')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [paymentReference, setPaymentReference] = useState('')
+  const [showPaymentExtras, setShowPaymentExtras] = useState(false)
   const [sale, setSale] = useState<SaleDetail | null>(null)
   const [error, setError] = useState('')
   const [sendToTerminal, setSendToTerminal] = useState(false)
@@ -582,12 +583,24 @@ export default function PosPage() {
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
               />
-              <input
-                placeholder={t('pos.reference')}
-                value={paymentReference}
-                onChange={(e) => setPaymentReference(e.target.value)}
-              />
               <button onClick={addPayment}>{t('pos.addPayment')}</button>
+            </div>
+            <div className="pos-payment-extras">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setShowPaymentExtras((prev) => !prev)}
+                aria-expanded={showPaymentExtras}
+              >
+                Дополнительно
+              </button>
+              {showPaymentExtras && (
+                <input
+                  placeholder={t('pos.reference')}
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                />
+              )}
             </div>
             <div className="pos-payment-options">
               <label className="form-inline">
