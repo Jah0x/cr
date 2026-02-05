@@ -18,8 +18,24 @@ depends_on = None
 cashier_shift_status_enum = sa.Enum("open", "closed", name="cashiershiftstatus", create_type=False)
 
 
+def _create_enum_if_not_exists(enum_name: str, values: tuple[str, ...]) -> None:
+    quoted_values = ", ".join("'%s'" % value.replace("'", "''") for value in values)
+    op.execute(
+        sa.text(
+            f"""
+            DO $$
+            BEGIN
+                CREATE TYPE {enum_name} AS ENUM ({quoted_values});
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+            END $$;
+            """
+        )
+    )
+
+
 def upgrade() -> None:
-    cashier_shift_status_enum.create(op.get_bind(), checkfirst=True)
+    _create_enum_if_not_exists("cashiershiftstatus", ("open", "closed"))
 
     op.create_table(
         "cashier_shifts",
