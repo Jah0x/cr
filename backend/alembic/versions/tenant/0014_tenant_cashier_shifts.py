@@ -50,8 +50,8 @@ def upgrade() -> None:
         sa.Column("cashier_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("opened_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("closed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("status", cashier_shift_status_enum, nullable=False, server_default="open"),
-        sa.Column("opening_cash", sa.Numeric(12, 2), nullable=False, server_default="0"),
+        sa.Column("status", cashier_shift_status_enum, nullable=False, server_default=sa.text("'open'::cashiershiftstatus")),
+        sa.Column("opening_cash", sa.Numeric(12, 2), nullable=False, server_default=sa.text("0")),
         sa.Column("closing_cash", sa.Numeric(12, 2), nullable=True),
         sa.Column("note", sa.String(), nullable=True),
     )
