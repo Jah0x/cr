@@ -5,6 +5,7 @@ from app.core.deps import get_current_tenant, get_db_session, require_roles, req
 from app.schemas.stock import StockAdjustmentCreate, StockMoveOut, StockQuery
 from app.services.stock_service import StockService
 from app.repos.stock_repo import StockRepo
+from app.repos.store_repo import StoreRepo
 
 router = APIRouter(
     prefix="/stock",
@@ -18,7 +19,7 @@ router = APIRouter(
 
 
 def get_service(session: AsyncSession):
-    return StockService(StockRepo(session))
+    return StockService(StockRepo(session), StoreRepo(session))
 
 
 @router.get("", response_model=list[StockQuery])

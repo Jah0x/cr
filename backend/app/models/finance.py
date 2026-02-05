@@ -29,5 +29,7 @@ class Expense(Base):
     payment_method = Column(String, nullable=True)
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    store_id = Column(UUID(as_uuid=True), ForeignKey("stores.id", ondelete="RESTRICT"), nullable=False)
 
     category = relationship("ExpenseCategory", back_populates="expenses")
+    store = relationship("Store", back_populates="expenses")

@@ -7,6 +7,7 @@ from app.services.purchasing_service import PurchasingService
 from app.repos.catalog_repo import ProductRepo
 from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, PurchaseItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
+from app.repos.store_repo import StoreRepo
 from app.models.purchasing import PurchaseStatus
 
 router = APIRouter(
@@ -28,6 +29,7 @@ def get_service(session: AsyncSession):
         StockRepo(session),
         StockBatchRepo(session),
         ProductRepo(session),
+        StoreRepo(session),
     )
 
 

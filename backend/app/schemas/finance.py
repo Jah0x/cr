@@ -18,6 +18,7 @@ class ExpenseCategoryOut(BaseModel):
 
 
 class ExpenseCreate(BaseModel):
+    store_id: uuid.UUID | None = None
     occurred_at: datetime
     amount: Decimal
     category_id: uuid.UUID | None = None
@@ -34,5 +35,6 @@ class ExpenseOut(BaseModel):
     payment_method: str | None
     created_by_user_id: uuid.UUID | None
     created_at: datetime
+    store_id: uuid.UUID
 
     model_config = {"from_attributes": True}

@@ -6,6 +6,7 @@ from app.models.stock import StockBatch
 from app.repos.catalog_repo import ProductRepo
 from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, PurchaseItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
+from app.repos.store_repo import StoreRepo
 
 
 class PurchasingService:
@@ -17,6 +18,7 @@ class PurchasingService:
         stock_repo: StockRepo,
         batch_repo: StockBatchRepo,
         product_repo: ProductRepo,
+        store_repo: StoreRepo,
     ):
         self.supplier_repo = supplier_repo
         self.invoice_repo = invoice_repo
@@ -24,6 +26,7 @@ class PurchasingService:
         self.stock_repo = stock_repo
         self.batch_repo = batch_repo
         self.product_repo = product_repo
+        self.store_repo = store_repo
         self.session = invoice_repo.session
 
     async def list_suppliers(self):
@@ -80,6 +83,7 @@ class PurchasingService:
         items = await self.item_repo.list_by_invoice(invoice.id)
         if not items:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot post empty invoice")
+        default_store_id = (await self.store_repo.get_default()).id
         for item in items:
             await self.stock_repo.record_move(
                 {
@@ -87,6 +91,7 @@ class PurchasingService:
                     "quantity": item.quantity,
                     "reason": "PURCHASE_IN",
                     "reference": str(invoice.id),
+                    "store_id": default_store_id,
                 }
             )
             await self.batch_repo.create(
@@ -113,6 +118,7 @@ class PurchasingService:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invoice already void")
         if invoice.status == PurchaseStatus.posted:
             items = await self.item_repo.list_by_invoice(invoice.id)
+            default_store_id = (await self.store_repo.get_default()).id
             for item in items:
                 await self.stock_repo.record_move(
                     {
@@ -120,6 +126,7 @@ class PurchasingService:
                         "quantity": -item.quantity,
                         "reason": "PURCHASE_VOID",
                         "reference": str(invoice.id),
+                        "store_id": default_store_id,
                     }
                 )
                 batches = await self.session.execute(
