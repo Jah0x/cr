@@ -105,7 +105,7 @@ export default function PlatformTenantCreatePage() {
               }
             }}
           />
-          <span style={{ fontSize: 12, color: '#64748b' }}>name = отображаемое имя.</span>
+          <span style={{ fontSize: 12, color: '#64748b' }}>Название организации для отображения в CRM.</span>
         </label>
         <label style={{ display: 'grid', gap: 6 }}>
           <input
@@ -116,7 +116,7 @@ export default function PlatformTenantCreatePage() {
               setIsCodeDirty(true)
             }}
           />
-          <span style={{ fontSize: 12, color: '#64748b' }}>code = slug (schema/subdomain).</span>
+          <span style={{ fontSize: 12, color: '#64748b' }}>Код организации: латиница, используется для схемы БД и поддомена.</span>
         </label>
         <input placeholder={t('platformTenantCreate.ownerEmail')} value={ownerEmail} onChange={(event) => setOwnerEmail(event.target.value)} />
         <input placeholder={t('platformTenantCreate.templateId')} value={templateId} onChange={(event) => setTemplateId(event.target.value)} />

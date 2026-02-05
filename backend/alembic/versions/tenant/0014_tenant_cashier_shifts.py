@@ -15,7 +15,7 @@ branch_labels = None
 depends_on = None
 
 
-cashier_shift_status_enum = sa.Enum("open", "closed", name="cashiershiftstatus")
+cashier_shift_status_enum = sa.Enum("open", "closed", name="cashiershiftstatus", create_type=False)
 
 
 def upgrade() -> None:

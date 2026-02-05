@@ -101,6 +101,12 @@ class PlatformTenantUpdateResponse(BaseModel):
     last_error: str | None = None
 
 
+class PlatformTenantDeleteResponse(BaseModel):
+    id: str
+    status: str
+    schema_dropped: bool
+
+
 class PlatformTenantDomainCreate(BaseModel):
     domain: str = Field(min_length=3)
     is_primary: bool = False
