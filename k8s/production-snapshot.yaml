@@ -1,0 +1,4578 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/containerID: 1b798b3f107893b26472a961a8e03bbb1a06a02d26a55247b1d97d7f14dba203
+      cni.projectcalico.org/podIP: 10.42.2.182/32
+      cni.projectcalico.org/podIPs: 10.42.2.182/32
+      kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:54+03:00"
+    creationTimestamp: "2026-02-03T11:30:22Z"
+    generateName: lk-58f568f994-
+    generation: 1
+    labels:
+      app: lk
+      pod-template-hash: 58f568f994
+    name: lk-58f568f994-xsrpz
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: lk-58f568f994
+      uid: ebb8f489-6a7f-4f64-995b-ac684539093b
+    resourceVersion: "32367171"
+    uid: 2f41cdf4-6123-4023-ae4f-f842db7a71a6
+  spec:
+    containers:
+    - envFrom:
+      - configMapRef:
+          name: lk-config
+      - secretRef:
+          name: production-secrets
+      image: ghcr.io/jah0x/securelink-lk:latest
+      imagePullPolicy: Always
+      livenessProbe:
+        failureThreshold: 6
+        httpGet:
+          path: /healthz
+          port: 3000
+          scheme: HTTP
+        initialDelaySeconds: 20
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 2
+      name: lk
+      ports:
+      - containerPort: 3000
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 6
+        httpGet:
+          path: /healthz
+          port: 3000
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        successThreshold: 1
+        timeoutSeconds: 2
+      resources:
+        limits:
+          cpu: "1"
+          memory: 768Mi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+      startupProbe:
+        failureThreshold: 30
+        httpGet:
+          path: /healthz
+          port: 3000
+          scheme: HTTP
+        periodSeconds: 5
+        successThreshold: 1
+        timeoutSeconds: 2
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-nq9fz
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: ghcr-pull
+    nodeName: worker-2
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-nq9fz
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T11:30:24Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T11:30:22Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T11:30:32Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T11:30:32Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T11:30:22Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 256Mi
+      containerID: containerd://a700fd120696b5049eee5f2bb4182e28732f26b412c995b2d8dcd79e7f0605f7
+      image: ghcr.io/jah0x/securelink-lk:latest
+      imageID: ghcr.io/jah0x/securelink-lk@sha256:45efe576fb533568658eef49b4fd3b2115993044293e5db97dd3e12569e14cc0
+      lastState: {}
+      name: lk
+      ready: true
+      resources:
+        limits:
+          cpu: "1"
+          memory: 768Mi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-02-03T11:30:24Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-nq9fz
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 89.110.81.194
+    hostIPs:
+    - ip: 89.110.81.194
+    phase: Running
+    podIP: 10.42.2.182
+    podIPs:
+    - ip: 10.42.2.182
+    qosClass: Burstable
+    startTime: "2026-02-03T11:30:22Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/containerID: 561aada47d1207bb72eba7226bd8256f8875296325d935269c2c8dc8275b7956
+      cni.projectcalico.org/podIP: 10.42.1.207/32
+      cni.projectcalico.org/podIPs: 10.42.1.207/32
+      kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:59+03:00"
+    creationTimestamp: "2026-02-03T10:59:00Z"
+    generateName: subs-79d95db5cc-
+    generation: 1
+    labels:
+      app: subs
+      pod-template-hash: 79d95db5cc
+    name: subs-79d95db5cc-q4xxz
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: subs-79d95db5cc
+      uid: 014d0fad-3088-48a2-8a83-cff3d442b9b4
+    resourceVersion: "32355513"
+    uid: 8c595099-9157-4e9a-8e82-ea3d0668652e
+  spec:
+    containers:
+    - envFrom:
+      - configMapRef:
+          name: sp-config
+      - secretRef:
+          name: production-secrets
+      image: ghcr.io/jah0x/securelink-subs-service:latest
+      imagePullPolicy: Always
+      livenessProbe:
+        failureThreshold: 6
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        tcpSocket:
+          port: 3000
+        timeoutSeconds: 2
+      name: subs
+      ports:
+      - containerPort: 3000
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 6
+        initialDelaySeconds: 2
+        periodSeconds: 5
+        successThreshold: 1
+        tcpSocket:
+          port: 3000
+        timeoutSeconds: 2
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-92kwb
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: ghcr-pull
+    nodeName: vpn3.zerologsvpn.com
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-92kwb
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:12Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:00Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:18Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:18Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:00Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 50m
+        memory: 128Mi
+      containerID: containerd://9f9645da92e32505cbcb250801e2b790e1a2c5cf0262b012a35f2363adde7508
+      image: ghcr.io/jah0x/securelink-subs-service:latest
+      imageID: ghcr.io/jah0x/securelink-subs-service@sha256:017edc0e3480490502acabf2c216e402a1e3defe8f12980219b21ac1da03a9fc
+      lastState: {}
+      name: subs
+      ready: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-02-03T10:59:12Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-92kwb
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 89.110.100.165
+    hostIPs:
+    - ip: 89.110.100.165
+    phase: Running
+    podIP: 10.42.1.207
+    podIPs:
+    - ip: 10.42.1.207
+    qosClass: Burstable
+    startTime: "2026-02-03T10:59:00Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      cni.projectcalico.org/containerID: 0b0d19ff8dfadfede1ff6c8c35a995115431e951f0b53bbcda3f856ffae8bce9
+      cni.projectcalico.org/podIP: 10.42.1.206/32
+      cni.projectcalico.org/podIPs: 10.42.1.206/32
+      kubectl.kubernetes.io/restartedAt: "2025-12-21T17:18:38+03:00"
+    creationTimestamp: "2026-02-03T10:59:00Z"
+    generateName: xray-5b7899cf45-
+    generation: 1
+    labels:
+      app: xray
+      pod-template-hash: 5b7899cf45
+    name: xray-5b7899cf45-6ckcj
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: xray-5b7899cf45
+      uid: 1a1bbce1-f5af-47e3-ae1e-966baab2518c
+    resourceVersion: "32355758"
+    uid: 6f93ffb2-67c8-48d2-addb-3adc2b45ef61
+  spec:
+    containers:
+    - args:
+      - run
+      - -c
+      - /etc/xray/config.json
+      image: ghcr.io/xtls/xray-core:latest
+      imagePullPolicy: IfNotPresent
+      name: xray
+      ports:
+      - containerPort: 443
+        name: https
+        protocol: TCP
+      resources:
+        limits:
+          cpu: "1"
+          memory: 768Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: true
+        capabilities:
+          add:
+          - NET_BIND_SERVICE
+        runAsGroup: 0
+        runAsUser: 0
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/xray
+        name: xray-config-out
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-2pq4g
+        readOnly: true
+    - envFrom:
+      - configMapRef:
+          name: xray-agent-config
+      - secretRef:
+          name: production-secrets
+      image: ghcr.io/jah0x/securelink-xray-agent:latest
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 6
+        httpGet:
+          path: /healthz
+          port: 9101
+          scheme: HTTP
+        initialDelaySeconds: 20
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 2
+      name: xray-agent
+      ports:
+      - containerPort: 9101
+        name: metrics
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 6
+        httpGet:
+          path: /healthz
+          port: 9101
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        successThreshold: 1
+        timeoutSeconds: 2
+      resources:
+        limits:
+          cpu: 500m
+          memory: 384Mi
+        requests:
+          cpu: 25m
+          memory: 96Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/lib/xray-agent
+        name: xray-agent-state
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-2pq4g
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    imagePullSecrets:
+    - name: ghcr-pull
+    initContainers:
+    - command:
+      - sh
+      - -c
+      - |
+        python - << 'PY'
+        import json, os
+
+        def read_secret(path):
+          with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+
+        tpl_path = "/config-main/config.json"
+        out_path = "/config-out/config.json"
+
+        with open(tpl_path, "r", encoding="utf-8") as f:
+          cfg = json.load(f)
+
+        # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+        s_private = read_secret("/xray-secret/realityPrivateKey")
+        sid1 = read_secret("/xray-secret/shortId1")
+        sid2 = read_secret("/xray-secret/shortId2")
+        sid3 = read_secret("/xray-secret/shortId3")
+        sid4 = read_secret("/xray-secret/shortId4")
+
+        # Идем по inbound vless-reality-in и подставляем
+        for inbound in cfg.get("inbounds", []):
+          if inbound.get("tag") == "vless-reality-in":
+            rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+            rs["privateKey"] = s_private
+            rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+        os.makedirs("/config-out", exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+          json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+        print("rendered", out_path)
+        PY
+      image: python:3.12-alpine
+      imagePullPolicy: IfNotPresent
+      name: xray-render-config
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config-main
+        name: xray-config-main
+      - mountPath: /xray-secret
+        name: xray-config-secret
+        readOnly: true
+      - mountPath: /config-out
+        name: xray-config-out
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-2pq4g
+        readOnly: true
+    nodeName: vpn3.zerologsvpn.com
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    topologySpreadConstraints:
+    - labelSelector:
+        matchLabels:
+          app: xray
+      maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: xray-config-main
+      name: xray-config-main
+    - name: xray-config-secret
+      secret:
+        defaultMode: 420
+        secretName: xray-config-secret
+    - emptyDir: {}
+      name: xray-config-out
+    - emptyDir: {}
+      name: xray-agent-state
+    - name: kube-api-access-2pq4g
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:01Z"
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:02Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:49Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:49Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-02-03T10:59:00Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 50m
+        memory: 128Mi
+      containerID: containerd://492764f8d0836be6905de16a6b9a4a37a4a0bd1fbeacc353e37947d60ea7554d
+      image: ghcr.io/xtls/xray-core:latest
+      imageID: ghcr.io/xtls/xray-core@sha256:3041edb72f2b2cab0628f2bc22e83b0300a60aba3c1ee0a7264bd98997e01194
+      lastState: {}
+      name: xray
+      ready: true
+      resources:
+        limits:
+          cpu: "1"
+          memory: 768Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-02-03T10:59:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/xray
+        name: xray-config-out
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-2pq4g
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 25m
+        memory: 96Mi
+      containerID: containerd://3ea0a3c6644d23bc08257c04fce75d40964edebff08f8d9a4b8e038247cabc17
+      image: ghcr.io/jah0x/securelink-xray-agent:latest
+      imageID: ghcr.io/jah0x/securelink-xray-agent@sha256:bec1379a30af997fceb5645b978dfa46e81057c8b2328857e2f00b7830a15faa
+      lastState: {}
+      name: xray-agent
+      ready: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 384Mi
+        requests:
+          cpu: 25m
+          memory: 96Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-02-03T10:59:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /var/lib/xray-agent
+        name: xray-agent-state
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-2pq4g
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 89.110.100.165
+    hostIPs:
+    - ip: 89.110.100.165
+    initContainerStatuses:
+    - containerID: containerd://f4ff2e87dbdd6f4f785bdb5d19a483d12e3879d9ace10cf1a619cfabaf443d19
+      image: docker.io/library/python:3.12-alpine
+      imageID: docker.io/library/python@sha256:68d81cd281ee785f48cdadecb6130d05ec6957f1249814570dc90e5100d3b146
+      lastState: {}
+      name: xray-render-config
+      ready: true
+      resources: {}
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://f4ff2e87dbdd6f4f785bdb5d19a483d12e3879d9ace10cf1a619cfabaf443d19
+          exitCode: 0
+          finishedAt: "2026-02-03T10:59:02Z"
+          reason: Completed
+          startedAt: "2026-02-03T10:59:01Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 6
+          - 10
+          - 11
+          - 20
+          - 26
+          - 27
+          uid: 0
+      volumeMounts:
+      - mountPath: /config-main
+        name: xray-config-main
+      - mountPath: /xray-secret
+        name: xray-config-secret
+        readOnly: true
+        recursiveReadOnly: Disabled
+      - mountPath: /config-out
+        name: xray-config-out
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-2pq4g
+        readOnly: true
+        recursiveReadOnly: Disabled
+    phase: Running
+    podIP: 10.42.1.206
+    podIPs:
+    - ip: 10.42.1.206
+    qosClass: Burstable
+    startTime: "2026-02-03T10:59:00Z"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"lk"},"name":"lk","namespace":"production"},"spec":{"ports":[{"name":"http","port":80,"targetPort":3000}],"selector":{"app":"lk"},"type":"ClusterIP"}}
+    creationTimestamp: "2025-12-19T18:11:40Z"
+    labels:
+      app: lk
+    name: lk
+    namespace: production
+    resourceVersion: "8748958"
+    uid: be58453c-8fa7-46f4-9134-e41b132cbe05
+  spec:
+    clusterIP: 10.43.183.217
+    clusterIPs:
+    - 10.43.183.217
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: lk
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"subs","namespace":"production"},"spec":{"ports":[{"name":"http","port":3000,"protocol":"TCP","targetPort":3000}],"selector":{"app":"subs"},"type":"ClusterIP"}}
+    creationTimestamp: "2025-12-19T18:11:49Z"
+    name: subs
+    namespace: production
+    resourceVersion: "16790010"
+    uid: 54cf9323-4b1d-4a37-a3c2-25bc276019f0
+  spec:
+    clusterIP: 10.43.153.8
+    clusterIPs:
+    - 10.43.153.8
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: subs
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"xray","namespace":"production"},"spec":{"ports":[{"name":"vless","port":443,"targetPort":8443}],"selector":{"app":"xray"},"type":"ClusterIP"}}
+    creationTimestamp: "2025-12-19T19:36:21Z"
+    name: xray
+    namespace: production
+    resourceVersion: "8781211"
+    uid: 00b40a9d-5aa5-45a4-9710-39a1498f2507
+  spec:
+    clusterIP: 10.43.30.168
+    clusterIPs:
+    - 10.43.30.168
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: vless
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: xray
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "20"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:lk","ingressName":"production:lk","hostname":"lk.securesoft.dev","path":"/","allNodes":false}]'
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"lk"},"name":"lk","namespace":"production"},"spec":{"replicas":2,"revisionHistoryLimit":3,"selector":{"matchLabels":{"app":"lk"}},"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":0},"type":"RollingUpdate"},"template":{"metadata":{"labels":{"app":"lk"}},"spec":{"containers":[{"envFrom":[{"configMapRef":{"name":"lk-config"}},{"secretRef":{"name":"production-secrets"}}],"image":"ghcr.io/jah0x/securelink:sha-97cec62623ad01d3376150c9afd64242886bb6f4","imagePullPolicy":"IfNotPresent","livenessProbe":{"failureThreshold":6,"httpGet":{"path":"/healthz","port":3000},"initialDelaySeconds":20,"periodSeconds":10,"timeoutSeconds":2},"name":"lk","ports":[{"containerPort":3000,"name":"http"}],"readinessProbe":{"failureThreshold":6,"httpGet":{"path":"/healthz","port":3000},"initialDelaySeconds":5,"periodSeconds":5,"timeoutSeconds":2},"resources":{"limits":{"cpu":"1000m","memory":"768Mi"},"requests":{"cpu":"100m","memory":"256Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":false,"runAsNonRoot":true},"startupProbe":{"failureThreshold":30,"httpGet":{"path":"/healthz","port":3000},"periodSeconds":5,"timeoutSeconds":2}}],"terminationGracePeriodSeconds":30}}}}
+    creationTimestamp: "2025-12-19T18:11:40Z"
+    generation: 29
+    labels:
+      app: lk
+    name: lk
+    namespace: production
+    resourceVersion: "32367175"
+    uid: e0113303-0c51-49a2-958e-3812b70c993f
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 3
+    selector:
+      matchLabels:
+        app: lk
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 0
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:54+03:00"
+        creationTimestamp: null
+        labels:
+          app: lk
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: lk-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-lk:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: lk
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    collisionCount: 1
+    conditions:
+    - lastTransitionTime: "2025-12-19T18:44:50Z"
+      lastUpdateTime: "2026-01-11T12:56:53Z"
+      message: ReplicaSet "lk-58f568f994" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    - lastTransitionTime: "2026-02-03T11:30:32Z"
+      lastUpdateTime: "2026-02-03T11:30:32Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    observedGeneration: 29
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "15"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/","allNodes":false}]'
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"subs"},"name":"subs","namespace":"production"},"spec":{"replicas":2,"revisionHistoryLimit":3,"selector":{"matchLabels":{"app":"subs"}},"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":0},"type":"RollingUpdate"},"template":{"metadata":{"labels":{"app":"subs"}},"spec":{"containers":[{"envFrom":[{"configMapRef":{"name":"sp-config"}},{"secretRef":{"name":"production-secrets"}}],"image":"ghcr.io/jah0x/subs-service:sha-186fd4c33a2ba781f8054a2d29cdd4f5332e60f4","imagePullPolicy":"IfNotPresent","livenessProbe":{"failureThreshold":6,"httpGet":{"path":"/healthz","port":3000},"initialDelaySeconds":20,"periodSeconds":10,"timeoutSeconds":2},"name":"subs","ports":[{"containerPort":3000,"name":"http"}],"readinessProbe":{"failureThreshold":6,"httpGet":{"path":"/healthz","port":3000},"initialDelaySeconds":5,"periodSeconds":5,"timeoutSeconds":2},"resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"50m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"readOnlyRootFilesystem":false,"runAsNonRoot":true},"startupProbe":{"failureThreshold":30,"httpGet":{"path":"/healthz","port":3000},"periodSeconds":5,"timeoutSeconds":2}}],"terminationGracePeriodSeconds":30}}}}
+    creationTimestamp: "2025-12-19T18:11:49Z"
+    generation: 23
+    labels:
+      app: subs
+    name: subs
+    namespace: production
+    resourceVersion: "32355517"
+    uid: 50493701-c5d0-4b9b-a591-c081c070fc78
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 3
+    selector:
+      matchLabels:
+        app: subs
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 0
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:59+03:00"
+        creationTimestamp: null
+        labels:
+          app: subs
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: sp-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-subs-service:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          name: subs
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-01-01T08:54:49Z"
+      lastUpdateTime: "2026-01-04T16:03:56Z"
+      message: ReplicaSet "subs-79d95db5cc" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    - lastTransitionTime: "2026-02-03T10:59:18Z"
+      lastUpdateTime: "2026-02-03T10:59:18Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    observedGeneration: 23
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "12"
+      field.cattle.io/publicEndpoints: "null"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"deployment.kubernetes.io/revision":"4","field.cattle.io/publicEndpoints":"[{\"nodeName\":\":vpn3.zerologsvpn.com\",\"addresses\":[\"89.110.100.165\"],\"port\":443,\"protocol\":\"TCP\",\"podName\":\"production:xray-7bcbf8cc94-jc7wh\",\"allNodes\":false},{\"nodeName\":\":m.securesoft.dev\",\"addresses\":[\"146.103.118.77\"],\"port\":443,\"protocol\":\"TCP\",\"podName\":\"production:xray-5fd9ccfc9b-tpgb4\",\"allNodes\":false}]"},"name":"xray","namespace":"production"},"spec":{"progressDeadlineSeconds":600,"replicas":1,"revisionHistoryLimit":10,"selector":{"matchLabels":{"app":"xray"}},"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"25%"},"type":"RollingUpdate"},"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"2025-12-19T23:39:04+03:00"},"creationTimestamp":null,"labels":{"app":"xray"}},"spec":{"containers":[{"args":["run","-c","/etc/xray/config.json"],"image":"ghcr.io/xtls/xray-core:latest","imagePullPolicy":"IfNotPresent","name":"xray","ports":[{"containerPort":443,"name":"https","protocol":"TCP"}],"resources":{"limits":{"cpu":"1","memory":"768Mi"},"requests":{"cpu":"50m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":true,"capabilities":{"add":["NET_BIND_SERVICE"]},"runAsGroup":0,"runAsUser":0},"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","volumeMounts":[{"mountPath":"/etc/xray","name":"xray-config-out"}]},{"envFrom":[{"configMapRef":{"name":"xray-agent-config"}},{"secretRef":{"name":"production-secrets"}}],"image":"ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec","imagePullPolicy":"IfNotPresent","livenessProbe":{"failureThreshold":6,"httpGet":{"path":"/healthz","port":9101,"scheme":"HTTP"},"initialDelaySeconds":20,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":2},"name":"xray-agent","ports":[{"containerPort":9101,"name":"metrics","protocol":"TCP"}],"readinessProbe":{"failureThreshold":6,"httpGet":{"path":"/healthz","port":9101,"scheme":"HTTP"},"initialDelaySeconds":5,"periodSeconds":5,"successThreshold":1,"timeoutSeconds":2},"resources":{"limits":{"cpu":"500m","memory":"384Mi"},"requests":{"cpu":"25m","memory":"96Mi"}},"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","volumeMounts":[{"mountPath":"/var/lib/xray-agent","name":"xray-agent-state"}]}],"dnsPolicy":"ClusterFirst","imagePullSecrets":[{"name":"ghcr-pull"}],"initContainers":[{"command":["sh","-c","python - \u003c\u003c 'PY'\nimport json, os\n\ndef read_secret(path):\n  with open(path, \"r\", encoding=\"utf-8\") as f:\n    return f.read().strip()\n\ntpl_path = \"/config-main/config.json\"\nout_path = \"/config-out/config.json\"\n\nwith open(tpl_path, \"r\", encoding=\"utf-8\") as f:\n  cfg = json.load(f)\n\n# Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__\ns_private = read_secret(\"/xray-secret/realityPrivateKey\")\nsid1 = read_secret(\"/xray-secret/shortId1\")\nsid2 = read_secret(\"/xray-secret/shortId2\")\nsid3 = read_secret(\"/xray-secret/shortId3\")\nsid4 = read_secret(\"/xray-secret/shortId4\")\n\n# Идем по inbound vless-reality-in и подставляем\nfor inbound in cfg.get(\"inbounds\", []):\n  if inbound.get(\"tag\") == \"vless-reality-in\":\n    rs = inbound.get(\"streamSettings\", {}).get(\"realitySettings\", {})\n    rs[\"privateKey\"] = s_private\n    rs[\"shortIds\"] = [sid1, sid2, sid3, sid4]\n\nos.makedirs(\"/config-out\", exist_ok=True)\nwith open(out_path, \"w\", encoding=\"utf-8\") as f:\n  json.dump(cfg, f, ensure_ascii=False, separators=(\",\", \":\"))\n\nprint(\"rendered\", out_path)\nPY\n"],"image":"python:3.12-alpine","imagePullPolicy":"IfNotPresent","name":"xray-render-config","resources":{},"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","volumeMounts":[{"mountPath":"/config-main","name":"xray-config-main"},{"mountPath":"/xray-secret","name":"xray-config-secret","readOnly":true},{"mountPath":"/config-out","name":"xray-config-out"}]}],"restartPolicy":"Always","schedulerName":"default-scheduler","securityContext":{},"terminationGracePeriodSeconds":30,"volumes":[{"configMap":{"defaultMode":420,"name":"xray-config-main"},"name":"xray-config-main"},{"name":"xray-config-secret","secret":{"defaultMode":420,"secretName":"xray-config-secret"}},{"emptyDir":{},"name":"xray-config-out"},{"emptyDir":{},"name":"xray-agent-state"}]}}}}
+    creationTimestamp: "2025-12-19T19:17:38Z"
+    generation: 16
+    name: xray
+    namespace: production
+    resourceVersion: "32355762"
+    uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: xray
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:18:38+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-xray-agent:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app: xray
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    availableReplicas: 1
+    collisionCount: 1
+    conditions:
+    - lastTransitionTime: "2025-12-25T09:14:37Z"
+      lastUpdateTime: "2026-01-11T12:30:51Z"
+      message: ReplicaSet "xray-5b7899cf45" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    - lastTransitionTime: "2026-02-03T10:59:49Z"
+      lastUpdateTime: "2026-02-03T10:59:49Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    observedGeneration: 16
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "20"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:lk","ingressName":"production:lk","hostname":"lk.securesoft.dev","path":"/","allNodes":false}]'
+    creationTimestamp: "2026-01-11T12:56:26Z"
+    generation: 1
+    labels:
+      app: lk
+      pod-template-hash: 58f568f994
+    name: lk-58f568f994
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: lk
+      uid: e0113303-0c51-49a2-958e-3812b70c993f
+    resourceVersion: "32367174"
+    uid: ebb8f489-6a7f-4f64-995b-ac684539093b
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: lk
+        pod-template-hash: 58f568f994
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:54+03:00"
+        creationTimestamp: null
+        labels:
+          app: lk
+          pod-template-hash: 58f568f994
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: lk-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-lk:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: lk
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "19"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:lk","ingressName":"production:lk","hostname":"lk.securesoft.dev","path":"/","allNodes":false}]'
+    creationTimestamp: "2026-01-04T16:10:47Z"
+    generation: 2
+    labels:
+      app: lk
+      pod-template-hash: 5d978b899b
+    name: lk-5d978b899b
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: lk
+      uid: e0113303-0c51-49a2-958e-3812b70c993f
+    resourceVersion: "20303193"
+    uid: dbd6d48d-7d1c-46fe-9691-8da9751ec7f2
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: lk
+        pod-template-hash: 5d978b899b
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:54+03:00"
+        creationTimestamp: null
+        labels:
+          app: lk
+          pod-template-hash: 5d978b899b
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: lk-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-lk:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: lk
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "17"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:lk","ingressName":"production:lk","hostname":"lk.securesoft.dev","path":"/","allNodes":false}]'
+    creationTimestamp: "2026-01-04T12:47:02Z"
+    generation: 2
+    labels:
+      app: lk
+      pod-template-hash: 5f884f789d
+    name: lk-5f884f789d
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: lk
+      uid: e0113303-0c51-49a2-958e-3812b70c993f
+    resourceVersion: "16859500"
+    uid: 67c67e59-61ff-47e3-b8fd-3b921a3e9d06
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: lk
+        pod-template-hash: 5f884f789d
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T15:47:02+03:00"
+        creationTimestamp: null
+        labels:
+          app: lk
+          pod-template-hash: 5f884f789d
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: lk-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-lk:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: lk
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "18"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:lk","ingressName":"production:lk","hostname":"lk.securesoft.dev","path":"/","allNodes":false}]'
+    creationTimestamp: "2026-01-04T14:18:54Z"
+    generation: 3
+    labels:
+      app: lk
+      pod-template-hash: 76b5d85449
+    name: lk-76b5d85449
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: lk
+      uid: e0113303-0c51-49a2-958e-3812b70c993f
+    resourceVersion: "16900759"
+    uid: 412b44b3-d438-4170-ab20-b9c945ab2700
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: lk
+        pod-template-hash: 76b5d85449
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:54+03:00"
+        creationTimestamp: null
+        labels:
+          app: lk
+          pod-template-hash: 76b5d85449
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: lk-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-lk:sha-b0f9502
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: lk
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /healthz
+              port: 3000
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "12"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/activate","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/s","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/subscription","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/qrcode.min.js","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/healthz","allNodes":false}]'
+    creationTimestamp: "2026-01-01T09:26:09Z"
+    generation: 3
+    labels:
+      app: subs
+      pod-template-hash: 55db5469d5
+    name: subs-55db5469d5
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: subs
+      uid: 50493701-c5d0-4b9b-a591-c081c070fc78
+    resourceVersion: "16831646"
+    uid: d5a907e7-fc28-4c35-96c7-5d3270819f61
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: subs
+        pod-template-hash: 55db5469d5
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-01T12:26:09+03:00"
+        creationTimestamp: null
+        labels:
+          app: subs
+          pod-template-hash: 55db5469d5
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: sp-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/subs-service:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          name: subs
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "15"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/","allNodes":false}]'
+    creationTimestamp: "2026-01-04T16:03:49Z"
+    generation: 1
+    labels:
+      app: subs
+      pod-template-hash: 79d95db5cc
+    name: subs-79d95db5cc
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: subs
+      uid: 50493701-c5d0-4b9b-a591-c081c070fc78
+    resourceVersion: "32355514"
+    uid: 014d0fad-3088-48a2-8a83-cff3d442b9b4
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: subs
+        pod-template-hash: 79d95db5cc
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:59+03:00"
+        creationTimestamp: null
+        labels:
+          app: subs
+          pod-template-hash: 79d95db5cc
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: sp-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-subs-service:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          name: subs
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "13"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/activate","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/s","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/subscription","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/qrcode.min.js","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/healthz","allNodes":false}]'
+    creationTimestamp: "2026-01-04T13:03:10Z"
+    generation: 2
+    labels:
+      app: subs
+      pod-template-hash: 86d6f676f
+    name: subs-86d6f676f
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: subs
+      uid: 50493701-c5d0-4b9b-a591-c081c070fc78
+    resourceVersion: "16859568"
+    uid: f260e4a6-6873-4f55-a1d2-9f4705d361b4
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: subs
+        pod-template-hash: 86d6f676f
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T16:03:10+03:00"
+        creationTimestamp: null
+        labels:
+          app: subs
+          pod-template-hash: 86d6f676f
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: sp-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/subs-service:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          name: subs
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "14"
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/activate","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/s","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/subscription","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/qrcode.min.js","allNodes":false},{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/healthz","allNodes":false}]'
+    creationTimestamp: "2026-01-04T14:18:59Z"
+    generation: 2
+    labels:
+      app: subs
+      pod-template-hash: c78c55589
+    name: subs-c78c55589
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: subs
+      uid: 50493701-c5d0-4b9b-a591-c081c070fc78
+    resourceVersion: "16898049"
+    uid: fc5e6cfd-4da9-41ff-9330-e587d83922da
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: subs
+        pod-template-hash: c78c55589
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2026-01-04T17:18:59+03:00"
+        creationTimestamp: null
+        labels:
+          app: subs
+          pod-template-hash: c78c55589
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: sp-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/subs-service:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          name: subs
+          ports:
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 3000
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "6"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2025-12-21T14:07:37Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 54669c6d56
+    name: xray-54669c6d56
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "9472332"
+    uid: 6c4e2646-8221-4819-b0ba-854b95f9c18b
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 54669c6d56
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:07:37+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 54669c6d56
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "12"
+      deployment.kubernetes.io/revision-history: "10"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2026-01-01T08:04:03Z"
+    generation: 6
+    labels:
+      app: xray
+      pod-template-hash: 5b7899cf45
+    name: xray-5b7899cf45
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "32355759"
+    uid: 1a1bbce1-f5af-47e3-ae1e-966baab2518c
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 5b7899cf45
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:18:38+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 5b7899cf45
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-xray-agent:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app: xray
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 6
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "8"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2025-12-21T14:18:38Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 5ddc9f4c5c
+    name: xray-5ddc9f4c5c
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "11480415"
+    uid: 8df0c379-f6da-4541-9334-5b1eb5483747
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 5ddc9f4c5c
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:18:38+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 5ddc9f4c5c
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "9"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2025-12-21T14:20:07Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 5f99cff95f
+    name: xray-5f99cff95f
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "15134164"
+    uid: 2e210bcf-e90d-4f11-8fd0-5f54b7cb44b1
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 5f99cff95f
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:18:38+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 5f99cff95f
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app: xray
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "3"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2025-12-19T20:38:59Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 5fd9ccfc9b
+    name: xray-5fd9ccfc9b
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "9423954"
+    uid: 511247b1-6011-4887-a399-a1ba231def7d
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 5fd9ccfc9b
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 5fd9ccfc9b
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            hostPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "2"
+      field.cattle.io/publicEndpoints: '[{"nodeName":":vpn3.zerologsvpn.com","addresses":["89.110.100.165"],"port":443,"protocol":"TCP","podName":"production:xray-67655cb48-sgt5q","allNodes":false},{"nodeName":":vpn3.zerologsvpn.com","addresses":["89.110.100.165"],"port":9101,"protocol":"TCP","podName":"production:xray-67655cb48-sgt5q","allNodes":false}]'
+    creationTimestamp: "2025-12-19T20:38:53Z"
+    generation: 2
+    labels:
+      app: xray
+      pod-template-hash: 6544cb8967
+    name: xray-6544cb8967
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "8804482"
+    uid: bb54008c-d86d-4426-ba99-5fc3acfda094
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 6544cb8967
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 6544cb8967
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            hostPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirstWithHostNet
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+      field.cattle.io/publicEndpoints: '[{"nodeName":":vpn3.zerologsvpn.com","addresses":["89.110.100.165"],"port":443,"protocol":"TCP","podName":"production:xray-67655cb48-sgt5q","allNodes":false},{"nodeName":":vpn3.zerologsvpn.com","addresses":["89.110.100.165"],"port":9101,"protocol":"TCP","podName":"production:xray-67655cb48-sgt5q","allNodes":false}]'
+    creationTimestamp: "2025-12-19T19:17:38Z"
+    generation: 2
+    labels:
+      app: xray
+      pod-template-hash: 67655cb48
+    name: xray-67655cb48
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "8804409"
+    uid: 0f3cab96-c4f5-49b6-9613-20c7342e59a3
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 67655cb48
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 67655cb48
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            hostPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirstWithHostNet
+        hostNetwork: true
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "11"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2026-01-11T12:27:42Z"
+    generation: 2
+    labels:
+      app: xray
+      pod-template-hash: 67d58949c6
+    name: xray-67d58949c6
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "20293486"
+    uid: 91bfe708-6fb7-412f-a81e-61c9eb05cc3f
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 67d58949c6
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:18:38+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 67d58949c6
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:latest
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app: xray
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "5"
+      field.cattle.io/publicEndpoints: '[{"nodeName":":vpn3.zerologsvpn.com","addresses":["89.110.100.165"],"port":443,"protocol":"TCP","podName":"production:xray-7bcbf8cc94-jc7wh","allNodes":false}]'
+    creationTimestamp: "2025-12-21T12:10:15Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 697dd458f5
+    name: xray-697dd458f5
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "9470797"
+    uid: d43d958a-eaec-4995-a073-427acb164add
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 697dd458f5
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-19T23:39:04+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 697dd458f5
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "7"
+      field.cattle.io/publicEndpoints: "null"
+    creationTimestamp: "2025-12-21T14:14:48Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 69dd9cffcd
+    name: xray-69dd9cffcd
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "9472991"
+    uid: c3b01cc3-630c-420d-828a-1988e2cfea7e
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 69dd9cffcd
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-21T17:14:48+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 69dd9cffcd
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "4"
+      field.cattle.io/publicEndpoints: '[{"nodeName":":vpn3.zerologsvpn.com","addresses":["89.110.100.165"],"port":443,"protocol":"TCP","podName":"production:xray-7bcbf8cc94-jc7wh","allNodes":false},{"nodeName":":m.securesoft.dev","addresses":["146.103.118.77"],"port":443,"protocol":"TCP","podName":"production:xray-5fd9ccfc9b-tpgb4","allNodes":false}]'
+    creationTimestamp: "2025-12-19T20:39:04Z"
+    generation: 3
+    labels:
+      app: xray
+      pod-template-hash: 7bcbf8cc94
+    name: xray-7bcbf8cc94
+    namespace: production
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: xray
+      uid: f0fb90b6-c4fa-4aed-a18a-f10f4fcb389e
+    resourceVersion: "9467964"
+    uid: 822d9109-328a-4512-8806-f3d34063d1a9
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app: xray
+        pod-template-hash: 7bcbf8cc94
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/restartedAt: "2025-12-19T23:39:04+03:00"
+        creationTimestamp: null
+        labels:
+          app: xray
+          pod-template-hash: 7bcbf8cc94
+      spec:
+        containers:
+        - args:
+          - run
+          - -c
+          - /etc/xray/config.json
+          image: ghcr.io/xtls/xray-core:latest
+          imagePullPolicy: IfNotPresent
+          name: xray
+          ports:
+          - containerPort: 443
+            hostPort: 443
+            name: https
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 768Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+            runAsGroup: 0
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/xray
+            name: xray-config-out
+        - envFrom:
+          - configMapRef:
+              name: xray-agent-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/xrayagent:sha-70ba1cb86f1178a579fdce35a40466db6d1ab0ec
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          name: xray-agent
+          ports:
+          - containerPort: 9101
+            name: metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            httpGet:
+              path: /healthz
+              port: 9101
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 384Mi
+            requests:
+              cpu: 25m
+              memory: 96Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/xray-agent
+            name: xray-agent-state
+        dnsPolicy: ClusterFirst
+        imagePullSecrets:
+        - name: ghcr-pull
+        initContainers:
+        - command:
+          - sh
+          - -c
+          - |
+            python - << 'PY'
+            import json, os
+
+            def read_secret(path):
+              with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+
+            tpl_path = "/config-main/config.json"
+            out_path = "/config-out/config.json"
+
+            with open(tpl_path, "r", encoding="utf-8") as f:
+              cfg = json.load(f)
+
+            # Ожидаем placeholders: __REALITY_PRIVATE_KEY__ и __SID1__..__SID4__
+            s_private = read_secret("/xray-secret/realityPrivateKey")
+            sid1 = read_secret("/xray-secret/shortId1")
+            sid2 = read_secret("/xray-secret/shortId2")
+            sid3 = read_secret("/xray-secret/shortId3")
+            sid4 = read_secret("/xray-secret/shortId4")
+
+            # Идем по inbound vless-reality-in и подставляем
+            for inbound in cfg.get("inbounds", []):
+              if inbound.get("tag") == "vless-reality-in":
+                rs = inbound.get("streamSettings", {}).get("realitySettings", {})
+                rs["privateKey"] = s_private
+                rs["shortIds"] = [sid1, sid2, sid3, sid4]
+
+            os.makedirs("/config-out", exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, ensure_ascii=False, separators=(",", ":"))
+
+            print("rendered", out_path)
+            PY
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          name: xray-render-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /config-main
+            name: xray-config-main
+          - mountPath: /xray-secret
+            name: xray-config-secret
+            readOnly: true
+          - mountPath: /config-out
+            name: xray-config-out
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: xray-config-main
+          name: xray-config-main
+        - name: xray-config-secret
+          secret:
+            defaultMode: 420
+            secretName: xray-config-secret
+        - emptyDir: {}
+          name: xray-config-out
+        - emptyDir: {}
+          name: xray-agent-state
+  status:
+    observedGeneration: 3
+    replicas: 0
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"Job","metadata":{"annotations":{},"name":"lk-migrator","namespace":"production"},"spec":{"backoffLimit":0,"template":{"metadata":{"labels":{"app":"lk-migrator"}},"spec":{"containers":[{"envFrom":[{"configMapRef":{"name":"lk-config"}},{"secretRef":{"name":"production-secrets"}}],"image":"ghcr.io/jah0x/securelink-lk-migrator:latest","imagePullPolicy":"Always","name":"lk-migrator"}],"restartPolicy":"Never"}}}}
+    creationTimestamp: "2026-01-04T10:14:16Z"
+    generation: 1
+    labels:
+      app: lk-migrator
+      batch.kubernetes.io/controller-uid: d4722378-873d-4449-bf7d-a815efef61d4
+      batch.kubernetes.io/job-name: lk-migrator
+      controller-uid: d4722378-873d-4449-bf7d-a815efef61d4
+      job-name: lk-migrator
+    name: lk-migrator
+    namespace: production
+    resourceVersion: "16769297"
+    uid: d4722378-873d-4449-bf7d-a815efef61d4
+  spec:
+    backoffLimit: 0
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: d4722378-873d-4449-bf7d-a815efef61d4
+    suspend: false
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: lk-migrator
+          batch.kubernetes.io/controller-uid: d4722378-873d-4449-bf7d-a815efef61d4
+          batch.kubernetes.io/job-name: lk-migrator
+          controller-uid: d4722378-873d-4449-bf7d-a815efef61d4
+          job-name: lk-migrator
+      spec:
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: lk-config
+          - secretRef:
+              name: production-secrets
+          image: ghcr.io/jah0x/securelink-lk-migrator:latest
+          imagePullPolicy: Always
+          name: lk-migrator
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-01-04T10:14:47Z"
+    conditions:
+    - lastProbeTime: "2026-01-04T10:14:47Z"
+      lastTransitionTime: "2026-01-04T10:14:47Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-01-04T10:14:47Z"
+      lastTransitionTime: "2026-01-04T10:14:47Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-01-04T10:14:16Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIBeTCCAR+gAwIBAgIBADAKBggqhkjOPQQDAjAkMSIwIAYDVQQDDBlya2UyLXNl
+      cnZlci1jYUAxNzY0NjI0MzIzMB4XDTI1MTIwMTIxMjUyM1oXDTM1MTEyOTIxMjUy
+      M1owJDEiMCAGA1UEAwwZcmtlMi1zZXJ2ZXItY2FAMTc2NDYyNDMyMzBZMBMGByqG
+      SM49AgEGCCqGSM49AwEHA0IABII19IepyEjVAELuUqCJQq1J96n0HCgDTUIr1xcV
+      DPQAoEIaOLRDw+xUvtVTREkwztO8Wob7mS4UeHCTY3YaS4mjQjBAMA4GA1UdDwEB
+      /wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTvyhWAUz8MXTugraEi
+      8RP71ICgUDAKBggqhkjOPQQDAgNIADBFAiEAtMeIdI9Lsr7npArIce4KHwRyl/f9
+      w6IBECsdQDlnrQsCIEwuHpBcpez2BdEdAzw3/SCcrj+zOQggCKerphTZL5/A
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    creationTimestamp: "2025-12-19T17:25:51Z"
+    name: kube-root-ca.crt
+    namespace: production
+    resourceVersion: "8732093"
+    uid: 3afef999-8d81-4974-a910-aad65f42961b
+- apiVersion: v1
+  data:
+    ADMIN_EMAILS: amin@securesoft.dev
+    AUTH_MODE: internal
+    AUTH_PATH_LOGIN: /users/login
+    AUTH_PATH_LOGOUT: /users/logout
+    AUTH_PATH_ME: /users/me
+    AUTH_PATH_REGISTER: /users/register
+    DEFAULT_INBOUND_TAG: vless-reality-in
+    DEFAULT_PROTOCOL: vless
+    DEFAULT_PUBLIC_KEY: RANDOM_PUBLIC_KEY_CHANGE_LATER
+    DEFAULT_SERVER_DOMAIN: example.com
+    DEFAULT_SERVER_PORT: "443"
+    DEFAULT_SNI: example.com
+    DEFAULT_TRANSPORT: grpc
+    FIRST_USER_ADMIN: "false"
+    JOBS_ENABLED: "true"
+    MIGRATE_ON_BOOT: '1 '
+    MODULES_REFRESH_SEC: "360"
+    NEXT_PUBLIC_API_BASE_URL: https://lk.securesoft.dev
+    PORT: "3000"
+    PUBLIC_APP_ORIGIN: https://lk.securesoft.dev
+    SESSION_COOKIE_DOMAIN: .securesoft.dev
+    SESSION_COOKIE_MAXAGE: "2592000"
+    SESSION_COOKIE_NAME: session_token
+    SESSION_COOKIE_SAMESITE: None
+    SESSION_COOKIE_SECURE: "true"
+    SUBS_ACTIVATION_BASE_URL: https://subs.securesoft.dev
+    SUBS_API_BASE: http://subs.production.svc.cluster.local:3000
+    XRAY_DEFAULT_INBOUND_TAG: vless-reality-in
+    XRAY_DEFAULT_PROTOCOL: vless
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"AUTH_MODE":"internal","AUTH_PATH_LOGIN":"/users/login","AUTH_PATH_LOGOUT":"/users/logout","AUTH_PATH_ME":"/users/me","AUTH_PATH_REGISTER":"/users/register","FIRST_USER_ADMIN":"false","MIGRATE_ON_BOOT":"0","NEXT_PUBLIC_API_BASE_URL":"https://lk.securesoft.dev","PORT":"3000","PUBLIC_APP_ORIGIN":"https://lk.securesoft.dev","SESSION_COOKIE_DOMAIN":".securesoft.dev","SESSION_COOKIE_MAXAGE":"2592000","SESSION_COOKIE_NAME":"session_token","SESSION_COOKIE_SAMESITE":"None","SESSION_COOKIE_SECURE":"true","SUBS_API_BASE":"http://subs.production.svc.cluster.local:3000","XRAY_DEFAULT_INBOUND_TAG":"vless-reality-in","XRAY_DEFAULT_PROTOCOL":"vless"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"lk-config","namespace":"production"}}
+    creationTimestamp: "2025-12-19T17:47:51Z"
+    name: lk-config
+    namespace: production
+    resourceVersion: "16825375"
+    uid: fa239c50-881a-4238-a987-f050fa3b8ecb
+- apiVersion: v1
+  data:
+    DEVICE_BINDINGS_TABLE: subs_device_bindings
+    DEVICE_LIMIT_DEFAULT: "4"
+    IP_HISTORY_TABLE: subs_ip_history
+    LK_INTERNAL_BASE_URL: http://lk.production.svc.cluster.local
+    NONCE_TTL_SECONDS: "600"
+    NONCES_TABLE: subs_activation_nonces
+    PORT: "3000"
+    RATE_LIMIT_MAX: "120"
+    RATE_LIMIT_WINDOW_MS: "60000"
+    SUBS_PUBLIC_BASE_URL: https://subs.securesoft.dev
+    TRUST_PROXY: "true"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"DEVICE_BINDINGS_TABLE":"subs_device_bindings","DEVICE_LIMIT_DEFAULT":"4","IP_HISTORY_TABLE":"subs_ip_history","LK_INTERNAL_BASE_URL":"http://lk.production.svc.cluster.local:3000","NONCES_TABLE":"subs_activation_nonces","NONCE_TTL_SECONDS":"600","PORT":"3000","RATE_LIMIT_MAX":"120","RATE_LIMIT_WINDOW_MS":"60000","SUBS_PUBLIC_BASE_URL":"https://lk.securesoft.dev","TRUST_PROXY":"true"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"sp-config","namespace":"production"}}
+    creationTimestamp: "2025-12-19T17:58:13Z"
+    name: sp-config
+    namespace: production
+    resourceVersion: "16831247"
+    uid: 699267d1-c814-43a0-a4dd-79cbc2ff86d3
+- apiVersion: v1
+  data:
+    FULL_SYNC_JITTER_SEC: "60"
+    FULL_SYNC_ON_START: "true"
+    SUBS_INTERNAL_URL: http://lk.production.svc.cluster.local
+    SUBS_SYNC_CHANGES_LIMIT: "200"
+    SUBS_SYNC_CURSOR_PATH: /var/lib/xray-agent/cursor.json
+    SUBS_SYNC_MAX_CONCURRENCY: "10"
+    XRAY_AGENT_PORT: "9101"
+    XRAY_API_ADDR: 127.0.0.1:10085
+    XRAY_DEFAULT_INBOUND_TAG: vless-reality-in
+    XRAY_DELTA_SYNC_INTERVAL_SEC: "10"
+    XRAY_FULL_SYNC_INTERVAL_SEC: "86400"
+    XRAY_GRPC_TIMEOUT_MS: "5000"
+    XRAY_HTTP_TIMEOUT_MS: "5000"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"FULL_SYNC_JITTER_SEC":"60","FULL_SYNC_ON_START":"true","SUBS_INTERNAL_URL":"http://lk.production.svc.cluster.local:3000","SUBS_SYNC_CHANGES_LIMIT":"200","SUBS_SYNC_CURSOR_PATH":"/var/lib/xray-agent/cursor.json","SUBS_SYNC_MAX_CONCURRENCY":"10","XRAY_AGENT_PORT":"9101","XRAY_API_ADDR":"127.0.0.1:10085","XRAY_DEFAULT_INBOUND_TAG":"vless-reality-in","XRAY_DELTA_SYNC_INTERVAL_SEC":"10","XRAY_FULL_SYNC_INTERVAL_SEC":"86400","XRAY_GRPC_TIMEOUT_MS":"5000","XRAY_HTTP_TIMEOUT_MS":"5000"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"xray-agent-config","namespace":"production"}}
+    creationTimestamp: "2025-12-19T19:06:17Z"
+    name: xray-agent-config
+    namespace: production
+    resourceVersion: "11479012"
+    uid: 25139447-f711-4948-b236-77783b421c73
+- apiVersion: v1
+  data:
+    config.json: |
+      {
+        "log": {
+          "loglevel": "info"
+        },
+        "api": {
+          "tag": "api",
+          "services": [
+            "HandlerService",
+            "LoggerService",
+            "StatsService"
+          ]
+        },
+        "inbounds": [
+          {
+            "tag": "vless-reality-in",
+            "listen": "0.0.0.0",
+            "port": 443,
+            "protocol": "vless",
+            "settings": {
+              "clients": [],
+              "decryption": "none",
+              "fallbacks": []
+            },
+            "streamSettings": {
+              "network": "tcp",
+              "security": "reality",
+              "realitySettings": {
+                "show": false,
+                "dest": "okcdn.ru:443",
+                "xver": 0,
+                "serverNames": [
+                  "okcdn.ru"
+                ],
+                "privateKey": "REALITY_PRIVATE_KEY",
+                "shortIds": [
+                  "SID1",
+                  "SID2",
+                  "SID3",
+                  "SID4"
+                ]
+              }
+            }
+          },
+          {
+            "tag": "api",
+            "listen": "127.0.0.1",
+            "port": 10085,
+            "protocol": "dokodemo-door",
+            "settings": {
+              "address": "127.0.0.1"
+            }
+          }
+        ],
+        "routing": {
+          "rules": [
+            {
+              "type": "field",
+              "inboundTag": [
+                "api"
+              ],
+              "outboundTag": "api"
+            }
+          ]
+        },
+        "outbounds": [
+          {
+            "tag": "direct",
+            "protocol": "freedom",
+            "settings": {}
+          },
+          {
+            "tag": "api",
+            "protocol": "freedom",
+            "settings": {}
+          }
+        ]
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"config.json":"{\n  \"log\": {\n    \"loglevel\": \"info\"\n  },\n  \"api\": {\n    \"services\": [\n      \"HandlerService\",\n      \"LoggerService\",\n      \"StatsService\"\n    ]\n  },\n  \"inbounds\": [\n    {\n      \"tag\": \"vless-reality-in\",\n      \"listen\": \"0.0.0.0\",\n      \"port\": 443,\n      \"protocol\": \"vless\",\n      \"settings\": {\n        \"clients\": [],\n        \"decryption\": \"none\",\n        \"fallbacks\": []\n      },\n      \"streamSettings\": {\n        \"network\": \"tcp\",\n        \"security\": \"reality\",\n        \"realitySettings\": {\n          \"show\": false,\n          \"dest\": \"okcdn.ru:443\",\n          \"xver\": 0,\n          \"serverNames\": [\n            \"okcdn.ru\"\n          ],\n          \"privateKey\": \"REALITY_PRIVATE_KEY\",\n          \"shortIds\": [\n            \"SID1\",\n            \"SID2\",\n            \"SID3\",\n            \"SID4\"\n          ]\n        }\n      }\n    },\n    {\n      \"tag\": \"api\",\n      \"listen\": \"127.0.0.1\",\n      \"port\": 10085,\n      \"protocol\": \"dokodemo-door\",\n      \"settings\": {\n        \"address\": \"127.0.0.1\"\n      }\n    }\n  ],\n  \"routing\": {\n    \"rules\": [\n      {\n        \"type\": \"field\",\n        \"inboundTag\": [\n          \"api\"\n        ],\n        \"outboundTag\": \"api\"\n      }\n    ]\n  },\n  \"outbounds\": [\n    {\n      \"tag\": \"direct\",\n      \"protocol\": \"freedom\",\n      \"settings\": {}\n    },\n    {\n      \"tag\": \"api\",\n      \"protocol\": \"freedom\",\n      \"settings\": {}\n    }\n  ]\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"xray-config-main","namespace":"production"}}
+    creationTimestamp: "2025-12-19T19:07:01Z"
+    name: xray-config-main
+    namespace: production
+    resourceVersion: "9472264"
+    uid: 4f4ca466-7124-4f85-9c2c-7102362b09bc
+- apiVersion: v1
+  data:
+    .dockerconfigjson: eyJhdXRocyI6eyJnaGNyLmlvIjp7InVzZXJuYW1lIjoiSmFoMHgiLCJwYXNzd29yZCI6ImdocF9QZW14TXFQNWpqMjMyOUFVYUF3Yjlmd3h3eXZOTjcyMDdqMXAifX19
+  kind: Secret
+  metadata:
+    creationTimestamp: "2026-02-01T11:32:09Z"
+    name: ghcr-pull
+    namespace: production
+    resourceVersion: "31313853"
+    uid: 0ebdac68-e05a-4501-809c-aac4826f1f15
+  type: kubernetes.io/dockerconfigjson
+- apiVersion: v1
+  data:
+    tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZCakNDQSs2Z0F3SUJBZ0lTQm1SUDlUV0J5VDI5dTJUSjdGNmM5WmpoTUEwR0NTcUdTSWIzRFFFQkN3VUEKTURNeEN6QUpCZ05WQkFZVEFsVlRNUll3RkFZRFZRUUtFdzFNWlhRbmN5QkZibU55ZVhCME1Rd3dDZ1lEVlFRRApFd05TTVRNd0hoY05Nall3TWpBeE1UVTBORFUxV2hjTk1qWXdOVEF5TVRVME5EVTBXakFjTVJvd0dBWURWUVFECkV4RnNheTV6WldOMWNtVnpiMlowTG1SbGRqQ0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0MKZ2dFQkFNZmdnTHdhbk1nK3QyaEx2RG5XT1hqMk1IdVB3QW9xeCtncUloUlNoY2IveGJuMzNmVUZYTFQwVzRBMQptWkptdHJ1TXN1Q3NBYUZ4SzNIUlRyVUF6RzM1MHZZTWpGUmZSYXowZ0tTeHpKZ2ZCMytDb1d5amdwSWxlWW1mCkxkVDNlTmZQdFl0MTFiRytjM2hrc3dOR2d3V3pNY3NXeU9rMnJ5dXh3dHhaWHY0MlFVbmU4c3V6VUg5Wk9iSFYKcDVmYTJDTjN1WXEyZDBuUUtudkYrenFSdUoxVUoyOFo5aE5xZ3kzZVNrZDNSWlVOMjduWHVkelJpRjNpWk1NdApham5hTjE5Zi9XVDB3UDkvU1NMRVdjVXdtREdJWWhOZTZOKy9jODZGNmVNQnpQQkdRczBMcmlzTXdrYnE4b1pECjFuUE8zZGZmMFpWbmhXdHY1UEpJWVpoTXZGOENBd0VBQWFPQ0Fpa3dnZ0lsTUE0R0ExVWREd0VCL3dRRUF3SUYKb0RBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFRWUlLd1lCQlFVSEF3SXdEQVlEVlIwVEFRSC9CQUl3QURBZApCZ05WSFE0RUZnUVVJd2phM0FwdnBkUWhRU2wwNXJaRHp5clh2NE13SHdZRFZSMGpCQmd3Rm9BVTU2dWZEeXd6Cm9GUFRYazk0eUxLRURqdldrak13TXdZSUt3WUJCUVVIQVFFRUp6QWxNQ01HQ0NzR0FRVUZCekFDaGhkb2RIUncKT2k4dmNqRXpMbWt1YkdWdVkzSXViM0puTHpBY0JnTlZIUkVFRlRBVGdoRnNheTV6WldOMWNtVnpiMlowTG1SbApkakFUQmdOVkhTQUVEREFLTUFnR0JtZUJEQUVDQVRBdUJnTlZIUjhFSnpBbE1DT2dJYUFmaGgxb2RIUndPaTh2CmNqRXpMbU11YkdWdVkzSXViM0puTHprNExtTnliRENDQVF3R0Npc0dBUVFCMW5rQ0JBSUVnZjBFZ2ZvQStBQjEKQUE1WGxMenpycWsrTXhzc21RZXo5NURmbThJOWNUSWwzU0dwSmF4aHhVNGhBQUFCbkJvV2R2RUFBQVFEQUVZdwpSQUlnSTV4em4yNzBzKytCM0xDVEdxR0pmUlVpVllVTnFTc2xLZDNPeElTTTJqY0NJRnZlUzhuc3NXaSsvVS9PCnBMREZObmxVNjhBbENQbUZBeTJnM29Tb0xmanZBSDhBNHlPTjhvMmlpT0NxNEt6dytwREpoZkMydi9YU3BTZXcKQWZ3Y1JGakV0dWdBQUFHY0doWjV1d0FJQUFBRkFERXVkZndFQXdCSU1FWUNJUURGM1htTXV2RjFkRlF0Z3FUQQpSa3BHQnM0azgzVW5ISS9uY2hER0VqSjUvd0loQU1xUCtWRnJBZnZ6VnNZS201eHdyVStDc2VkWDdvRTlpMEtICnVjQTZXNjNxTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFBOUFFMEN3aExDV3NMOGdOSU5QcUpyMnhaZjhzN0IKTFU5OEthNFZiaTQxR1Rkdmo5QzVTYTlVcDNqRzd4cEF6dXBKNGpZVTNYeGVYdHFXT2NnUitYM2swVXROSmdaUQp1QVFJYldsSUxHSXpaQ1VqV1pNS0RJUno2K0ZjMTU4MWJpbEhlbjJBc1BRcUNtQWV6RndKa0N0cExHNy8waTdSCm9tcjdhR3dOTUhWcDRXM0JQdXNQWXNlVGIvRkZ6TjlFSkRjOWlhbno2WXg1eGNkWk5Ta1NRMG9jN2FUZ2dCa0kKUys1T2tRZmU1MGh0eXFvd0N6UTZ5bGd5dDk0cGxhcnF5T2ZqWnpqM1FaTlpLK1BucUVhZDhsTEYvejQ5NHFIbQpsQkZJbVliT0orQlp3MEdwdHZ5Yk9CNE8vMldVMklYSnR1TTA1alBIRDFYamFoOWNzaWxWOEI5QQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlGQlRDQ0F1MmdBd0lCQWdJUVdnRHlFdGpVdElEemtrRlg2aW1EQlRBTkJna3Foa2lHOXcwQkFRc0ZBREJQCk1Rc3dDUVlEVlFRR0V3SlZVekVwTUNjR0ExVUVDaE1nU1c1MFpYSnVaWFFnVTJWamRYSnBkSGtnVW1WelpXRnkKWTJnZ1IzSnZkWEF4RlRBVEJnTlZCQU1UREVsVFVrY2dVbTl2ZENCWU1UQWVGdzB5TkRBek1UTXdNREF3TURCYQpGdzB5TnpBek1USXlNelU1TlRsYU1ETXhDekFKQmdOVkJBWVRBbFZUTVJZd0ZBWURWUVFLRXcxTVpYUW5jeUJGCmJtTnllWEIwTVF3d0NnWURWUVFERXdOU01UTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUsKQW9JQkFRQ2xaM0NOMEZhQlpCVVhZYzI1QnRTdEdaQ01KbEEzbUJaamtsVGIyY3lFQlpQczArd0lHNkJnVVVOSQpmU3ZIU0phZXRDM2FuY2duTzFlaG42dncxZzdVRGpES2I1dXgwZGFrblRJK1dFNDFiMFZZYUhFWC9EN1lYWUtnCkw3SlJiTEFhWGJoWnpqVmx5SXVocnhBMy8rT2NYY0pKRnpUL2pDdUxqZkM4Y1N5VERCMEZ4THJIemFySlhuelIKeVFIM25BUDIvQXBkOU5wNzV0dDJRbkRyOUUwaTJnQjNiOWJKWHhmOTJuVXVwVmNNOXVwY3R1QnpwV2pQb1hUaQpkWUorRUovQjlhTHJBZWs0c1FwRXpOUENpZlZKTllJS05MTWM2WWpDUjA2Q0RnbzI4RWRQaXZFcEJIWGF6ZUdhClhQOWVuWmlWdXBwRDBFcWlGd1VCQkREVE1yT1BBZ01CQUFHamdmZ3dnZlV3RGdZRFZSMFBBUUgvQkFRREFnR0cKTUIwR0ExVWRKUVFXTUJRR0NDc0dBUVVGQndNQ0JnZ3JCZ0VGQlFjREFUQVNCZ05WSFJNQkFmOEVDREFHQVFILwpBZ0VBTUIwR0ExVWREZ1FXQkJUbnE1OFBMRE9nVTlOZVQzaklzb1FPTzlhU016QWZCZ05WSFNNRUdEQVdnQlI1CnRGbm1lN2JsNUFGemdBaUl5QnBZOXVtYmJqQXlCZ2dyQmdFRkJRY0JBUVFtTUNRd0lnWUlLd1lCQlFVSE1BS0cKRm1oMGRIQTZMeTk0TVM1cExteGxibU55TG05eVp5OHdFd1lEVlIwZ0JBd3dDakFJQmdabmdRd0JBZ0V3SndZRApWUjBmQkNBd0hqQWNvQnFnR0lZV2FIUjBjRG92TDNneExtTXViR1Z1WTNJdWIzSm5MekFOQmdrcWhraUc5dzBCCkFRc0ZBQU9DQWdFQVVUZFlVcUVpbXpXN1Rick95cExxQ2ZMN1ZPd1lmL1E3OU9INWNITENaZWdnZlFoRGNvbmwKazdLZ2g4YjB2aSsvWHVXdTdDTjhuL1VQZWcxdm8zRyt0YVhpcnJ5dHRoUWluQUhHd2MvVWRiT3lnSmE5enVCYwpWeXFvSDNDWFRYREluVCs4YStjM2FFVk1KMlN0K3BTbjRlZCtXa0RwOGlqc2lqdkV5RndFNDdodWxXMEx0empnCjlmT1Y1UG1yZy96eFdiUnVMK2swREJESEVKZW5uQ3NBZW43YzM1UG14N2pwbUovSHRnUmhjbnoweWpTQnZ5SXcKNkwxUUl1cGtDdjJTQk9EVC94REQzZ2ZRUXlLdjZyb1Y0RzJFaGZFeUFzV3Btb2p4akNVQ0dpeWc5N0Z2RHRtLwpOSzJMU2M5bHliS3hCNzNJMitQMkczQ2FXcHZ2cEFpSENWdTMwalc4R0N4S2RmaHNYdG5JeTJpbXNrUXFWWjJtCjBQbXhvYmIyOFR1Y3I3eEJLN0N0d3ZQcmI3OW9zN3UyWFAzTzVmOWIvSDY2R055UnJnbFJYbHJZakkxb0dZTC8KZjRJMW4vU2d1c2RhNld2QTZDMTkwa3hqVTE1WTEybUhVNCtCeHlSOWN4MmhoR1M5ZkFqTVpLSnNzMjhxeHZ6NgpBeHU0Q2FEbVJOWnBLL3BRclhGMTd5WENYa21FV2d2U09FWnk2WjlwY2JMSVZFR2NrVi9pVmVxMEFPbzJwa2c5CnA0UVJJeTB0SzJkaVJFTkxTRjJLeXNGd2JZNkIyNkJGZUZzM3Yxc1lWUmhGVzluTGtPclFWcG9yQ1MwS3labWYKd1ZEODlxU1RsbmN0TGNabklhdmpLc0tVdTFuQTFpVTB5WU1kWWVwS1I3bFdibndoZHgzZXdvaz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb2dJQkFBS0NBUUVBeCtDQXZCcWN5RDYzYUV1OE9kWTVlUFl3ZTQvQUNpckg2Q29pRkZLRnh2L0Z1ZmZkCjlRVmN0UFJiZ0RXWmttYTJ1NHl5NEt3Qm9YRXJjZEZPdFFETWJmblM5Z3lNVkY5RnJQU0FwTEhNbUI4SGY0S2gKYktPQ2tpVjVpWjh0MVBkNDE4KzFpM1hWc2I1emVHU3pBMGFEQmJNeHl4Ykk2VGF2SzdIQzNGbGUvalpCU2Q3eQp5N05RZjFrNXNkV25sOXJZSTNlNWlyWjNTZEFxZThYN09wRzRuVlFuYnhuMkUycURMZDVLUjNkRmxRM2J1ZGU1CjNOR0lYZUprd3kxcU9kbzNYMS85WlBUQS8zOUpJc1JaeFRDWU1ZaGlFMTdvMzc5enpvWHA0d0hNOEVaQ3pRdXUKS3d6Q1J1cnloa1BXYzg3ZDE5L1JsV2VGYTIvazhraGhtRXk4WHdJREFRQUJBb0lCQUFmbloydDNZS3RXVHpQeApaZ2M1ZWlOWEZtTnpCUndIb213RE1SQkRIMVFvejJaYW8vTHBYRHd4bytYdW01Y2JpSjFYa2lUcVpBS3BqMUY1CmZubHM1SnorV21UaDBwbytueVNZblZRT3F2ZGlwM2JBZ3FEVjJNNWlQT1c2RTNxcjRKWnJiaXJVVTcyckNxbWoKUTVsLzk5SEpZam5VbHQveklaaDI5NnlNdkY4TmdMSHR4a3J2RDc0SVV3ckNLbnBHbnVtVWN0MnAzei91TzdpSgpYWHNueUJNZlBTelRqalpBVFJKcGZFRVdoTzZndHN4dFFXeTk1SUdnMndWUTQveXAxRDFGa3JwdmdVNFd3cWpyCjhnbzd3NTUxMURqeTF6dGNDeUhRVkRWNkRtbHJaaG83NTVqTElNZFFkczZwcjVTU2RDTnZpWk9PaUpERTQ2cTgKVUl3K3VCRUNnWUVBMENUb0dDTTBFSmdMYThKSnlKNkl4eHViVWxlczVsem9Xb3BCTTBLT3l2K3RIeUVIeUNqVApISDA1NkIxSVNLc25kZXF0VncvdTRmK09HaDdweWxxVXBnMGR5QXBkcVp3Q2FudmtUZEp1OWhTeWxmSmExSnk4Ck9lUDU3K01laWFkd2xJck9nZDQxRklIVm4xZGFDVDZ3Q2xuQ1dqMW5reHc2SGhXekw4b1IyZzhDZ1lFQTlkVC8KNGxuOExCaitRRnhoN0pJdTk1b0tCZHBoWGxuZkkvaHZENStZTFZOZGR4RmxqUjYxNlJkaDE2NFZSRmhDaHZvTgp1MDNNbFc4M2JINCtBa3NLeEVLS0h2bUFWc2RmRWxpQ1RGemQxaHBwUW1mQlByUlFiYzNHSC9wRVZ2UUxuemVxCkNIRG9Jdno3bktWVm5wZmlkWWt2QkQ3ZC9EWWxoM2FjZFZrVGlMRUNnWUJDN2pzNzE4WWNOK2drUkp1WlNYRk8KSlZCeTBBS25LT1VHaUVLakN4b0RxT2V3aE55TnZxTDBIRWlNblMzclFDNDJPcnAycm9id1lVNytrMFkyYlo0egpMekNPYk5ibGZXZEJlb2xWaFA5dFhnWjNOVEdFQU1wK0N4TUowb3kxVXdSZW42djhFc29heUEwN2FjbG9BNkowCkVaenZpNk5NcU56L1k1YjFIUk5VZlFLQmdCd2hDa0tSUDF5Z1kzOWowc1NxR1h1MWdZNFg1ZXBRNkVxS1k5THEKMVJQaXBTQTV1bUFDY3BoQVY2N0JPYWUvWGFWcU9XWUVTZk9UYlVrWnpPaWdRNVFmZFFTRVVoNGI1QklLVktaKwpQZGdBMzZoOGpNMHEvc1VCdGJqMC94cmdBL0J0QXlUQ0hwM2FTc1FxMnZneHN2VDJCSTQ4ejFQTHNsR2t6ZFJUCm8vdVJBb0dBVEg3RTVSaGJhc1hWcUd6K3J1SE4xRGdRcDFDeWxYV0pHbFNHQUtGUDJwYm1CWGlFbXlaOUNQOVYKc1JvT2dGRDVBVnRLRkNBcVJTUWJLQTBvS2tZUHlONWFLcURDYjRzMDVTZUJCSHhwNVVZRGtSaFptNXh2Z2VMUwpPQ3M1bFhkcEVxMnQ0aUVRdUU3VmozNDdGdFk4Q1FnWmxkRldwSGZtblRnSjBpNGNGRkk9Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+  kind: Secret
+  metadata:
+    annotations:
+      cert-manager.io/alt-names: lk.securesoft.dev
+      cert-manager.io/certificate-name: lk-tls
+      cert-manager.io/common-name: lk.securesoft.dev
+      cert-manager.io/ip-sans: ""
+      cert-manager.io/issuer-group: cert-manager.io
+      cert-manager.io/issuer-kind: ClusterIssuer
+      cert-manager.io/issuer-name: letsencrypt-prod
+      cert-manager.io/uri-sans: ""
+    creationTimestamp: "2026-02-01T16:43:27Z"
+    labels:
+      controller.cert-manager.io/fao: "true"
+    name: lk-tls
+    namespace: production
+    resourceVersion: "31426619"
+    uid: 72e2287d-d078-40a3-9382-bf4af273d6fd
+  type: kubernetes.io/tls
+- apiVersion: v1
+  data:
+    DATABASE_URL: cG9zdGdyZXNxbDovL3NlY3VyZWxpbms6bVI0bnE5RjJMMXo4SzB5VzN0NkM1djJIN2I5SjRwU0Bwb3N0Z3Jlcy5kYXRhLnN2Yy5jbHVzdGVyLmxvY2FsOjU0MzIvc2VjdXJlbGluaw==
+    INTERNAL_AGENT_TOKEN: NTA3YjI2ZGJjYTQ1ZGUwNjQwNmE1ZTQ1ZjFmYjcxNWViNTg2MWI4ODAxZDdjNTgyOWRmNmQ0ZTcyOGE4OTg5NQ==
+    INTERNAL_SERVICE_TOKEN: YjgwZDIwY2E5OTFlMTIyMjYzNjMyYTg5OGQ4MmM5M2Y5YzQ4MjU0MTBlOTM3YjJiYTgyODRiNzJkZmNlY2I0MA==
+    SESSION_SECRET: OThmM2M1ZDcyMjg2MGE1Y2QyYzk4ZDRhMzU3OGI2YWZiMWZjM2UwNGM3MmY0YmY1ZDMxZmU0N2EyOTYyMGMyZg==
+    SP_INTERNAL_BASE_URL: aHR0cDovL3N1YnM6MzAwMA==
+    SUBS_API_READONLY_TOKEN: Y2M0ZTJjNzk3YjU5YmQxZWFjNjEyOWYyZGVhYjBlZjc1YjdmYTRiMWI5ZmRmNmE5MGQ4NTNlZTJkMzhjYTI5YQ==
+    SUBS_API_TOKEN: OGYzNjUyYzM4MzFmMTFlNmFhYjFiMzk5OTYwODMzZWYxODFlYjNiMjI4ZjhhNjU1YzFlNDliMjZkMmFlOWFlMg==
+  kind: Secret
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Secret","metadata":{"annotations":{},"name":"production-secrets","namespace":"production"},"stringData":{"DATABASE_URL":"__REPLACE__","FIRST_ADMIN_EMAIL":"__REPLACE__","FIRST_ADMIN_PASSWORD":"__REPLACE__","INTERNAL_AGENT_TOKEN":"__REPLACE__","INTERNAL_SERVICE_TOKEN":"__REPLACE__","SESSION_SECRET":"__REPLACE__","SUBS_API_READONLY_TOKEN":"__REPLACE__","SUBS_API_TOKEN":"__REPLACE__"},"type":"Opaque"}
+    creationTimestamp: "2025-12-19T17:30:34Z"
+    name: production-secrets
+    namespace: production
+    resourceVersion: "32367025"
+    uid: ec637b80-d73e-49ec-ad9d-ca79fa11dd7b
+  type: Opaque
+- apiVersion: v1
+  data:
+    tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZDekNDQS9PZ0F3SUJBZ0lTQlpQSGM0MjVsc0JPc24yTkdFeEVSQVI4TUEwR0NTcUdTSWIzRFFFQkN3VUEKTURNeEN6QUpCZ05WQkFZVEFsVlRNUll3RkFZRFZRUUtFdzFNWlhRbmN5QkZibU55ZVhCME1Rd3dDZ1lEVlFRRApFd05TTVRNd0hoY05Nall3TVRBME1UQTFNakUzV2hjTk1qWXdOREEwTVRBMU1qRTJXakFlTVJ3d0dnWURWUVFECkV4TnpkV0p6TG5ObFkzVnlaWE52Wm5RdVpHVjJNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUIKQ2dLQ0FRRUF6TW5tTUhVaEpZeFlIdDQvaEpRYXRuSkd6QlM2RzhLcVAzc0FIK3U2b1hjTWs1dW94akxHK1IrYwpaMkF0dTNWZ2JLTm9iRTNEcGk4eXBJUkZBWHYzcFFJWWlmVFNGTk9wL2dQYlpDOTdXNmF3cGpyOXhrOTVQdEhrCktyem9NL2lOWTY3bkJZNVB6NEZQWWt2WVl3cVV1QUFBUld0OXFNYlhQekZEZFF3Zlh1emRVc1p4MjZLcW1aSncKNG42YVp6SU9IL1RCcHE5TS9UMkJSd1hjSWtwTEdSdXJpN0JoWDkvSVUyMHI5YitITzhObWs3N2oyT3hsR2NWbQpLK2VEL01ucEZCVGN4UVFneW1NVXNFRlE3U1N2NUJzbHc5ZGJ1aFJibHovakRoNnptbEtKY0k2Tk05UDdkU3pjCng4Q2FodURRUnNWNmNrSGJsb0FxWGRWdDRWWFRZUUlEQVFBQm80SUNMRENDQWlnd0RnWURWUjBQQVFIL0JBUUQKQWdXZ01CMEdBMVVkSlFRV01CUUdDQ3NHQVFVRkJ3TUJCZ2dyQmdFRkJRY0RBakFNQmdOVkhSTUJBZjhFQWpBQQpNQjBHQTFVZERnUVdCQlJCZzNpeUV4YUEzM2plWFFHS1RGMFlScWRhZkRBZkJnTlZIU01FR0RBV2dCVG5xNThQCkxET2dVOU5lVDNqSXNvUU9POWFTTXpBekJnZ3JCZ0VGQlFjQkFRUW5NQ1V3SXdZSUt3WUJCUVVITUFLR0YyaDAKZEhBNkx5OXlNVE11YVM1c1pXNWpjaTV2Y21jdk1CNEdBMVVkRVFRWE1CV0NFM04xWW5NdWMyVmpkWEpsYzI5bQpkQzVrWlhZd0V3WURWUjBnQkF3d0NqQUlCZ1puZ1F3QkFnRXdMd1lEVlIwZkJDZ3dKakFrb0NLZ0lJWWVhSFIwCmNEb3ZMM0l4TXk1akxteGxibU55TG05eVp5OHhNalV1WTNKc01JSUJEQVlLS3dZQkJBSFdlUUlFQWdTQi9RU0IKK2dENEFIY0F5emozRllsOGhLRkVYMXZCM2Z2SmJ2S2FXYzFIQ21rRmhiRExGTU1VV09jQUFBR2JpTmg3c0FBQQpCQU1BU0RCR0FpRUFoSmVBQ2cvTDNWWXZ6bTlMTkI0Rzk0N2N4YURJL1BWZ0lwWEpQeHRCNlI0Q0lRQ3VaNm9NCjgyL1pzUWtLNUpIRlJtbGdKaFJ2MjJwbHl6Zis1Ri9UL0hKajhnQjlBT01qamZLTm9vamdxdUNzOFBxUXlZWHcKdHIvMTBxVW5zQUg4SEVSWXhMYm9BQUFCbTRqWWUrTUFDQUFBQlFBdVBiNkJCQU1BUmpCRUFpQWlsVnc4NWtvdwpRR0VpSkx2RWl4Y3lKL0ZndWJ2enRSQVNDTFpkdU5mRVB3SWdVWGtGZnpkbEpjWHd1b1NiUEFuMEVrakZNYXNYClBtaXducngybEVQNE9wd3dEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBQ2tpbkw5aXBmK0pMUm9jV3VJME9RQk4KMkM4aG5iQllscmd6RHJvQVUxVUM2WGVubFdSeEtnWjNodzN4WjVEUFZVZm5VU0FlZW1USlllajA0THBnVjBOcgpEam1Nb0lPeGVwbHZVM3ZEMDIwZVk4b3RDSkgxWWpVV1BiYS9vT2p5c3IvNC9KVVZ0eEpja2o1dDNNZk9mbDQ5Ck8zS3ZiZGRKVW9SN1g1KzRyWkVyMDNQNUxRVXE1cmg0RXRqeXdFTytiQmFPaytXRlJVZ2xpU1dMMkJIM0dqdWYKNWVNcWx1NjdVeFNhdzNGTDBZZWg1ZGs1R0xWRlpORVNwTkRlaUpPREpLb0FhUVVKaVhiMU9TZGdXY1BTV1h5cgpwd0dCQ2tKN0M0aW03dDlqcjdFeGE5T2cxbFVvazFsL2V1MjNRaVJXbWJaQVQrdmZ0OTJzZktjUWNUS3FnOFE9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZCVENDQXUyZ0F3SUJBZ0lRV2dEeUV0alV0SUR6a2tGWDZpbURCVEFOQmdrcWhraUc5dzBCQVFzRkFEQlAKTVFzd0NRWURWUVFHRXdKVlV6RXBNQ2NHQTFVRUNoTWdTVzUwWlhKdVpYUWdVMlZqZFhKcGRIa2dVbVZ6WldGeQpZMmdnUjNKdmRYQXhGVEFUQmdOVkJBTVRERWxUVWtjZ1VtOXZkQ0JZTVRBZUZ3MHlOREF6TVRNd01EQXdNREJhCkZ3MHlOekF6TVRJeU16VTVOVGxhTURNeEN6QUpCZ05WQkFZVEFsVlRNUll3RkFZRFZRUUtFdzFNWlhRbmN5QkYKYm1OeWVYQjBNUXd3Q2dZRFZRUURFd05TTVRNd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFSwpBb0lCQVFDbFozQ04wRmFCWkJVWFljMjVCdFN0R1pDTUpsQTNtQlpqa2xUYjJjeUVCWlBzMCt3SUc2QmdVVU5JCmZTdkhTSmFldEMzYW5jZ25PMWVobjZ2dzFnN1VEakRLYjV1eDBkYWtuVEkrV0U0MWIwVllhSEVYL0Q3WVhZS2cKTDdKUmJMQWFYYmhaempWbHlJdWhyeEEzLytPY1hjSkpGelQvakN1TGpmQzhjU3lUREIwRnhMckh6YXJKWG56Ugp5UUgzbkFQMi9BcGQ5TnA3NXR0MlFuRHI5RTBpMmdCM2I5YkpYeGY5Mm5VdXBWY005dXBjdHVCenBXalBvWFRpCmRZSitFSi9COWFMckFlazRzUXBFek5QQ2lmVkpOWUlLTkxNYzZZakNSMDZDRGdvMjhFZFBpdkVwQkhYYXplR2EKWFA5ZW5aaVZ1cHBEMEVxaUZ3VUJCRERUTXJPUEFnTUJBQUdqZ2Znd2dmVXdEZ1lEVlIwUEFRSC9CQVFEQWdHRwpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01DQmdnckJnRUZCUWNEQVRBU0JnTlZIUk1CQWY4RUNEQUdBUUgvCkFnRUFNQjBHQTFVZERnUVdCQlRucTU4UExET2dVOU5lVDNqSXNvUU9POWFTTXpBZkJnTlZIU01FR0RBV2dCUjUKdEZubWU3Ymw1QUZ6Z0FpSXlCcFk5dW1iYmpBeUJnZ3JCZ0VGQlFjQkFRUW1NQ1F3SWdZSUt3WUJCUVVITUFLRwpGbWgwZEhBNkx5OTRNUzVwTG14bGJtTnlMbTl5Wnk4d0V3WURWUjBnQkF3d0NqQUlCZ1puZ1F3QkFnRXdKd1lEClZSMGZCQ0F3SGpBY29CcWdHSVlXYUhSMGNEb3ZMM2d4TG1NdWJHVnVZM0l1YjNKbkx6QU5CZ2txaGtpRzl3MEIKQVFzRkFBT0NBZ0VBVVRkWVVxRWltelc3VGJyT3lwTHFDZkw3Vk93WWYvUTc5T0g1Y0hMQ1plZ2dmUWhEY29ubAprN0tnaDhiMHZpKy9YdVd1N0NOOG4vVVBlZzF2bzNHK3RhWGlycnl0dGhRaW5BSEd3Yy9VZGJPeWdKYTl6dUJjClZ5cW9IM0NYVFhESW5UKzhhK2MzYUVWTUoyU3QrcFNuNGVkK1drRHA4aWpzaWp2RXlGd0U0N2h1bFcwTHR6amcKOWZPVjVQbXJnL3p4V2JSdUwrazBEQkRIRUplbm5Dc0FlbjdjMzVQbXg3anBtSi9IdGdSaGNuejB5alNCdnlJdwo2TDFRSXVwa0N2MlNCT0RUL3hERDNnZlFReUt2NnJvVjRHMkVoZkV5QXNXcG1vanhqQ1VDR2l5Zzk3RnZEdG0vCk5LMkxTYzlseWJLeEI3M0kyK1AyRzNDYVdwdnZwQWlIQ1Z1MzBqVzhHQ3hLZGZoc1h0bkl5Mmltc2tRcVZaMm0KMFBteG9iYjI4VHVjcjd4Qks3Q3R3dlByYjc5b3M3dTJYUDNPNWY5Yi9INjZHTnlScmdsUlhscllqSTFvR1lMLwpmNEkxbi9TZ3VzZGE2V3ZBNkMxOTBreGpVMTVZMTJtSFU0K0J4eVI5Y3gyaGhHUzlmQWpNWktKc3MyOHF4dno2CkF4dTRDYURtUk5acEsvcFFyWEYxN3lYQ1hrbUVXZ3ZTT0VaeTZaOXBjYkxJVkVHY2tWL2lWZXEwQU9vMnBrZzkKcDRRUkl5MHRLMmRpUkVOTFNGMkt5c0Z3Ylk2QjI2QkZlRnMzdjFzWVZSaEZXOW5Ma09yUVZwb3JDUzBLeVptZgp3VkQ4OXFTVGxuY3RMY1puSWF2aktzS1V1MW5BMWlVMHlZTWRZZXBLUjdsV2Jud2hkeDNld29rPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb2dJQkFBS0NBUUVBek1ubU1IVWhKWXhZSHQ0L2hKUWF0bkpHekJTNkc4S3FQM3NBSCt1Nm9YY01rNXVvCnhqTEcrUitjWjJBdHUzVmdiS05vYkUzRHBpOHlwSVJGQVh2M3BRSVlpZlRTRk5PcC9nUGJaQzk3VzZhd3BqcjkKeGs5NVB0SGtLcnpvTS9pTlk2N25CWTVQejRGUFlrdllZd3FVdUFBQVJXdDlxTWJYUHpGRGRRd2ZYdXpkVXNaeAoyNktxbVpKdzRuNmFaeklPSC9UQnBxOU0vVDJCUndYY0lrcExHUnVyaTdCaFg5L0lVMjByOWIrSE84Tm1rNzdqCjJPeGxHY1ZtSytlRC9NbnBGQlRjeFFRZ3ltTVVzRUZRN1NTdjVCc2x3OWRidWhSYmx6L2pEaDZ6bWxLSmNJNk4KTTlQN2RTemN4OENhaHVEUVJzVjZja0hibG9BcVhkVnQ0VlhUWVFJREFRQUJBb0lCQUVtN2Q3R0N1b2gyVzFQaAoyU1MyM2xkS0ZjdHN1d1U3dFdoZHROSEpZY3k0dkVKNURPOHZZUXhaSVVybkNoQXdWcU5Hd2xZY09aRWY5Uy9lCm42bkZKSWk0bEhVM1BGeGJTUjAzN2tuSC9yWWs4ZjBueUM4YWRpRDBHUjU2SFhCNDBROU83Y2JHVWwzM3hNa3oKWFpsck9kaDF4Nk0yN0d0VURET29YUTFMYkJBVXV5TVdMUVU3ZGFLZW1UT3JvcWkvQ0RHWjlaWGllMEk2OWF2NwovaUpQaVpMZndWV2hheHRPRVNlZEZiVmlQaDZCK2V5RW1BU3BUQmZwbjhFcFBHdlFLMTF0K1dXd0liZTVFRVVGClBncThHYjhOVDdXVFE5Z2tydU40REVoSXUvdm5rVDJqei8wbzJ0bjIyVmQzUlVOWXp2NWV5Zm5YSy83b2tWYS8Kdklhd0RYRUNnWUVBMjBzMDExeFRJOGhwUlVST0VrR1ZPTkpPQm9lT0FiSGtrRzZXSkdKRzl4TGZkNHFTcDM2TwpWV203Wm9Cd3AzYXRhcGlnRjYzcDd2NnBLNmpLKzV4ZXptYUYybGI4dVgrTDhxTUhyTnZxQ3gxbFBHeWlTR1VxClFRbDh1ZHVtY3VHTE5BazVnZk93UUw3WlJUZi9wY1lIZXlGaFhhbGV1U1N6eTFTWUh2cUVMVXNDZ1lFQTd4RWwKTWpoaytpVHFNL2dPV2x2WFBGSkZmSmFEMWpOMGRLZDNZRWVjYjB1R3E2S25hdGlWSkx4K1grenBTV1AyUVpzNgpoY09malF6RlE2T0V0bEtuc2hMS0xDNTZsZ2hlZlNuRG5GZkZDRFZYR2lHVVhEN1J6OUo0dk1tUlZWODJNM1ExCnNZbTdad01JeUdiUzArcXBUMWI1aG5NMWNHZ2RXUUxrVHZaT01vTUNnWUJnYm5MZkhTOUdOZlBzekx1VUZaamIKOHNieTRoc1ZMYmYzdDFsNHlHcXliVzh0THhlTVpmK0xHY0tac1hOWWdMeURlbmd6MFh0a2FFSFYvQlMramlXMgpsNmpXdVpmS3JvYkkvTjM4S255QnhMeG0xTktNQ1VpS2J2U1Urano0bWF2UUJ4cHR4YzVFdW1mcW8xUmMvbmI5CnMxRVFrZEVna3o0bzlKc3NURGRoZndLQmdGYmlPa3g0Sm1xcXc5dERTYVFaUUs0UmtHTnBLRnpPc29JNjRxM0IKR045eDZXMnpYWGo5WWFiS1FudUdWSHB4cyt2QUNKTFl0OEhCWkdmaW83YkhiMTdPYVYrSlBOQU9GcGtTZHA3NQpYd2hPcW1zNnpQcUJjaXMvYU5Yanc4ZnRKSHVxdm1EWmw1d21oQ2loQmZveWpIbmpPQ2hlOG9yNXE4RFB4ajNVClVqTVZBb0dBUEIrdWlYR2lhL1BtckJMdExHaHgvZmtIMnA0OFBKc2k5RkV1NlJEOWNpcTRDTkZ3OEN1d2pkU1cKZ3g3WSs5ay9rM3JibnVXTmxDbW5KT3FrS3EyTXF4bVcyN1JjN2lVTktVeGlKT1FhZitLYVRFeUZFelVtSG56aQpKSGpSaElpNzV2ZkhIV2E5blA5Vm1zamEvcTVPcXF3ajJ0UUtkUjEzNThpTkFqM2xBcUk9Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+  kind: Secret
+  metadata:
+    annotations:
+      cert-manager.io/alt-names: subs.securesoft.dev
+      cert-manager.io/certificate-name: subs-tls
+      cert-manager.io/common-name: subs.securesoft.dev
+      cert-manager.io/ip-sans: ""
+      cert-manager.io/issuer-group: cert-manager.io
+      cert-manager.io/issuer-kind: ClusterIssuer
+      cert-manager.io/issuer-name: letsencrypt-prod
+      cert-manager.io/uri-sans: ""
+    creationTimestamp: "2026-01-04T11:50:48Z"
+    labels:
+      controller.cert-manager.io/fao: "true"
+    name: subs-tls
+    namespace: production
+    resourceVersion: "16804798"
+    uid: 8e57f4ce-632f-40df-bf69-eedf6695502a
+  type: kubernetes.io/tls
+- apiVersion: v1
+  data:
+    hash32: MzNhTnQyMXhIOTBfQVlMSDBxVlhJajFic3BNSDVWWndDNmFTRVMwTl9kcw==
+    password: WnFNVkh5M1NRZkZob3d0cExHNXBtRDlNZjdmUWU3QldGbFB1YzdMN2xsRQ==
+    realityPrivateKey: Y083VnMwdDJjUVZIeHpPbWJXOVNNSkdqUjJEc1o3WXd4WlcyQnk0OGRHaw==
+    shortId1: NjdjYjY5OTg0ZmNiYmNkZg==
+    shortId2: M2Q0OWE1YTJkM2EwNzYxYw==
+    shortId3: YmMxYWI0NDdiN2QzYWE0ZQ==
+    shortId4: YzY1YTUwMmQ3MjU5ZTg3Yg==
+  kind: Secret
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Secret","metadata":{"annotations":{},"name":"xray-config-secret","namespace":"production"},"stringData":{"hash32":"PASTE_IF_USED","password":"PASTE_IF_USED","realityPrivateKey":"PASTE_REALITY_PRIVATE_KEY","shortId1":"PASTE_SHORTID_1","shortId2":"PASTE_SHORTID_2","shortId3":"PASTE_SHORTID_3","shortId4":"PASTE_SHORTID_4"},"type":"Opaque"}
+    creationTimestamp: "2025-12-19T19:06:54Z"
+    name: xray-config-secret
+    namespace: production
+    resourceVersion: "9474721"
+    uid: 08023a41-c1fe-41b9-8e8f-699aa6ee2859
+  type: Opaque
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:lk","ingressName":"production:lk","hostname":"lk.securesoft.dev","path":"/","allNodes":false}]'
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{},"name":"lk","namespace":"production"},"spec":{"ingressClassName":"nginx","rules":[{"host":"lk.securesoft.dev","http":{"paths":[{"backend":{"service":{"name":"lk","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["lk.securesoft.dev"],"secretName":"lk-tls"}]}}
+    creationTimestamp: "2025-12-21T09:42:34Z"
+    generation: 1
+    name: lk
+    namespace: production
+    resourceVersion: "22841238"
+    uid: 6cd51f87-8c19-4930-8c05-ee2aee28774c
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: lk.securesoft.dev
+      http:
+        paths:
+        - backend:
+            service:
+              name: lk
+              port:
+                number: 80
+          path: /
+          pathType: Prefix
+    tls:
+    - hosts:
+      - lk.securesoft.dev
+      secretName: lk-tls
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 146.103.118.77
+      - ip: 89.110.100.165
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      field.cattle.io/publicEndpoints: '[{"addresses":["146.103.118.77","89.110.100.165"],"port":443,"protocol":"HTTPS","serviceName":"production:subs","ingressName":"production:subs","hostname":"subs.securesoft.dev","path":"/","allNodes":false}]'
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"cert-manager.io/cluster-issuer":"letsencrypt-prod"},"name":"subs","namespace":"production"},"spec":{"ingressClassName":"nginx","rules":[{"host":"subs.securesoft.dev","http":{"paths":[{"backend":{"service":{"name":"subs","port":{"number":3000}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["subs.securesoft.dev"],"secretName":"subs-tls"}]}}
+    creationTimestamp: "2026-01-04T11:50:23Z"
+    generation: 2
+    name: subs
+    namespace: production
+    resourceVersion: "22841237"
+    uid: 727b5fdd-e43d-46f1-ac7b-cce9028889bf
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: subs.securesoft.dev
+      http:
+        paths:
+        - backend:
+            service:
+              name: subs
+              port:
+                number: 3000
+          path: /
+          pathType: Prefix
+    tls:
+    - hosts:
+      - subs.securesoft.dev
+      secretName: subs-tls
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 146.103.118.77
+      - ip: 89.110.100.165
+- apiVersion: v1
+  imagePullSecrets:
+  - name: ghcr-pull
+  kind: ServiceAccount
+  metadata:
+    creationTimestamp: "2025-12-19T17:25:51Z"
+    name: default
+    namespace: production
+    resourceVersion: "8752005"
+    uid: 3b34904c-f830-41f7-b46e-e61bcb32ba49
+kind: List
+metadata:
+  resourceVersion: ""
