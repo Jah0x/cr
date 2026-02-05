@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
+import { formatRubCurrency } from '../utils/currency'
 import { useToast } from '../components/ToastProvider'
 import Card from '../components/Card'
 import { PrimaryButton, SecondaryButton } from '../components/Buttons'
@@ -17,6 +18,42 @@ type Expense = {
   category_id: string | null
   note: string | null
   payment_method: string | null
+}
+
+type RecurringExpensePeriod = 'daily' | 'weekly' | 'monthly'
+type RecurringExpenseAllocationMethod = 'calendar_days' | 'fixed_30'
+
+type RecurringExpense = {
+  id: string
+  store_id: string
+  name: string
+  amount: number
+  period: RecurringExpensePeriod
+  allocation_method: RecurringExpenseAllocationMethod
+  start_date: string
+  end_date: string | null
+  is_active: boolean
+}
+
+type ProfitLossTotals = {
+  gross_profit: number
+  operating_profit: number
+  profitable: boolean
+}
+
+type ProfitLossDailyBreakdown = {
+  date: string
+  revenue: number
+  cogs: number
+  taxes: number
+  one_time_expenses: number
+  fixed_costs: number
+  operating_profit: number
+}
+
+type ProfitLossReport = {
+  totals: ProfitLossTotals
+  daily_breakdown: ProfitLossDailyBreakdown[]
 }
 
 type PnlReport = {
@@ -74,18 +111,7 @@ type FinanceFiltersState = {
 
 const paymentMethods: PaymentMethod[] = ['cash', 'card', 'transfer']
 
-const currencyFormatter = new Intl.NumberFormat('ru-RU', {
-  style: 'currency',
-  currency: 'RUB',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-})
-
-const formatCurrency = (value: number | null | undefined) => {
-  const amount = typeof value === 'number' ? value : Number(value ?? 0)
-  const formatted = currencyFormatter.format(Number.isFinite(amount) ? amount : 0)
-  return formatted.replace(/\u00a0/g, ' ')
-}
+const formatCurrency = (value: number | string | null | undefined) => formatRubCurrency(value)
 
 const toDateParam = (value: string, endOfDay = false) => {
   if (!value) return undefined
@@ -173,6 +199,8 @@ export default function FinancePage() {
   const [filters, setFilters] = useState<FinanceFiltersState>(defaultFilters)
   const [draftFilters, setDraftFilters] = useState<FinanceFiltersState>(defaultFilters)
   const [pnl, setPnl] = useState<PnlReport | null>(null)
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([])
+  const [profitLoss, setProfitLoss] = useState<ProfitLossReport | null>(null)
   const [overview, setOverview] = useState<FinanceOverviewReport | null>(null)
   const [taxes, setTaxes] = useState<TaxReportItem[]>([])
   const [topRevenue, setTopRevenue] = useState<TopProductPerformance[]>([])
@@ -235,6 +263,22 @@ export default function FinancePage() {
     setPnl(res.data)
   }
 
+  const loadRecurringExpenses = async () => {
+    const res = await api.get('/finance/recurring-expenses')
+    setRecurringExpenses(res.data)
+  }
+
+  const loadProfitLoss = async () => {
+    const res = await api.get('/finance/profit-loss', {
+      params: {
+        store_id: undefined,
+        date_from: filters.dateFrom || undefined,
+        date_to: filters.dateTo || undefined
+      }
+    })
+    setProfitLoss(res.data)
+  }
+
   const loadOverview = async () => {
     const res = await api.get('/reports/finance-overview', { params })
     setOverview(res.data)
@@ -266,6 +310,8 @@ export default function FinancePage() {
         loadCategories(),
         loadExpenses(),
         loadPnl(),
+        loadRecurringExpenses(),
+        loadProfitLoss(),
         loadOverview(),
         loadTaxes(),
         loadTopProducts(),
@@ -312,6 +358,69 @@ export default function FinancePage() {
       addToast(t('common.created'), 'success')
       loadExpenses()
       loadPnl()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
+  }
+
+  const addRecurringExpense = async () => {
+    const name = window.prompt(t('finance.recurringNamePrompt'))
+    if (!name?.trim()) return
+    const amountRaw = window.prompt(t('finance.recurringAmountPrompt'))
+    if (!amountRaw) return
+    const parsedAmount = Number(amountRaw.replace(',', '.'))
+    if (!Number.isFinite(parsedAmount)) {
+      addToast(t('finance.invalidAmount'), 'error')
+      return
+    }
+    try {
+      await api.post('/finance/recurring-expenses', {
+        name: name.trim(),
+        amount: parsedAmount,
+        period: 'monthly',
+        allocation_method: 'calendar_days',
+        start_date: new Date().toISOString().slice(0, 10),
+        is_active: true
+      })
+      addToast(t('common.created'), 'success')
+      loadRecurringExpenses()
+      loadProfitLoss()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
+  }
+
+  const editRecurringExpense = async (expense: RecurringExpense) => {
+    const nextName = window.prompt(t('finance.recurringNamePrompt'), expense.name)
+    if (!nextName?.trim()) return
+    const nextAmountRaw = window.prompt(t('finance.recurringAmountPrompt'), String(expense.amount))
+    if (!nextAmountRaw) return
+    const parsedAmount = Number(nextAmountRaw.replace(',', '.'))
+    if (!Number.isFinite(parsedAmount)) {
+      addToast(t('finance.invalidAmount'), 'error')
+      return
+    }
+    try {
+      await api.put(`/finance/recurring-expenses/${expense.id}`, {
+        ...expense,
+        name: nextName.trim(),
+        amount: parsedAmount
+      })
+      addToast(t('common.updated'), 'success')
+      loadRecurringExpenses()
+      loadProfitLoss()
+    } catch (error) {
+      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
+    }
+  }
+
+  const deactivateRecurringExpense = async (expense: RecurringExpense) => {
+    if (!window.confirm(t('finance.recurringDeactivateConfirm'))) return
+    try {
+      await api.delete(`/finance/recurring-expenses/${expense.id}`)
+      addToast(t('common.deleted'), 'success')
+      loadRecurringExpenses()
+      loadProfitLoss()
     } catch (error) {
       addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
     }
@@ -563,6 +672,122 @@ export default function FinancePage() {
                   </tbody>
                 </table>
               </div>
+            )
+          )}
+        </Card>
+        <Card title={t('finance.recurringExpensesTitle')} className="finance-card--wide">
+          <div className="form-row" style={{ justifyContent: 'flex-end' }}>
+            <PrimaryButton type="button" onClick={addRecurringExpense}>
+              {t('finance.addRecurringExpense')}
+            </PrimaryButton>
+          </div>
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('finance.name')}</th>
+                  <th>{t('finance.amount')}</th>
+                  <th>{t('finance.period')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('finance.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading && recurringExpenses.length === 0 ? (
+                  renderSkeletonRows(4, 5)
+                ) : recurringExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>{t('finance.recurringExpensesEmpty')}</td>
+                  </tr>
+                ) : (
+                  recurringExpenses.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.name}</td>
+                      <td>{formatCurrency(item.amount)}</td>
+                      <td>{t(`finance.recurringPeriod.${item.period}`)}</td>
+                      <td>{item.is_active ? t('finance.active') : t('finance.inactive')}</td>
+                      <td>
+                        <div className="form-inline">
+                          <SecondaryButton type="button" onClick={() => editRecurringExpense(item)}>
+                            {t('finance.edit')}
+                          </SecondaryButton>
+                          <SecondaryButton type="button" onClick={() => deactivateRecurringExpense(item)}>
+                            {t('finance.deactivate')}
+                          </SecondaryButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+        <Card title={t('finance.profitLossTitle')} subtitle={t('finance.profitLossSubtitle')} className="finance-card--wide">
+          {isLoading && !profitLoss ? (
+            <>
+              <div className="table-wrapper">
+                <table className="table table--skeleton">
+                  <tbody>{renderSkeletonRows(1, 3)}</tbody>
+                </table>
+              </div>
+              <div className="table-wrapper">
+                <table className="table table--skeleton">
+                  <tbody>{renderSkeletonRows(4, 7)}</tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            profitLoss && (
+              <>
+                <div className="grid">
+                  <Card title={t('finance.grossProfit')}>
+                    <strong>{formatCurrency(profitLoss.totals.gross_profit)}</strong>
+                  </Card>
+                  <Card title={t('finance.operatingProfit')}>
+                    <strong>{formatCurrency(profitLoss.totals.operating_profit)}</strong>
+                  </Card>
+                  <Card title={t('finance.profitabilityStatus')}>
+                    <strong>
+                      {profitLoss.totals.profitable ? t('finance.profitable') : t('finance.unprofitable')}
+                    </strong>
+                  </Card>
+                </div>
+                <div className="table-wrapper">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>{t('finance.date')}</th>
+                        <th>{t('finance.totalRevenue')}</th>
+                        <th>{t('finance.cogs')}</th>
+                        <th>{t('finance.totalTaxes')}</th>
+                        <th>{t('finance.expenses')}</th>
+                        <th>{t('finance.recurringExpensesTitle')}</th>
+                        <th>{t('finance.operatingProfit')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profitLoss.daily_breakdown.length === 0 ? (
+                        <tr>
+                          <td colSpan={7}>{t('finance.profitLossEmpty')}</td>
+                        </tr>
+                      ) : (
+                        profitLoss.daily_breakdown.map((day) => (
+                          <tr key={day.date}>
+                            <td>{new Date(day.date).toLocaleDateString()}</td>
+                            <td>{formatCurrency(day.revenue)}</td>
+                            <td>{formatCurrency(day.cogs)}</td>
+                            <td>{formatCurrency(day.taxes)}</td>
+                            <td>{formatCurrency(day.one_time_expenses)}</td>
+                            <td>{formatCurrency(day.fixed_costs)}</td>
+                            <td>{formatCurrency(day.operating_profit)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )
           )}
         </Card>
