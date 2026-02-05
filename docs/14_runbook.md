@@ -19,6 +19,23 @@
 - Apply public migrations only: `cd backend && poetry run alembic upgrade head` (useful for schema-only changes).
 - Apply public + tenant migrations: `cd backend && poetry run python -m app.cli migrate-all`.
 - Inspect current revision: `cd backend && poetry run alembic current`.
+- Check where the `cashiershiftstatus` type exists:
+  ```sql
+  SELECT n.nspname, t.typname
+  FROM pg_type t
+  JOIN pg_namespace n ON t.typnamespace = n.oid
+  WHERE t.typname = 'cashiershiftstatus';
+  ```
+
+## Troubleshooting migrations
+- Verify migration idempotency in a controlled environment:
+  1. Run migrations on an empty tenant schema.
+  2. Run migrations a second time without any changes and confirm there are no errors.
+  3. Repeat the scenario with `cashiershiftstatus` already existing in `public`, and confirm tenant migrations still complete successfully.
+- Production recovery notes:
+  - First, check the type location with the SQL query above.
+  - If a migration failed after partial execution, prefer shipping a fixed migration and rerunning rather than manual catalog edits.
+  - Do not manually drop types until dependency analysis confirms it is safe.
 
 ## Running and health
 - Liveness: `GET /healthz` or `/api/v1/health`.
