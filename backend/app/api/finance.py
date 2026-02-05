@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import uuid
 
 from fastapi import APIRouter, Depends
@@ -26,6 +26,7 @@ from app.schemas.finance import (
     RecurringExpenseCreate,
     RecurringExpenseOut,
     RecurringExpenseUpdate,
+    ProfitLossResponse,
 )
 from app.services.finance_service import AccrualService, FinanceService
 
@@ -128,3 +129,18 @@ async def delete_recurring_expense(
     session: AsyncSession = Depends(get_db_session),
 ):
     return await get_service(session).delete_recurring_expense(recurring_expense_id)
+
+
+@router.get("/profit-loss", response_model=ProfitLossResponse)
+async def profit_loss(
+    store_id: uuid.UUID | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    session: AsyncSession = Depends(get_db_session),
+):
+    today = datetime.utcnow().date()
+    return await get_service(session).profit_loss(
+        store_id=store_id,
+        date_from=date_from or today,
+        date_to=date_to or today,
+    )

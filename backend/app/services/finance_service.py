@@ -1,16 +1,20 @@
 import calendar
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy import Date, cast, func, select
 
 from app.models.finance import (
     Expense,
+    ExpenseAccrual,
     RecurringExpense,
     RecurringExpenseAllocationMethod,
     RecurringExpensePeriod,
 )
+from app.models.sales import Sale, SaleItem, SaleStatus, SaleTaxLine
 from app.repos.finance_repo import (
     ExpenseAccrualRepo,
     ExpenseCategoryRepo,
@@ -18,6 +22,7 @@ from app.repos.finance_repo import (
     RecurringExpenseRepo,
 )
 from app.repos.store_repo import StoreRepo
+from app.schemas.finance import ProfitLossDailyBreakdown, ProfitLossResponse, ProfitLossTotals
 
 
 class AccrualService:
@@ -136,3 +141,135 @@ class FinanceService:
 
     async def ensure_accruals(self, store_id: uuid.UUID, date_from: date, date_to: date) -> None:
         await self.accrual_service.ensure_accruals(store_id, date_from, date_to)
+
+    async def profit_loss(
+        self,
+        store_id: uuid.UUID | None,
+        date_from: date,
+        date_to: date,
+    ) -> ProfitLossResponse:
+        if date_from > date_to:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="date_from must be less than or equal to date_to",
+            )
+
+        if not store_id:
+            store_id = (await self.store_repo.get_default()).id
+
+        await self.ensure_accruals(store_id, date_from, date_to)
+
+        revenue_by_day = await self._fetch_sales_sum_by_day(
+            select(func.date(Sale.created_at), func.coalesce(func.sum(Sale.total_amount), 0))
+            .where(
+                Sale.status == SaleStatus.completed,
+                Sale.store_id == store_id,
+                cast(Sale.created_at, Date) >= date_from,
+                cast(Sale.created_at, Date) <= date_to,
+            )
+            .group_by(func.date(Sale.created_at))
+        )
+        cogs_by_day = await self._fetch_sales_sum_by_day(
+            select(
+                func.date(Sale.created_at),
+                func.coalesce(func.sum(SaleItem.line_total - SaleItem.profit_line), 0),
+            )
+            .join(SaleItem, SaleItem.sale_id == Sale.id)
+            .where(
+                Sale.status == SaleStatus.completed,
+                Sale.store_id == store_id,
+                cast(Sale.created_at, Date) >= date_from,
+                cast(Sale.created_at, Date) <= date_to,
+            )
+            .group_by(func.date(Sale.created_at))
+        )
+        taxes_by_day = await self._fetch_sales_sum_by_day(
+            select(func.date(Sale.created_at), func.coalesce(func.sum(SaleTaxLine.tax_amount), 0))
+            .join(SaleTaxLine, SaleTaxLine.sale_id == Sale.id)
+            .where(
+                Sale.status == SaleStatus.completed,
+                Sale.store_id == store_id,
+                cast(Sale.created_at, Date) >= date_from,
+                cast(Sale.created_at, Date) <= date_to,
+            )
+            .group_by(func.date(Sale.created_at))
+        )
+        one_time_by_day = await self._fetch_generic_sum_by_day(
+            select(func.date(Expense.occurred_at), func.coalesce(func.sum(Expense.amount), 0))
+            .where(
+                Expense.store_id == store_id,
+                cast(Expense.occurred_at, Date) >= date_from,
+                cast(Expense.occurred_at, Date) <= date_to,
+            )
+            .group_by(func.date(Expense.occurred_at))
+        )
+        fixed_by_day = await self._fetch_generic_sum_by_day(
+            select(ExpenseAccrual.date, func.coalesce(func.sum(ExpenseAccrual.amount), 0))
+            .where(
+                ExpenseAccrual.store_id == store_id,
+                ExpenseAccrual.date >= date_from,
+                ExpenseAccrual.date <= date_to,
+            )
+            .group_by(ExpenseAccrual.date)
+        )
+
+        revenue_total = self._sum_map(revenue_by_day)
+        cogs_total = self._sum_map(cogs_by_day)
+        taxes_total = self._sum_map(taxes_by_day)
+        one_time_expenses_total = self._sum_map(one_time_by_day)
+        fixed_accruals_total = self._sum_map(fixed_by_day)
+        gross_profit = revenue_total - cogs_total - taxes_total
+        operating_profit = gross_profit - one_time_expenses_total - fixed_accruals_total
+
+        daily_breakdown: list[ProfitLossDailyBreakdown] = []
+        current_day = date_from
+        while current_day <= date_to:
+            revenue = revenue_by_day[current_day]
+            cogs = cogs_by_day[current_day]
+            taxes = taxes_by_day[current_day]
+            one_time_expenses = one_time_by_day[current_day]
+            fixed_costs = fixed_by_day[current_day]
+            day_operating_profit = revenue - cogs - taxes - one_time_expenses - fixed_costs
+            daily_breakdown.append(
+                ProfitLossDailyBreakdown(
+                    date=current_day,
+                    revenue=revenue,
+                    cogs=cogs,
+                    taxes=taxes,
+                    one_time_expenses=one_time_expenses,
+                    fixed_costs=fixed_costs,
+                    operating_profit=day_operating_profit,
+                )
+            )
+            current_day += timedelta(days=1)
+
+        return ProfitLossResponse(
+            totals=ProfitLossTotals(
+                revenue_total=revenue_total,
+                cogs_total=cogs_total,
+                taxes_total=taxes_total,
+                one_time_expenses_total=one_time_expenses_total,
+                fixed_accruals_total=fixed_accruals_total,
+                gross_profit=gross_profit,
+                operating_profit=operating_profit,
+                profitable=operating_profit >= Decimal("0"),
+            ),
+            daily_breakdown=daily_breakdown,
+        )
+
+    async def _fetch_sales_sum_by_day(self, stmt):
+        result = await self.expense_repo.session.execute(stmt)
+        values: dict[date, Decimal] = defaultdict(lambda: Decimal("0"))
+        for day, amount in result.all():
+            values[day] = Decimal(amount or 0)
+        return values
+
+    async def _fetch_generic_sum_by_day(self, stmt):
+        result = await self.expense_repo.session.execute(stmt)
+        values: dict[date, Decimal] = defaultdict(lambda: Decimal("0"))
+        for day, amount in result.all():
+            values[day] = Decimal(amount or 0)
+        return values
+
+    def _sum_map(self, values: dict[date, Decimal]) -> Decimal:
+        return sum(values.values(), start=Decimal("0"))
