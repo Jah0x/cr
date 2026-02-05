@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import api from '../api/client'
+import api, { closeShift, getActiveShift, openShift, type ShiftOut } from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
 import { useTenantSettings } from '../api/tenantSettings'
@@ -72,6 +72,11 @@ interface CashierUser {
   roles: Array<{ id: string; name: string }>
 }
 
+interface Store {
+  id: string
+  name: string
+}
+
 type TaxRule = {
   id: string
   name: string
@@ -118,6 +123,10 @@ export default function PosPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
   const [cashiers, setCashiers] = useState<CashierUser[]>([])
+  const [stores, setStores] = useState<Store[]>([])
+  const [activeShift, setActiveShift] = useState<ShiftOut | null>(null)
+  const [shiftLoading, setShiftLoading] = useState(false)
+  const [shiftActionLoading, setShiftActionLoading] = useState(false)
   const [cashierFilter, setCashierFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -164,16 +173,65 @@ export default function PosPage() {
   }, [loadProducts])
 
   useEffect(() => {
-    const loadCashiers = async () => {
+    const loadReferences = async () => {
       try {
-        const res = await api.get('/users')
-        setCashiers(res.data as CashierUser[])
+        const [usersRes, storesRes] = await Promise.all([api.get('/users'), api.get('/stores')])
+        setCashiers(usersRes.data as CashierUser[])
+        setStores(storesRes.data as Store[])
       } catch {
         setCashiers([])
+        setStores([])
       }
     }
-    loadCashiers()
+    void loadReferences()
   }, [])
+
+  const loadActiveShift = useCallback(async () => {
+    setShiftLoading(true)
+    try {
+      const shift = await getActiveShift()
+      setActiveShift(shift)
+    } catch {
+      setActiveShift(null)
+    } finally {
+      setShiftLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadActiveShift()
+  }, [loadActiveShift])
+
+  const openCurrentShift = useCallback(async () => {
+    if (stores.length === 0) {
+      setError(t('pos.shiftStoreUnavailable'))
+      return
+    }
+    setShiftActionLoading(true)
+    setError('')
+    try {
+      const openedShift = await openShift({ store_id: stores[0].id })
+      setActiveShift(openedShift)
+    } catch (e) {
+      setError(getApiErrorMessage(e, t, 'common.error'))
+    } finally {
+      setShiftActionLoading(false)
+    }
+  }, [stores, t])
+
+  const closeCurrentShift = useCallback(async () => {
+    if (!activeShift) return
+    setShiftActionLoading(true)
+    setError('')
+    try {
+      const closedShift = await closeShift(activeShift.id, {})
+      setActiveShift(closedShift)
+    } catch (e) {
+      setError(getApiErrorMessage(e, t, 'common.error'))
+    } finally {
+      setShiftActionLoading(false)
+    }
+  }, [activeShift, t])
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -435,7 +493,7 @@ export default function PosPage() {
   }
 
   const hasDraft = cartItems.length > 0 || payments.length > 0
-  const canFinalize = cartItems.length > 0
+  const canFinalize = cartItems.length > 0 && activeShift?.status === 'open'
 
   const clearDraft = useCallback(() => {
     setCartItems([])
@@ -451,6 +509,10 @@ export default function PosPage() {
     setError('')
     if (cartItems.length === 0) {
       setError(t('errors.addItemsBeforeFinalize'))
+      return
+    }
+    if (!activeShift || activeShift.status !== 'open') {
+      setError(t('pos.shiftRequired'))
       return
     }
     const itemPayload = {
@@ -626,6 +688,29 @@ export default function PosPage() {
   return (
     <div className="page pos-page">
       <PageTitle title={t('pos.title')} subtitle={t('pos.subtitle')} />
+      <Card className="form-stack" style={{ marginBottom: 16 }}>
+        <div className="pos-summary-row">
+          <span>{t('pos.shiftStatus')}</span>
+          <strong>
+            {shiftLoading
+              ? t('common.loading')
+              : activeShift?.status === 'open'
+                ? t('pos.shiftOpen')
+                : t('pos.shiftClosed')}
+          </strong>
+        </div>
+        <div className="pos-history-actions">
+          {activeShift?.status === 'open' ? (
+            <SecondaryButton onClick={closeCurrentShift} disabled={shiftActionLoading}>
+              {t('pos.closeShift')}
+            </SecondaryButton>
+          ) : (
+            <PrimaryButton onClick={openCurrentShift} disabled={shiftActionLoading || stores.length === 0}>
+              {t('pos.openShift')}
+            </PrimaryButton>
+          )}
+        </div>
+      </Card>
       <div className="pos-layout">
         <Card className="pos-products">
           <div className="pos-search">

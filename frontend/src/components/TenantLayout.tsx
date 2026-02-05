@@ -13,6 +13,16 @@ export default function TenantLayout() {
   const { data, isLoading } = useTenantSettings()
   const [isAuthValid, setIsAuthValid] = useState(true)
   const token = localStorage.getItem('token')
+  const storedUserRaw = localStorage.getItem('user')
+
+  let isCashierOrOwner = false
+  try {
+    const parsedUser = storedUserRaw ? (JSON.parse(storedUserRaw) as { roles?: Array<{ name?: string }> }) : null
+    isCashierOrOwner =
+      parsedUser?.roles?.some((role) => role.name === 'cashier' || role.name === 'owner') ?? false
+  } catch {
+    isCashierOrOwner = false
+  }
 
   useEffect(() => {
     if (!token) return
@@ -43,6 +53,7 @@ export default function TenantLayout() {
   const showAdmin = isLoading || adminModules.some((code) => isModuleEnabled(code))
   const showPos = isLoading || isModuleEnabled('pos')
   const showFinance = isLoading || isModuleEnabled('finance')
+  const showShifts = (isLoading || isModuleEnabled('sales')) && isCashierOrOwner
 
   const compactNav = data?.ui_prefs?.compact_nav ?? false
 
@@ -82,6 +93,11 @@ export default function TenantLayout() {
         {showFinance && (
           <Link style={linkStyle('/finance')} to="/finance">
             {t('nav.finance')}
+          </Link>
+        )}
+        {showShifts && (
+          <Link style={linkStyle('/shifts')} to="/shifts">
+            {t('nav.shifts')}
           </Link>
         )}
         <Link style={linkStyle('/settings')} to="/settings">
