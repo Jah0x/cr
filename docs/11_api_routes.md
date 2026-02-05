@@ -77,6 +77,22 @@ Notes: registration is not public; owners provision accounts.
 - **GET /stock/moves?product_id=** — list stock moves (append-only history).
 - **POST /stock/adjustments** — manual adjustment or write-off. Payload: `{ "product_id": uuid, "quantity": decimal, "reason": string }`.
 
+## Finance
+### Expense categories
+- **GET /finance/expense-categories** — list categories.
+- **POST /finance/expense-categories** — create category (owner/admin). Payload: `{ "name": string }`.
+
+### Expenses
+- **GET /finance/expenses?store_id=&date_from=&date_to=** — list expenses with optional store/date filters.
+- **POST /finance/expenses** — create expense. Payload: `{ "store_id"?: uuid, "occurred_at": datetime, "amount": decimal, "category_id"?: uuid, "note"?: string, "payment_method"?: string }`.
+- **DELETE /finance/expenses/{expense_id}** — hard delete expense (owner/admin).
+
+### Recurring expenses
+- **POST /finance/recurring-expenses** — create recurring expense. Payload: `{ "store_id"?: uuid, "name": string, "amount": decimal, "period": "daily"|"weekly"|"monthly", "allocation_method": "calendar_days"|"fixed_30", "start_date": date, "end_date"?: date, "is_active": bool }`.
+- **GET /finance/recurring-expenses?store_id=** — list recurring expenses filtered by store when provided.
+- **PUT /finance/recurring-expenses/{recurring_expense_id}** — replace recurring expense using the same payload shape as create.
+- **DELETE /finance/recurring-expenses/{recurring_expense_id}** — soft delete (sets `is_active=false`).
+
 ## Sales (owner, cashier)
 - **POST /sales** — create sale transaction. Payload: `{ "items": [ { "product_id": uuid, "qty": decimal, "unit_price"?: decimal } ], "currency"?: string, "payments"?: [ { "amount": decimal, "method": "cash"|"card"|"external", "currency"?: string, "status"?: "pending"|"confirmed"|"cancelled", "reference"?: string } ], "cash_register_id"?: uuid }`. Atomically writes sale, payments, stock moves, and mock receipt.
 - **GET /sales?status=&date_from=&date_to=** — list sales.

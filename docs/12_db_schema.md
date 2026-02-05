@@ -150,6 +150,43 @@ Alembic revisions (tenant branch unless noted):
 - `payload_json` — JSON payload from provider.
 - `created_at` — timezone-aware timestamp.
 
+## expense_categories
+- `id` — UUID primary key.
+- `name` — category name.
+- `created_at` — timezone-aware creation timestamp.
+
+## expenses
+- `id` — UUID primary key.
+- `occurred_at` — timezone-aware expense datetime.
+- `amount` — numeric(12,2) expense amount.
+- `category_id` — nullable reference to `expense_categories.id`, set null on delete.
+- `note` — optional free text note.
+- `payment_method` — optional payment method label.
+- `created_by_user_id` — nullable reference to `users.id`, set null on delete.
+- `created_at` — timezone-aware creation timestamp.
+- `store_id` — reference to `stores.id`, restrict on delete.
+
+## recurring_expenses
+- `id` — UUID primary key.
+- `store_id` — reference to `stores.id`, restrict on delete.
+- `name` — recurring expense name.
+- `amount` — numeric(12,2) recurring amount.
+- `period` — enum(`daily`,`weekly`,`monthly`).
+- `allocation_method` — enum(`calendar_days`,`fixed_30`), defaults to `calendar_days`.
+- `start_date` — accrual start date (inclusive).
+- `end_date` — optional accrual end date (inclusive).
+- `is_active` — boolean soft-delete and activation flag, defaults to true.
+- `created_at` — timezone-aware creation timestamp.
+
+## expense_accruals
+- `id` — UUID primary key.
+- `store_id` — reference to `stores.id`, restrict on delete.
+- `recurring_expense_id` — reference to `recurring_expenses.id`, cascade delete.
+- `date` — accrual date.
+- `amount` — numeric(12,2) accrued daily amount.
+- `created_at` — timezone-aware creation timestamp.
+- Constraints/indexes: unique `uq_expense_accruals_recurring_expense_id_date` on (`recurring_expense_id`, `date`), index `ix_expense_accruals_store_id_date` on (`store_id`, `date`).
+
 ## cash_registers
 - `id` — UUID primary key.
 - `name` — unique register name.

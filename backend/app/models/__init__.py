@@ -6,13 +6,28 @@ from app.models.purchasing import Supplier, PurchaseInvoice, PurchaseItem
 from app.models.stock import StockMove, StockBatch, SaleItemCostAllocation
 from app.models.sales import Sale, SaleItem
 from app.models.cash import CashReceipt
-from app.models.finance import Expense, ExpenseCategory
+from app.models.finance import (
+    Expense,
+    ExpenseAccrual,
+    ExpenseCategory,
+    RecurringExpense,
+    RecurringExpenseAllocationMethod,
+    RecurringExpensePeriod,
+)
 from app.models.store import Store
 from app.models.shifts import CashierShift, CashierShiftStatus
 from app.models.tenant import Tenant, TenantStatus
 from app.models.tenant_domain import TenantDomain
 from app.models.invitation import TenantInvitation
-from app.models.platform import Feature, Module, Template, TenantModule, TenantFeature, TenantUIPreference, TenantSettings
+from app.models.platform import (
+    Feature,
+    Module,
+    Template,
+    TenantModule,
+    TenantFeature,
+    TenantUIPreference,
+    TenantSettings,
+)
 
 __all__ = [
     "Base",
@@ -34,7 +49,11 @@ __all__ = [
     "SaleItem",
     "CashReceipt",
     "Expense",
+    "ExpenseAccrual",
     "ExpenseCategory",
+    "RecurringExpense",
+    "RecurringExpenseAllocationMethod",
+    "RecurringExpensePeriod",
     "Store",
     "CashierShift",
     "CashierShiftStatus",
