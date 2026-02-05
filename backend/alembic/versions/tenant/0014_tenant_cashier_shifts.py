@@ -25,9 +25,15 @@ def _create_enum_if_not_exists(enum_name: str, values: tuple[str, ...]) -> None:
             f"""
             DO $$
             BEGIN
-                CREATE TYPE {enum_name} AS ENUM ({quoted_values});
-            EXCEPTION
-                WHEN duplicate_object THEN NULL;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_namespace n ON t.typnamespace = n.oid
+                    WHERE t.typname = '{enum_name}'
+                      AND n.nspname = current_schema()
+                ) THEN
+                    CREATE TYPE {enum_name} AS ENUM ({quoted_values});
+                END IF;
             END $$;
             """
         )
