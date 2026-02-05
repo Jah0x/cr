@@ -19,6 +19,7 @@ import PlatformTenantsPage from './pages/PlatformTenantsPage'
 import PlatformTenantCreatePage from './pages/PlatformTenantCreatePage'
 import TenantSettingsPage from './pages/TenantSettingsPage'
 import FinancePage from './pages/FinancePage'
+import ShiftsPage from './pages/ShiftsPage'
 import RegisterPage from './pages/RegisterPage'
 import { loadRuntimeConfig } from './config/runtimeConfig'
 import { ToastProvider } from './components/ToastProvider'
@@ -67,6 +68,7 @@ const bootstrap = async () => {
                   </Route>
                   <Route path="/pos" element={<PosPage />} />
                   <Route path="/finance" element={<FinancePage />} />
+                  <Route path="/shifts" element={<ShiftsPage />} />
                   <Route path="/settings" element={<TenantSettingsPage />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/login" />} />
