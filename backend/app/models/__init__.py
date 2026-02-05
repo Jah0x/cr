@@ -8,6 +8,7 @@ from app.models.sales import Sale, SaleItem
 from app.models.cash import CashReceipt
 from app.models.finance import Expense, ExpenseCategory
 from app.models.store import Store
+from app.models.shifts import CashierShift, CashierShiftStatus
 from app.models.tenant import Tenant, TenantStatus
 from app.models.tenant_domain import TenantDomain
 from app.models.invitation import TenantInvitation
@@ -35,6 +36,8 @@ __all__ = [
     "Expense",
     "ExpenseCategory",
     "Store",
+    "CashierShift",
+    "CashierShiftStatus",
     "Tenant",
     "TenantStatus",
     "TenantDomain",

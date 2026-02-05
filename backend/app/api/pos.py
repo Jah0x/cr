@@ -10,6 +10,7 @@ from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
 from app.repos.tenant_settings_repo import TenantSettingsRepo
+from app.repos.shifts_repo import CashierShiftRepo
 
 router = APIRouter(
     prefix="/pos",
@@ -31,6 +32,7 @@ def get_service(session: AsyncSession):
         RefundRepo(session),
         CashRegisterRepo(session),
         TenantSettingsRepo(session),
+        CashierShiftRepo(session),
     )
 
 

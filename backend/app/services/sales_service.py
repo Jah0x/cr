@@ -14,6 +14,7 @@ from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.services.cash_register import get_cash_register
 from app.services.tax_service import calculate_sale_tax_lines
 from app.repos.store_repo import StoreRepo
+from app.repos.shifts_repo import CashierShiftRepo
 
 
 class SalesService:
@@ -30,6 +31,7 @@ class SalesService:
         refund_repo: RefundRepo,
         cash_register_repo: CashRegisterRepo,
         tenant_settings_repo: TenantSettingsRepo,
+        shift_repo: CashierShiftRepo,
     ):
         self.session = session
         self.sale_repo = sale_repo
@@ -42,6 +44,7 @@ class SalesService:
         self.refund_repo = refund_repo
         self.cash_register_repo = cash_register_repo
         self.tenant_settings_repo = tenant_settings_repo
+        self.shift_repo = shift_repo
         self.store_repo = StoreRepo(session)
 
     def _resolve_effective_cost(self, product):
@@ -234,6 +237,15 @@ class SalesService:
                     "store_id": sale.store_id,
                 }
             )
+        active_shift = None
+        if user_id:
+            active_shift = await self.shift_repo.get_active_for_cashier_store(user_id, sale.store_id)
+        if not active_shift:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Нельзя завершить продажу без активной смены кассира для этой точки",
+            )
+        sale.shift_id = active_shift.id
         sale.total_amount = total_amount
         sale.status = SaleStatus.completed
         await self.session.flush()
