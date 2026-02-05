@@ -7,6 +7,7 @@ from app.models.stock import StockMove, StockBatch, SaleItemCostAllocation
 from app.models.sales import Sale, SaleItem
 from app.models.cash import CashReceipt
 from app.models.finance import Expense, ExpenseCategory
+from app.models.store import Store
 from app.models.tenant import Tenant, TenantStatus
 from app.models.tenant_domain import TenantDomain
 from app.models.invitation import TenantInvitation
@@ -33,6 +34,7 @@ __all__ = [
     "CashReceipt",
     "Expense",
     "ExpenseCategory",
+    "Store",
     "Tenant",
     "TenantStatus",
     "TenantDomain",

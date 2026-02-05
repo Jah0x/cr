@@ -53,8 +53,10 @@ class Sale(Base):
     total_amount = Column(Numeric(12, 2), nullable=False, server_default="0")
     currency = Column(String, default="")
     send_to_terminal = Column(Boolean, nullable=False, server_default="false")
+    store_id = Column(UUID(as_uuid=True), ForeignKey("stores.id", ondelete="RESTRICT"), nullable=False)
 
     items = relationship("SaleItem", back_populates="sale")
+    store = relationship("Store", back_populates="sales")
     tax_lines = relationship("SaleTaxLine", back_populates="sale")
     receipts = relationship("CashReceipt", back_populates="sale")
     payments = relationship("Payment", back_populates="sale")

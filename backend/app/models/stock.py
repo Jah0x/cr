@@ -19,8 +19,10 @@ class StockMove(Base):
     ref_id = Column(UUID(as_uuid=True))
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    store_id = Column(UUID(as_uuid=True), ForeignKey("stores.id", ondelete="RESTRICT"), nullable=True)
 
     product = relationship("Product")
+    store = relationship("Store", back_populates="stock_moves")
 
 
 class StockBatch(Base):

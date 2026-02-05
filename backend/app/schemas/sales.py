@@ -21,6 +21,7 @@ class PaymentIn(BaseModel):
 
 
 class SaleCreate(BaseModel):
+    store_id: uuid.UUID | None = None
     items: list[SaleItemIn]
     currency: str | None = None
     payments: list[PaymentIn] | None = None
@@ -29,11 +30,13 @@ class SaleCreate(BaseModel):
 
 
 class SaleDraftCreate(BaseModel):
+    store_id: uuid.UUID | None = None
     currency: str | None = None
     send_to_terminal: bool = False
 
 
 class SaleDraftUpdate(BaseModel):
+    store_id: uuid.UUID | None = None
     items: list[SaleItemIn]
     currency: str | None = None
     send_to_terminal: bool | None = None
@@ -94,6 +97,7 @@ class SaleOut(BaseModel):
     created_at: datetime
     created_by_user_id: uuid.UUID | None
     send_to_terminal: bool
+    store_id: uuid.UUID
     payments: list[PaymentOut] = []
 
     model_config = {"from_attributes": True}

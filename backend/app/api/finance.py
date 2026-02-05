@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_tenant, get_current_user, get_db_session, require_module, require_roles
 from app.repos.finance_repo import ExpenseCategoryRepo, ExpenseRepo
+from app.repos.store_repo import StoreRepo
 from app.schemas.finance import (
     ExpenseCategoryCreate,
     ExpenseCategoryOut,
@@ -25,7 +26,7 @@ router = APIRouter(
 
 
 def get_service(session: AsyncSession):
-    return FinanceService(ExpenseCategoryRepo(session), ExpenseRepo(session))
+    return FinanceService(ExpenseCategoryRepo(session), ExpenseRepo(session), StoreRepo(session))
 
 
 @router.get("/expense-categories", response_model=list[ExpenseCategoryOut])
