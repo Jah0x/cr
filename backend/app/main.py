@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.deps import get_db_session
-from app.api import auth, health, catalog, purchasing, stock, sales, users, platform, tenant_settings, reports, finance
+from app.api import auth, health, catalog, purchasing, stock, sales, users, platform, tenant_settings, reports, finance, shifts
 from app.api.health import readiness_check
 from app.services.bootstrap import ensure_platform_owner
 
@@ -51,6 +51,7 @@ api_router.include_router(catalog.router)
 api_router.include_router(purchasing.router)
 api_router.include_router(stock.router)
 api_router.include_router(sales.router)
+api_router.include_router(shifts.router)
 api_router.include_router(users.router)
 api_router.include_router(platform.auth_router)
 api_router.include_router(platform.router)

@@ -21,6 +21,7 @@ from app.repos.stock_repo import StockRepo, StockBatchRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
 from app.repos.tenant_settings_repo import TenantSettingsRepo
+from app.repos.shifts_repo import CashierShiftRepo
 from app.services.sales_service import SalesService
 
 
@@ -101,6 +102,7 @@ def test_sale_creates_stock_movements_and_receipt():
             RefundRepo(session),
             CashRegisterRepo(session),
             TenantSettingsRepo(session),
+            CashierShiftRepo(session),
         )
         sale, _ = await service.create_sale(
             {"items": [{"product_id": product.id, "qty": Decimal("2"), "unit_price": Decimal("10.00")}], "currency": "USD"},
@@ -142,6 +144,7 @@ def test_void_sale_restores_stock():
             RefundRepo(session),
             CashRegisterRepo(session),
             TenantSettingsRepo(session),
+            CashierShiftRepo(session),
         )
         sale, _ = await service.create_sale(
             {"items": [{"product_id": product.id, "qty": Decimal("1"), "unit_price": Decimal("5.00")}], "currency": "USD"},
@@ -160,6 +163,7 @@ def test_void_sale_restores_stock():
             RefundRepo(session),
             CashRegisterRepo(session),
             TenantSettingsRepo(session),
+            CashierShiftRepo(session),
         ).void_sale(sale.id, user.id)
         on_hand_after_void = await StockRepo(session).on_hand(product.id)
         await session.close()

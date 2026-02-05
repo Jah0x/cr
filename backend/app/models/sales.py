@@ -54,6 +54,7 @@ class Sale(Base):
     currency = Column(String, default="")
     send_to_terminal = Column(Boolean, nullable=False, server_default="false")
     store_id = Column(UUID(as_uuid=True), ForeignKey("stores.id", ondelete="RESTRICT"), nullable=False)
+    shift_id = Column(UUID(as_uuid=True), ForeignKey("cashier_shifts.id", ondelete="SET NULL"), nullable=True)
 
     items = relationship("SaleItem", back_populates="sale")
     store = relationship("Store", back_populates="sales")
@@ -61,6 +62,7 @@ class Sale(Base):
     receipts = relationship("CashReceipt", back_populates="sale")
     payments = relationship("Payment", back_populates="sale")
     refunds = relationship("Refund", back_populates="sale")
+    shift = relationship("CashierShift", back_populates="sales")
 
 
 class SaleItem(Base):

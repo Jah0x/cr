@@ -21,6 +21,7 @@ from app.repos.catalog_repo import ProductRepo
 from app.repos.cash_repo import CashReceiptRepo, CashRegisterRepo
 from app.repos.payment_repo import PaymentRepo, RefundRepo
 from app.repos.tenant_settings_repo import TenantSettingsRepo
+from app.repos.shifts_repo import CashierShiftRepo
 from app.repos.purchasing_repo import SupplierRepo, PurchaseInvoiceRepo, PurchaseItemRepo
 from app.repos.sales_repo import SaleRepo, SaleItemRepo
 from app.repos.stock_repo import StockRepo, StockBatchRepo
@@ -114,6 +115,7 @@ def test_purchase_sale_cogs_pnl():
             RefundRepo(session),
             CashRegisterRepo(session),
             TenantSettingsRepo(session),
+            CashierShiftRepo(session),
         )
         sale, _ = await sales_service.create_sale(
             {"items": [{"product_id": product.id, "qty": Decimal("3"), "unit_price": Decimal("10.00")}], "currency": "USD"},
