@@ -16,6 +16,7 @@ from app.schemas.platform import (
     PlatformTemplateResponse,
     PlatformTenantCreate,
     PlatformTenantCreateResponse,
+    PlatformTenantDeleteResponse,
     PlatformTenantDomainCreate,
     PlatformTenantDomainResponse,
     PlatformTenantInviteRequest,
@@ -116,6 +117,21 @@ async def update_tenant(
         code=tenant.code,
         status=tenant.status.value,
         last_error=tenant.last_error,
+    )
+
+
+@router.delete("/tenants/{tenant_id}", response_model=PlatformTenantDeleteResponse)
+async def delete_tenant(
+    tenant_id: str,
+    drop_schema: bool = False,
+    session: AsyncSession = Depends(get_db_session),
+):
+    service = PlatformService(session)
+    result = await service.delete_tenant(tenant_id, drop_schema=drop_schema)
+    return PlatformTenantDeleteResponse(
+        id=str(result["tenant_id"]),
+        status=result["status"],
+        schema_dropped=result["schema_dropped"],
     )
 
 

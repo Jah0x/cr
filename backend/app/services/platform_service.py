@@ -5,12 +5,12 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.db_utils import set_search_path
+from app.core.db_utils import quote_ident, set_search_path
 from app.core.tokens import hash_invite_token
 from app.core.tenancy import normalize_code, normalize_tenant_slug, slugify_tenant_name
 from app.models.invitation import TenantInvitation
@@ -161,6 +161,24 @@ class PlatformService:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail) from exc
         status_info = get_tenant_migration_status(tenant.code)
         return {"tenant": tenant, **status_info}
+
+
+    async def delete_tenant(self, tenant_id: str, *, drop_schema: bool) -> dict:
+        tenant = await self._get_tenant(tenant_id)
+        await set_search_path(self.session, None)
+        tenant_schema = tenant.code
+
+        if drop_schema:
+            quoted_schema = quote_ident(tenant_schema)
+            await self.session.execute(text(f"DROP SCHEMA IF EXISTS {quoted_schema} CASCADE"))
+            await self.session.delete(tenant)
+            await self.session.flush()
+            return {"tenant_id": tenant.id, "status": "deleted", "schema_dropped": True}
+
+        tenant.status = TenantStatus.archived
+        tenant.last_error = None
+        await self.session.flush()
+        return {"tenant_id": tenant.id, "status": tenant.status.value, "schema_dropped": False}
 
     async def update_tenant(self, tenant_id: str, *, name: str, status: TenantStatus) -> Tenant:
         tenant = await self._get_tenant(tenant_id)

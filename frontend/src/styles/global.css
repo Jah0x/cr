@@ -1043,3 +1043,66 @@ button:disabled:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.platform-org-cards {
+  display: grid;
+  gap: 16px;
+}
+
+.platform-org-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.platform-org-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.platform-org-card__title {
+  font-weight: 700;
+}
+
+.platform-org-card__status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.platform-org-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.platform-org-tech {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.platform-org-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+@media (max-width: 900px) {
+  .platform-org-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .platform-org-list-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
