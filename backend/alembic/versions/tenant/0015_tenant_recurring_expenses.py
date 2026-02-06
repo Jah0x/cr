@@ -15,8 +15,12 @@ branch_labels = None
 depends_on = None
 
 
-recurring_expense_period_enum = sa.Enum("daily", "weekly", "monthly", name="recurringexpenseperiod")
-recurring_expense_allocation_method_enum = sa.Enum("calendar_days", "fixed_30", name="recurringexpenseallocationmethod")
+recurring_expense_period_enum = sa.Enum(
+    "daily", "weekly", "monthly", name="recurringexpenseperiod", create_type=False
+)
+recurring_expense_allocation_method_enum = sa.Enum(
+    "calendar_days", "fixed_30", name="recurringexpenseallocationmethod", create_type=False
+)
 
 
 def upgrade() -> None:
