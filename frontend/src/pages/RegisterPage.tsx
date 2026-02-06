@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
-import { getApiErrorMessage } from '../utils/apiError'
+import { appendRequestId, getApiErrorMessage } from '../utils/apiError'
 import axios from 'axios'
 
 export default function RegisterPage() {
@@ -21,16 +21,26 @@ export default function RegisterPage() {
   const getInviteErrorMessage = (err: unknown, fallbackKey: string): string => {
     if (axios.isAxiosError(err)) {
       const data = err.response?.data as { error?: { code?: string } } | undefined
+      const status = err.response?.status
+      if (status === 404) {
+        return appendRequestId(t('errors.inviteNotFoundOrExpired'), err, t)
+      }
+      if (status === 400 || status === 410) {
+        return appendRequestId(t('errors.inviteExpiredStatus'), err, t)
+      }
+      if (status === 500) {
+        return appendRequestId(t('errors.inviteServerError'), err, t)
+      }
       switch (data?.error?.code) {
         case 'INVITE_NOT_FOUND':
-          return t('errors.inviteNotFound')
+          return appendRequestId(t('errors.inviteNotFound'), err, t)
         case 'INVITE_EXPIRED':
-          return t('errors.inviteExpired')
+          return appendRequestId(t('errors.inviteExpired'), err, t)
         case 'INVITE_TENANT_MISMATCH':
-          return t('errors.inviteTenantMismatch')
+          return appendRequestId(t('errors.inviteTenantMismatch'), err, t)
         default:
           if (!err.response || typeof err.response.data === 'string' || err.response.status === 503) {
-            return t('errors.inviteNetwork')
+            return appendRequestId(t('errors.inviteNetwork'), err, t)
           }
       }
     }
