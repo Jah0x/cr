@@ -56,6 +56,7 @@ const bootstrap = async () => {
             ) : (
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/invite/:token" element={<RegisterPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route element={<TenantLayout />}>
                   <Route path="/admin" element={<AdminLayout />}>

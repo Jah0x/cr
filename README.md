@@ -93,8 +93,9 @@ You can also set `VITE_PLATFORM_HOSTS` at build time to the same host list (comm
 
 * `POST /api/v1/platform/auth/login` — login with the configured platform owner email/password.
 * `POST /api/v1/platform/tenants` — returns `tenant_url` and `invite_url` for first-user registration.
-* `GET /api/v1/auth/invite-info` — validates invite token for tenant registration.
-* `POST /api/v1/auth/register-invite` — completes tenant owner registration and returns a tenant JWT.
+* `POST /api/v1/invitations` — create a tenant invite.
+* `GET /api/v1/invitations/{token}` — validate invite token for tenant registration.
+* `POST /api/v1/invitations/{token}/accept` — complete tenant owner registration and return a tenant JWT.
 
 ### Check services
 
