@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import api from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -8,8 +8,10 @@ import axios from 'axios'
 export default function RegisterPage() {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
+  const params = useParams()
   const navigate = useNavigate()
-  const [token, setToken] = useState(searchParams.get('token') ?? '')
+  const tokenFromParams = params.token ?? searchParams.get('token') ?? ''
+  const [token, setToken] = useState(tokenFromParams)
   const [email, setEmail] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -36,6 +38,12 @@ export default function RegisterPage() {
   }
 
   useEffect(() => {
+    if (tokenFromParams && tokenFromParams !== token) {
+      setToken(tokenFromParams)
+    }
+  }, [tokenFromParams, token])
+
+  useEffect(() => {
     const lookup = async () => {
       const trimmedToken = token.trim()
       if (!trimmedToken) {
@@ -45,7 +53,7 @@ export default function RegisterPage() {
       }
       setError(null)
       try {
-        const res = await api.get('/auth/invite-info', { params: { token: trimmedToken } })
+        const res = await api.get(`/invitations/${encodeURIComponent(trimmedToken)}`)
         setEmail(res.data.email)
       } catch (err) {
         setError(getInviteErrorMessage(err, 'errors.inviteInvalid'))
@@ -72,7 +80,7 @@ export default function RegisterPage() {
     }
     setLoading(true)
     try {
-      const res = await api.post('/auth/register-invite', { token: trimmedToken, password })
+      const res = await api.post(`/invitations/${encodeURIComponent(trimmedToken)}/accept`, { password })
       localStorage.setItem('token', res.data.access_token)
       navigate('/admin')
     } catch (err) {

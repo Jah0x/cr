@@ -346,6 +346,9 @@ class PlatformService:
         tenant = await self._get_tenant(tenant_id)
         return await self._create_invite(tenant.code, tenant.id, email, role_name=role_name)
 
+    async def create_tenant_invite(self, tenant, email: str, role_name: str) -> dict:
+        return await self._create_invite(tenant.code, tenant.id, email, role_name=role_name)
+
     async def list_invites(self, tenant_id: str):
         tenant = await self._get_tenant(tenant_id)
         await set_search_path(self.session, None)
@@ -467,7 +470,7 @@ class PlatformService:
             existing.token_hash = token_hash
             existing.expires_at = expires_at
             return {
-                "invite_url": f"{tenant_url}/register?token={raw_token}",
+                "invite_url": f"{tenant_url}/invite/{raw_token}",
                 "expires_at": expires_at.isoformat(),
             }
         raw_token = secrets.token_urlsafe(32)
@@ -483,7 +486,7 @@ class PlatformService:
         self.session.add(invitation)
         await self.session.flush()
         return {
-            "invite_url": f"{tenant_url}/register?token={raw_token}",
+            "invite_url": f"{tenant_url}/invite/{raw_token}",
             "expires_at": expires_at.isoformat(),
         }
 

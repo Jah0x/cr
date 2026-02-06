@@ -122,8 +122,9 @@ Auth: `Authorization: Bearer <platform JWT>` (fallback: `BOOTSTRAP_TOKEN`).
 - **POST /platform/tenants/{tenant_id}/apply-template** — apply template. Payload: `{ "template_id": uuid }`.
 
 ### Tenant invite auth
-- **GET /auth/invite-info?token=** — validate invite token. Response: `{ "email": string, "tenant_code": string }`.
-- **POST /auth/register-invite** — register invited owner. Payload: `{ "token": string, "password": string }`. Response: `{ "access_token": string, "token_type": "bearer" }`.
+- **POST /invitations** — create invite. Payload: `{ "email": string, "role_name": string }`. Response: `{ "invite_url": string, "expires_at": string }`.
+- **GET /invitations/{token}** — validate invite token. Response: `{ "email": string, "tenant_code": string }`.
+- **POST /invitations/{token}/accept** — register invited owner. Payload: `{ "password": string }`. Response: `{ "access_token": string, "token_type": "bearer" }`.
 
 ### Modules
 - **GET /platform/modules** — list modules.
