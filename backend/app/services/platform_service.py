@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import secrets
+import traceback
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -55,39 +56,118 @@ class PlatformService:
             )
         )
         if existing:
-            logger.info(
-                "Tenant already exists: id=%s schema=%s correlation_id=%s",
-                existing.id,
-                existing.code,
-                correlation_id,
+            if existing.status == TenantStatus.active:
+                logger.info(
+                    "Tenant already active: tenant_id=%s schema=%s correlation_id=%s",
+                    existing.id,
+                    existing.code,
+                    correlation_id,
+                )
+                invite = await self._create_invite(existing.code, existing.id, owner_email, role_name="owner")
+                await self._ensure_primary_domain(existing, existing.code, name)
+                tenant_url = self._tenant_url(existing.code)
+                return {
+                    "tenant": existing,
+                    "tenant_url": tenant_url,
+                    "owner_email": owner_email,
+                    "invite_url": invite["invite_url"],
+                }
+
+            if existing.status == TenantStatus.provisioning:
+                migration_status = get_tenant_migration_status(existing.code)
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "Tenant provisioning already in progress",
+                        "tenant_id": str(existing.id),
+                        "schema": existing.code,
+                        "status": existing.status.value,
+                        "progress": {
+                            "schema_exists": migration_status["schema_exists"],
+                            "revision": migration_status["revision"],
+                            "head_revision": migration_status["head_revision"],
+                        },
+                        "correlation_id": correlation_id,
+                    },
+                )
+
+            if existing.status == TenantStatus.provisioning_failed:
+                migration_status = get_tenant_migration_status(existing.code)
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "Tenant provisioning previously failed",
+                        "tenant_id": str(existing.id),
+                        "schema": existing.code,
+                        "status": existing.status.value,
+                        "last_error": existing.last_error,
+                        "retry_available": True,
+                        "retry_endpoint": f"/platform/tenants/{existing.id}/migrate",
+                        "progress": {
+                            "schema_exists": migration_status["schema_exists"],
+                            "revision": migration_status["revision"],
+                            "head_revision": migration_status["head_revision"],
+                        },
+                        "correlation_id": correlation_id,
+                    },
+                )
+
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Tenant already exists",
+                    "tenant_id": str(existing.id),
+                    "schema": existing.code,
+                    "status": existing.status.value,
+                    "correlation_id": correlation_id,
+                },
             )
-            invite = await self._create_invite(existing.code, existing.id, owner_email, role_name="owner")
-            await self._ensure_primary_domain(existing, existing.code, name)
-            tenant_url = self._tenant_url(existing.code)
-            return {
-                "tenant": existing,
-                "tenant_url": tenant_url,
-                "owner_email": owner_email,
-                "invite_url": invite["invite_url"],
-            }
-        tenant = Tenant(name=name, code=schema, status=TenantStatus.inactive)
+
+        tenant = Tenant(name=name, code=schema, status=TenantStatus.provisioning)
         self.session.add(tenant)
         await self.session.flush()
-        logger.info("Creating tenant schema '%s' correlation_id=%s", schema, correlation_id)
+
+        logger.info(
+            "create_schema started tenant_id=%s schema=%s correlation_id=%s",
+            tenant.id,
+            schema,
+            correlation_id,
+        )
         await ensure_tenant_schema(self.session, schema)
+        logger.info(
+            "create_schema finished tenant_id=%s schema=%s correlation_id=%s",
+            tenant.id,
+            schema,
+            correlation_id,
+        )
         await self.session.commit()
         try:
-            logger.info("Running tenant migrations for '%s' correlation_id=%s", schema, correlation_id)
+            logger.info(
+                "migrate started tenant_id=%s schema=%s correlation_id=%s",
+                tenant.id,
+                schema,
+                correlation_id,
+            )
             await asyncio.to_thread(run_tenant_migrations, schema)
-            logger.info("Tenant migrations completed for '%s' correlation_id=%s", schema, correlation_id)
+            logger.info(
+                "migrate finished tenant_id=%s schema=%s correlation_id=%s",
+                tenant.id,
+                schema,
+                correlation_id,
+            )
             settings = get_settings()
+            logger.info(
+                "seed/bootstrap started tenant_id=%s schema=%s correlation_id=%s",
+                tenant.id,
+                schema,
+                correlation_id,
+            )
             if settings.first_owner_password:
-                logger.info("Bootstrapping tenant owner for '%s' correlation_id=%s", schema, correlation_id)
                 await bootstrap_tenant_owner(schema, owner_email, settings.first_owner_password)
-                logger.info("Tenant owner bootstrap completed for '%s' correlation_id=%s", schema, correlation_id)
             else:
                 logger.warning(
-                    "FIRST_OWNER_PASSWORD not set; creating tenant roles only for '%s' correlation_id=%s",
+                    "FIRST_OWNER_PASSWORD not set; creating tenant roles only tenant_id=%s schema=%s correlation_id=%s",
+                    tenant.id,
                     schema,
                     correlation_id,
                 )
@@ -95,6 +175,12 @@ class PlatformService:
             await self._seed_template(schema, template_id)
             await self._ensure_primary_domain(tenant, schema, name)
             invite = await self._create_invite(schema, tenant.id, owner_email, role_name="owner")
+            logger.info(
+                "seed/bootstrap finished tenant_id=%s schema=%s correlation_id=%s",
+                tenant.id,
+                schema,
+                correlation_id,
+            )
             tenant.status = TenantStatus.active
             tenant.last_error = None
             await self.session.commit()
@@ -472,7 +558,7 @@ class PlatformService:
     async def _mark_provisioning_failed(self, tenant: Tenant, schema: str, exc: Exception, *, correlation_id: str):
         await set_search_path(self.session, None)
         tenant.status = TenantStatus.provisioning_failed
-        tenant.last_error = str(exc)
+        tenant.last_error = self._safe_error_text(exc)
         try:
             await self.session.commit()
         except Exception:
@@ -484,10 +570,16 @@ class PlatformService:
             schema=schema,
         )
         logger.exception(
-            "Tenant provisioning failed for schema=%s correlation_id=%s",
+            "Tenant provisioning failed tenant_id=%s schema=%s correlation_id=%s",
+            tenant.id,
             schema,
             correlation_id,
         )
+
+    def _safe_error_text(self, exc: Exception) -> str:
+        traceback_text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        value = f"{type(exc).__name__}: {traceback_text}".strip()
+        return value[:4000]
 
     def _log_db_error(self, action: str, exc: Exception, *, tenant_id: str | None, schema: str | None, fields=None):
         diag = getattr(getattr(exc, "orig", None), "diag", None)

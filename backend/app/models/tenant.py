@@ -10,6 +10,7 @@ from app.core.db import Base
 class TenantStatus(str, enum.Enum):
     active = "active"
     inactive = "inactive"
+    provisioning = "provisioning"
     archived = "archived"
     provisioning_failed = "provisioning_failed"
 
