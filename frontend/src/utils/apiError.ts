@@ -14,13 +14,43 @@ const extractDetail = (error: unknown): string | undefined => {
   return undefined
 }
 
+const extractRequestId = (error: unknown): string | undefined => {
+  if (!axios.isAxiosError(error)) {
+    return undefined
+  }
+  const headers = error.response?.headers
+  const headerValue = headers?.['x-request-id'] ?? headers?.['X-Request-ID']
+  const requestIdFromHeaders = Array.isArray(headerValue) ? headerValue[0] : headerValue
+  if (requestIdFromHeaders) {
+    return requestIdFromHeaders
+  }
+  const data = error.response?.data as
+    | { request_id?: string; requestId?: string; requestID?: string }
+    | undefined
+  return data?.request_id ?? data?.requestId ?? data?.requestID
+}
+
+export const appendRequestId = (message: string, error: unknown, t: TFunction): string => {
+  const requestId = extractRequestId(error)
+  if (!requestId) {
+    return message
+  }
+  return `${message} (${t('errors.requestId', { id: requestId })})`
+}
+
 export const getApiErrorMessage = (error: unknown, t: TFunction, fallbackKey: string): string => {
   const base = t(fallbackKey)
   const detail = extractDetail(error)
+  const requestId = extractRequestId(error)
+  let message = base
 
   if (import.meta.env.DEV && detail) {
-    return `${base} (${detail})`
+    message = `${message} (${detail})`
   }
 
-  return base
+  if (requestId) {
+    message = `${message} (${t('errors.requestId', { id: requestId })})`
+  }
+
+  return message
 }
