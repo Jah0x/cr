@@ -126,11 +126,22 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
   const deleteUserMutation = useMutation({ mutationFn: async (userId: string) => api.delete(`/platform/tenants/${tenant.id}/users/${userId}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['platformTenantUsers', tenant.id] }); addToast(t('common.deleted'), 'success') }, onError: (error) => addToast(getApiErrorMessage(error, t, 'common.error'), 'error') })
 
   const resolvedStatus = status?.status ?? tenant.status
-  const resolvedStatusLabel = resolvedStatus === 'active'
-    ? t('platformTenants.statusActive')
-    : resolvedStatus === 'inactive'
-      ? t('platformTenants.statusInactive')
-      : t('platformTenants.statusArchived')
+  const resolvedStatusLabel = (() => {
+    switch (resolvedStatus) {
+      case 'active':
+        return t('platformTenants.statusActive')
+      case 'inactive':
+      case 'provisioning':
+        return t('platformTenants.statusProvisioning')
+      case 'provisioning_failed':
+      case 'error':
+        return t('platformTenants.statusError')
+      case 'archived':
+        return t('platformTenants.statusArchived')
+      default:
+        return t('platformTenants.statusUnknown')
+    }
+  })()
 
   return (
     <article className="platform-org-card">
