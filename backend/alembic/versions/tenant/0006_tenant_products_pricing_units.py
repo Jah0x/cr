@@ -37,13 +37,13 @@ def _ensure_placeholder(connection, table_name: str, name: str) -> uuid.UUID:
 
 def upgrade() -> None:
     connection = op.get_bind()
-    product_unit = sa.Enum("pcs", "ml", "g", name="product_unit")
+    product_unit = sa.Enum("pcs", "ml", "g", name="product_unit", create_type=False)
     product_unit.create(connection, checkfirst=True)
 
     op.add_column("products", sa.Column("barcode", sa.String(), nullable=True))
     op.add_column(
         "products",
-        sa.Column("unit", product_unit, nullable=False, server_default="pcs"),
+        sa.Column("unit", product_unit, nullable=False, server_default=sa.text("'pcs'::product_unit")),
     )
     op.add_column(
         "products",
@@ -100,7 +100,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     connection = op.get_bind()
-    product_unit = sa.Enum("pcs", "ml", "g", name="product_unit")
+    product_unit = sa.Enum("pcs", "ml", "g", name="product_unit", create_type=False)
 
     op.add_column("products", sa.Column("price", sa.Numeric(12, 2), nullable=False, server_default="0"))
     op.add_column(
@@ -123,4 +123,22 @@ def downgrade() -> None:
     op.alter_column("products", "price", server_default=None)
     op.alter_column("products", "last_purchase_unit_cost", server_default=None)
 
-    product_unit.drop(connection, checkfirst=True)
+    connection.execute(
+        sa.text(
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_namespace n ON n.oid = t.typnamespace
+                    WHERE t.typname = 'product_unit'
+                      AND n.nspname = current_schema()
+                ) THEN
+                    EXECUTE format('DROP TYPE %I.%I', current_schema(), 'product_unit');
+                END IF;
+            END
+            $$;
+            """
+        )
+    )
