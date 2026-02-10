@@ -13,7 +13,12 @@ from app.models.platform import Module, Template
 from app.models.tenant import Tenant, TenantStatus
 from app.models.user import Role, User, UserRole
 from app.models.cash import CashRegister
-from app.services.migrations import run_public_migrations, run_tenant_migrations, verify_public_migrations
+from app.services.migrations import (
+    TenantMigrationLockTimeoutError,
+    run_public_migrations,
+    run_tenant_migrations,
+    verify_public_migrations,
+)
 from app.services.template_service import apply_template_codes
 from app.repos.tenant_settings_repo import TenantSettingsRepo
 from app.services.tenant_settings_service import DEFAULT_TOBACCO_HIERARCHY_SETTINGS
@@ -38,10 +43,25 @@ async def ensure_tenant_roles(schema: str) -> None:
         await session.commit()
 
 
-async def ensure_tenant_schema(session, schema: str):
+async def ensure_tenant_schema(session, schema: str) -> bool:
     validate_schema_name(schema)
     safe_schema = quote_ident(schema)
-    await session.execute(text(f"CREATE SCHEMA IF NOT EXISTS {safe_schema}"))
+    exists = await session.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.schemata
+                WHERE schema_name = :schema
+            )
+            """
+        ),
+        {"schema": schema},
+    )
+    schema_exists = bool(exists.scalar())
+    if not schema_exists:
+        await session.execute(text(f"CREATE SCHEMA {safe_schema}"))
+    return not schema_exists
 
 
 async def bootstrap_tenant_owner(schema: str, email: str, password: str):
@@ -67,7 +87,7 @@ async def provision_tenant(schema: str, name: str, *, owner_email: str | None = 
     sessionmaker = get_sessionmaker()
     async with sessionmaker() as session:
         schema = normalize_tenant_slug(schema)
-        await ensure_tenant_schema(session, schema)
+        schema_created = await ensure_tenant_schema(session, schema)
         tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
         if not tenant:
             tenant = Tenant(name=name, code=schema, status=TenantStatus.inactive)
@@ -76,7 +96,7 @@ async def provision_tenant(schema: str, name: str, *, owner_email: str | None = 
         await session.commit()
     try:
         logger.info("Running tenant migrations for '%s' correlation_id=%s", schema, correlation_id)
-        await asyncio.to_thread(run_tenant_migrations, schema)
+        await asyncio.to_thread(run_tenant_migrations, schema, schema_created=schema_created, correlation_id=correlation_id)
         if owner_email and owner_password:
             await bootstrap_tenant_owner(schema, owner_email, owner_password)
         else:
@@ -88,7 +108,14 @@ async def provision_tenant(schema: str, name: str, *, owner_email: str | None = 
                 tenant.last_error = None
                 await session.commit()
     except Exception as exc:
-        logger.exception("Tenant provisioning failed for '%s' correlation_id=%s", schema, correlation_id)
+        if isinstance(exc, TenantMigrationLockTimeoutError):
+            logger.error(
+                "Tenant migration lock timeout for '%s' correlation_id=%s",
+                schema,
+                correlation_id,
+            )
+        else:
+            logger.exception("Tenant provisioning failed for '%s' correlation_id=%s", schema, correlation_id)
         async with sessionmaker() as session:
             tenant = await session.scalar(select(Tenant).where(Tenant.code == schema))
             if tenant:

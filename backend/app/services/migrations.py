@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
+import zlib
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -25,6 +27,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_VERSION_TABLE = "alembic_version"
 LEGACY_PUBLIC_VERSION_TABLE = "alembic_version_public"
 LEGACY_TENANT_VERSION_TABLE = "alembic_version_tenant"
+
+
+class TenantMigrationLockTimeoutError(RuntimeError):
+    pass
 
 
 def _alembic_config(
@@ -72,15 +78,17 @@ def _log_migration_start(
     version_table_schema: str | None,
     version_table: str,
     database_url: str,
+    correlation_id: str | None,
 ) -> None:
     logger.info(
-        "Starting migrations: schema=%s branch=%s revision=%s version_table_schema=%s version_table=%s url=%s",
+        "migration_started schema=%s branch=%s revision=%s version_table_schema=%s version_table=%s url=%s correlation_id=%s",
         schema,
         branch,
         revision_target,
         version_table_schema,
         version_table,
         _mask_database_url(database_url),
+        correlation_id,
     )
 
 
@@ -96,6 +104,56 @@ def _log_schema_table_count(connection, schema: str, stage: str) -> None:
         {"schema": schema},
     ).scalar()
     logger.info("%s table count: schema=%s tables=%s", stage, schema, table_count)
+
+
+def _advisory_lock_key(schema: str) -> int:
+    return int(zlib.crc32(schema.encode("utf-8")))
+
+
+def _acquire_advisory_lock(
+    connection,
+    key: int,
+    *,
+    timeout: int,
+    wait: bool,
+    schema: str,
+    correlation_id: str | None,
+) -> None:
+    logger.info(
+        "lock_acquire_attempt schema=%s lock_key=%s wait_enabled=%s timeout=%s correlation_id=%s",
+        schema,
+        key,
+        wait,
+        timeout,
+        correlation_id,
+    )
+    start = time.monotonic()
+    got = bool(connection.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": key}).scalar())
+    if wait:
+        while not got and (time.monotonic() - start) < timeout:
+            time.sleep(1)
+            got = bool(connection.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": key}).scalar())
+    if not got:
+        waited = int(time.monotonic() - start)
+        logger.warning(
+            "lock_acquire_timeout schema=%s lock_key=%s waited=%s correlation_id=%s",
+            schema,
+            key,
+            waited,
+            correlation_id,
+        )
+        raise TenantMigrationLockTimeoutError(
+            f"Could not acquire advisory lock for tenant schema={schema} key={key} after {waited}s"
+        )
+    logger.info("lock_acquired schema=%s lock_key=%s correlation_id=%s", schema, key, correlation_id)
+
+
+def _release_advisory_lock(connection, key: int, *, schema: str, correlation_id: str | None) -> None:
+    try:
+        connection.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": key})
+        logger.info("lock_released schema=%s lock_key=%s correlation_id=%s", schema, key, correlation_id)
+    except Exception:
+        logger.exception("Failed to release advisory lock schema=%s key=%s correlation_id=%s", schema, key, correlation_id)
 
 
 def _table_exists(connection, schema: str, table_name: str) -> bool:
@@ -221,7 +279,7 @@ async def ensure_tenant_ready(session, tenant, *, correlation_id: str | None = N
             )
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
         try:
-            await asyncio.to_thread(run_tenant_migrations, schema)
+            await asyncio.to_thread(run_tenant_migrations, schema, correlation_id=correlation_id)
             tenant.status = TenantStatus.active
             tenant.last_error = None
             await session.flush()
@@ -263,6 +321,7 @@ def run_public_migrations() -> None:
                 version_table_schema="public",
                 version_table=DEFAULT_VERSION_TABLE,
                 database_url=database_url,
+                correlation_id=None,
             )
             command.upgrade(config, "public@head")
             connection.commit()
@@ -302,7 +361,12 @@ async def verify_public_migrations(engine) -> None:
         raise RuntimeError(f"Alembic migration failed: tables not created: {row}")
 
 
-def run_tenant_migrations(schema: str) -> None:
+def run_tenant_migrations(
+    schema: str,
+    *,
+    correlation_id: str | None = None,
+    schema_created: bool | None = None,
+) -> None:
     schema = normalize_tenant_slug(schema)
     settings = get_settings()
     root = Path(settings.ALEMBIC_INI_PATH).parent
@@ -315,22 +379,78 @@ def run_tenant_migrations(schema: str) -> None:
     )
     database_url = _sync_database_url()
     engine = create_engine(database_url)
+    lock_key = _advisory_lock_key(schema)
+    lock_acquired = False
+    migration_start = time.monotonic()
     try:
         with engine.connect() as connection:
-            _ensure_tenant_version_table(connection, schema, config)
-            config.attributes["connection"] = connection
-            _log_migration_start(
-                schema=schema,
-                branch="tenant",
-                revision_target="tenant@head",
-                version_table_schema=schema,
-                version_table=DEFAULT_VERSION_TABLE,
-                database_url=database_url,
-            )
-            command.upgrade(config, "tenant@head")
-            connection.commit()
-            _log_schema_table_count(connection, schema, "After tenant migrations")
-            _verify_tenant_tables(connection, schema, database_url)
+            try:
+                _acquire_advisory_lock(
+                    connection,
+                    lock_key,
+                    timeout=settings.tenant_migration_lock_timeout,
+                    wait=settings.enable_wait_for_migration_lock,
+                    schema=schema,
+                    correlation_id=correlation_id,
+                )
+                lock_acquired = True
+                allow_stamp = bool(schema_created) or settings.force_stamp_if_tables_exist
+                _ensure_tenant_version_table(
+                    connection,
+                    schema,
+                    config,
+                    allow_stamp=allow_stamp,
+                    correlation_id=correlation_id,
+                )
+                config.attributes["connection"] = connection
+                version_table = _resolve_version_table(connection, schema) or DEFAULT_VERSION_TABLE
+                current_revision = None
+                if _table_exists(connection, schema, version_table):
+                    safe_schema = quote_ident(schema)
+                    current_revision = connection.execute(
+                        text(f"SELECT version_num FROM {safe_schema}.{version_table} LIMIT 1")
+                    ).scalar()
+                head_revision = get_tenant_head_revision()
+                _log_migration_start(
+                    schema=schema,
+                    branch="tenant",
+                    revision_target="tenant@head",
+                    version_table_schema=schema,
+                    version_table=DEFAULT_VERSION_TABLE,
+                    database_url=database_url,
+                    correlation_id=correlation_id,
+                )
+                logger.info(
+                    "migration_status schema=%s current_revision=%s head_revision=%s version_table=%s correlation_id=%s",
+                    schema,
+                    current_revision,
+                    head_revision,
+                    version_table,
+                    correlation_id,
+                )
+                command.upgrade(config, "tenant@head")
+                connection.commit()
+                duration = time.monotonic() - migration_start
+                logger.info(
+                    "migration_succeeded schema=%s duration_s=%.2f correlation_id=%s",
+                    schema,
+                    duration,
+                    correlation_id,
+                )
+                _log_schema_table_count(connection, schema, "After tenant migrations")
+                _verify_tenant_tables(connection, schema, database_url)
+            except Exception:
+                duration = time.monotonic() - migration_start
+                logger.exception(
+                    "migration_failed schema=%s duration_s=%.2f correlation_id=%s",
+                    schema,
+                    duration,
+                    correlation_id,
+                )
+                raise
+            finally:
+                if lock_acquired:
+                    _release_advisory_lock(connection, lock_key, schema=schema, correlation_id=correlation_id)
     finally:
         engine.dispose()
 
@@ -350,7 +470,14 @@ def _ensure_public_version_table(connection) -> None:
         connection.commit()
 
 
-def _ensure_tenant_version_table(connection, schema: str, config: Config) -> None:
+def _ensure_tenant_version_table(
+    connection,
+    schema: str,
+    config: Config,
+    *,
+    allow_stamp: bool,
+    correlation_id: str | None,
+) -> None:
     if _table_exists(connection, schema, DEFAULT_VERSION_TABLE):
         return
     if _table_exists(connection, schema, LEGACY_TENANT_VERSION_TABLE):
@@ -372,11 +499,22 @@ def _ensure_tenant_version_table(connection, schema: str, config: Config) -> Non
         ),
         {"schema": schema},
     ).scalar()
-    if has_tables:
-        logger.info("Stamping tenant schema at head because version table is missing: schema=%s", schema)
+    if not has_tables:
+        return
+    if allow_stamp:
+        logger.info(
+            "Stamping tenant schema at head because version table is missing: schema=%s correlation_id=%s",
+            schema,
+            correlation_id,
+        )
         config.attributes["connection"] = connection
         command.stamp(config, "tenant@head")
         connection.commit()
+        return
+    raise RuntimeError(
+        "Tenant schema has tables but no version table; manual recovery required or "
+        "set FORCE_STAMP_IF_TABLES_EXIST=1 to stamp explicitly."
+    )
 
 
 def _verify_tenant_tables(connection, schema: str, database_url: str) -> None:
