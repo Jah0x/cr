@@ -38,7 +38,7 @@ def upgrade() -> None:
             "allocation_method",
             recurring_expense_allocation_method_enum,
             nullable=False,
-            server_default="calendar_days",
+            server_default=sa.text("'calendar_days'::recurringexpenseallocationmethod"),
         ),
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("end_date", sa.Date(), nullable=True),
@@ -69,5 +69,42 @@ def downgrade() -> None:
     op.drop_table("expense_accruals")
     op.drop_table("recurring_expenses")
 
-    recurring_expense_allocation_method_enum.drop(op.get_bind(), checkfirst=True)
-    recurring_expense_period_enum.drop(op.get_bind(), checkfirst=True)
+    connection = op.get_bind()
+    connection.execute(
+        sa.text(
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_namespace n ON n.oid = t.typnamespace
+                    WHERE t.typname = 'recurringexpenseallocationmethod'
+                      AND n.nspname = current_schema()
+                ) THEN
+                    EXECUTE format('DROP TYPE %I.%I', current_schema(), 'recurringexpenseallocationmethod');
+                END IF;
+            END
+            $$;
+            """
+        )
+    )
+    connection.execute(
+        sa.text(
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_namespace n ON n.oid = t.typnamespace
+                    WHERE t.typname = 'recurringexpenseperiod'
+                      AND n.nspname = current_schema()
+                ) THEN
+                    EXECUTE format('DROP TYPE %I.%I', current_schema(), 'recurringexpenseperiod');
+                END IF;
+            END
+            $$;
+            """
+        )
+    )
