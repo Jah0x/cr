@@ -20,7 +20,11 @@ from app.models.tenant import Tenant, TenantStatus
 from app.models.tenant_domain import TenantDomain
 from app.repos.user_repo import RoleRepo, UserRepo
 from app.services.bootstrap import bootstrap_tenant_owner, ensure_tenant_roles, ensure_tenant_schema
-from app.services.migrations import get_tenant_migration_status, run_tenant_migrations
+from app.services.migrations import (
+    TenantMigrationLockTimeoutError,
+    get_tenant_migration_status,
+    run_tenant_migrations,
+)
 from app.services.template_service import apply_template_codes
 from app.services.user_service import UserService
 
@@ -133,7 +137,7 @@ class PlatformService:
             schema,
             correlation_id,
         )
-        await ensure_tenant_schema(self.session, schema)
+        schema_created = await ensure_tenant_schema(self.session, schema)
         logger.info(
             "create_schema finished tenant_id=%s schema=%s correlation_id=%s",
             tenant.id,
@@ -148,7 +152,12 @@ class PlatformService:
                 schema,
                 correlation_id,
             )
-            await asyncio.to_thread(run_tenant_migrations, schema)
+            await asyncio.to_thread(
+                run_tenant_migrations,
+                schema,
+                schema_created=schema_created,
+                correlation_id=correlation_id,
+            )
             logger.info(
                 "migrate finished tenant_id=%s schema=%s correlation_id=%s",
                 tenant.id,
@@ -186,8 +195,16 @@ class PlatformService:
             await self.session.commit()
         except Exception as exc:
             await self._mark_provisioning_failed(tenant, schema, exc, correlation_id=correlation_id)
-            detail = {"message": "Tenant provisioning failed", "reason": str(exc), "correlation_id": correlation_id}
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail) from exc
+            detail = {
+                "message": "Tenant provisioning failed",
+                "reason": str(exc),
+                "correlation_id": correlation_id,
+            }
+            status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            if isinstance(exc, TenantMigrationLockTimeoutError):
+                status_code = status.HTTP_409_CONFLICT
+                detail["message"] = "Tenant provisioning lock timeout"
+            raise HTTPException(status_code=status_code, detail=detail) from exc
         tenant_url = self._tenant_url(schema)
         return {
             "tenant": tenant,
@@ -237,14 +254,18 @@ class PlatformService:
         tenant = await self._get_tenant(tenant_id)
         correlation_id = str(uuid4())
         try:
-            await asyncio.to_thread(run_tenant_migrations, tenant.code)
+            await asyncio.to_thread(run_tenant_migrations, tenant.code, correlation_id=correlation_id)
             tenant.status = TenantStatus.active
             tenant.last_error = None
             await self.session.commit()
         except Exception as exc:
             await self._mark_provisioning_failed(tenant, tenant.code, exc, correlation_id=correlation_id)
             detail = {"message": "Tenant migration failed", "reason": str(exc), "correlation_id": correlation_id}
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail) from exc
+            status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            if isinstance(exc, TenantMigrationLockTimeoutError):
+                status_code = status.HTTP_409_CONFLICT
+                detail["message"] = "Tenant migration lock timeout"
+            raise HTTPException(status_code=status_code, detail=detail) from exc
         status_info = get_tenant_migration_status(tenant.code)
         return {"tenant": tenant, **status_info}
 

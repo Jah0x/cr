@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     reserved_subdomains: str = Field(default="", alias="RESERVED_SUBDOMAINS")
     default_tenant_slug: str | None = Field(default=None, alias="DEFAULT_TENANT_SLUG")
     tenant_canonical_redirect: bool = Field(default=False, alias="TENANT_CANONICAL_REDIRECT")
+    tenant_migration_lock_timeout: int = Field(default=60, alias="TENANT_MIGRATION_LOCK_TIMEOUT")
+    enable_wait_for_migration_lock: bool = Field(default=True, alias="ENABLE_WAIT_FOR_MIGRATION_LOCK")
+    force_stamp_if_tables_exist: bool = Field(default=False, alias="FORCE_STAMP_IF_TABLES_EXIST")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
