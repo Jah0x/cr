@@ -14,8 +14,48 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE paymentprovider RENAME VALUE 'external' TO 'transfer'")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM pg_enum e
+                JOIN pg_type t ON t.oid = e.enumtypid
+                WHERE t.typname = 'paymentprovider' AND e.enumlabel = 'external'
+            ) AND NOT EXISTS (
+                SELECT 1
+                FROM pg_enum e
+                JOIN pg_type t ON t.oid = e.enumtypid
+                WHERE t.typname = 'paymentprovider' AND e.enumlabel = 'transfer'
+            ) THEN
+                ALTER TYPE paymentprovider RENAME VALUE 'external' TO 'transfer';
+            END IF;
+        END
+        $$;
+        """
+    )
 
 
 def downgrade() -> None:
-    op.execute("ALTER TYPE paymentprovider RENAME VALUE 'transfer' TO 'external'")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM pg_enum e
+                JOIN pg_type t ON t.oid = e.enumtypid
+                WHERE t.typname = 'paymentprovider' AND e.enumlabel = 'transfer'
+            ) AND NOT EXISTS (
+                SELECT 1
+                FROM pg_enum e
+                JOIN pg_type t ON t.oid = e.enumtypid
+                WHERE t.typname = 'paymentprovider' AND e.enumlabel = 'external'
+            ) THEN
+                ALTER TYPE paymentprovider RENAME VALUE 'transfer' TO 'external';
+            END IF;
+        END
+        $$;
+        """
+    )
