@@ -7,7 +7,7 @@ Create Date: 2026-02-07 00:00:00.000000
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 
 revision = "tenant_0015"
 down_revision = "tenant_0014"
@@ -15,10 +15,10 @@ branch_labels = None
 depends_on = None
 
 
-recurring_expense_period_enum = sa.Enum(
+recurring_expense_period_enum = ENUM(
     "daily", "weekly", "monthly", name="recurringexpenseperiod", create_type=False
 )
-recurring_expense_allocation_method_enum = sa.Enum(
+recurring_expense_allocation_method_enum = ENUM(
     "calendar_days", "fixed_30", name="recurringexpenseallocationmethod", create_type=False
 )
 
