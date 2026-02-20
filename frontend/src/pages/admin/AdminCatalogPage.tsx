@@ -112,22 +112,24 @@ export default function AdminCatalogPage() {
 
   const loadData = async () => {
     setCatalogLoading(true)
-    try {
-      const [cats, brs, lns, prods] = await Promise.all([
-        api.get('/categories'),
-        api.get('/brands'),
-        api.get('/lines'),
-        api.get('/products')
-      ])
-      setCategories(cats.data)
-      setBrands(brs.data)
-      setLines(lns.data)
-      setProducts(prods.data)
-    } catch (error) {
-      addToast(getApiErrorMessage(error, t, 'common.error'), 'error')
-    } finally {
-      setCatalogLoading(false)
+    const [cats, brs, lns, prods] = await Promise.allSettled([
+      api.get('/categories'),
+      api.get('/brands'),
+      api.get('/lines'),
+      api.get('/products')
+    ])
+
+    setCategories(cats.status === 'fulfilled' ? cats.value.data : [])
+    setBrands(brs.status === 'fulfilled' ? brs.value.data : [])
+    setLines(lns.status === 'fulfilled' ? lns.value.data : [])
+    setProducts(prods.status === 'fulfilled' ? prods.value.data : [])
+
+    const firstFailure = [cats, brs, lns, prods].find((result) => result.status === 'rejected')
+    if (firstFailure?.status === 'rejected') {
+      addToast(getApiErrorMessage(firstFailure.reason, t, 'common.error'), 'error')
     }
+
+    setCatalogLoading(false)
   }
 
   useEffect(() => {
