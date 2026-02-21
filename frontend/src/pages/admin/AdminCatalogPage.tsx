@@ -105,6 +105,22 @@ export default function AdminCatalogPage() {
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
   const lineMap = useMemo(() => new Map(lines.map((item) => [item.id, item.name])), [lines])
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [categories]
+  )
+  const sortedBrands = useMemo(
+    () => [...brands].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [brands]
+  )
+  const sortedLines = useMemo(
+    () => [...lines].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [lines]
+  )
+  const sortedProducts = useMemo(
+    () => [...products].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    [products]
+  )
   const stockMap = useMemo(
     () => new Map(stockLevels.map((item) => [item.product_id, item.on_hand])),
     [stockLevels]
@@ -533,6 +549,19 @@ export default function AdminCatalogPage() {
     }
   }
 
+  const deleteAllProducts = async () => {
+    if (products.length === 0 || !confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete('/products')
+      addToast(t('common.deleted'), 'success')
+      loadData()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
   const openEditModal = (type: CatalogTab, item: Category | Brand | ProductLine | Product) => {
     setEditType(type)
     setEditId(item.id)
@@ -697,6 +726,23 @@ export default function AdminCatalogPage() {
     }
   }
 
+  const unlinkAllBrandsFromCategory = async () => {
+    if (!categoryLinkId || categoryBrands.length === 0 || !confirmDeletion()) {
+      return
+    }
+    try {
+      await Promise.all(categoryBrands.map((brand) => api.delete(`/categories/${categoryLinkId}/brands/${brand.id}`)))
+      addToast(t('common.deleted'), 'success')
+      loadCategoryBrands(categoryLinkId, setCategoryBrands)
+      loadData()
+      if (productCategoryId === categoryLinkId) {
+        loadCategoryBrands(productCategoryId, setProductCategoryBrands)
+      }
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
   const canCreateCategory = categoryName.trim().length > 0
   const canCreateBrand = brandName.trim().length > 0
   const canCreateLine = lineName.trim().length > 0 && Boolean(lineBrand)
@@ -709,7 +755,7 @@ export default function AdminCatalogPage() {
     (Boolean(productName.trim()) || Boolean(productLineId))
 
   const linkedBrandIds = new Set(categoryBrands.map((brand) => brand.id))
-  const availableBrands = brands.filter((brand) => !linkedBrandIds.has(brand.id))
+  const availableBrands = sortedBrands.filter((brand) => !linkedBrandIds.has(brand.id))
   const brandSearchTerm = brandSearch.trim().toLowerCase()
   const filteredAvailableBrands = availableBrands.filter((brand) =>
     brand.name.toLowerCase().includes(brandSearchTerm)
@@ -811,7 +857,7 @@ export default function AdminCatalogPage() {
               <div className="form-row">
                 <select value={categoryLinkId} onChange={(e) => setCategoryLinkId(e.target.value)}>
                   <option value="">{t('admin.categorySelect')}</option>
-                  {categories.map((category) => (
+                  {sortedCategories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -823,6 +869,13 @@ export default function AdminCatalogPage() {
                   disabled={!categoryLinkId}
                 >
                   {t('admin.linkBrand')}
+                </button>
+                <button
+                  className="ghost"
+                  onClick={unlinkAllBrandsFromCategory}
+                  disabled={!categoryLinkId || categoryBrands.length === 0}
+                >
+                  {t('common.deleteAll', { defaultValue: 'Удалить все' })}
                 </button>
               </div>
               <div className="table-wrapper">
@@ -898,7 +951,7 @@ export default function AdminCatalogPage() {
                       </td>
                     </tr>
                   ) : (
-                    categories.map((category) => (
+                    sortedCategories.map((category) => (
                       <tr key={category.id}>
                         <td>{category.name}</td>
                         <td>
@@ -957,7 +1010,7 @@ export default function AdminCatalogPage() {
                     </td>
                   </tr>
                 ) : (
-                  brands.map((brand) => (
+                  sortedBrands.map((brand) => (
                     <tr key={brand.id}>
                       <td>{brand.name}</td>
                       <td>
@@ -1004,7 +1057,7 @@ export default function AdminCatalogPage() {
                     </td>
                   </tr>
                 ) : (
-                  lines.map((line) => (
+                  sortedLines.map((line) => (
                     <tr key={line.id}>
                       <td>{line.name}</td>
                       <td>{brandMap.get(line.brand_id) ?? '—'}</td>
@@ -1027,7 +1080,12 @@ export default function AdminCatalogPage() {
 
       {activeTab === 'products' && (
         <section className="card">
-          <h3>{t('adminSections.productList')}</h3>
+          <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3>{t('adminSections.productList')}</h3>
+            <button className="secondary" onClick={deleteAllProducts} disabled={products.length === 0}>
+              {t('common.deleteAll', { defaultValue: 'Удалить все' })}
+            </button>
+          </div>
           <div className="table-wrapper">
             <table className={catalogLoading ? 'table table--skeleton' : 'table'}>
               <thead>
@@ -1061,7 +1119,7 @@ export default function AdminCatalogPage() {
                     </td>
                   </tr>
                 ) : (
-                  products.map((product) => (
+                  sortedProducts.map((product) => (
                     <tr key={product.id}>
                       <td>
                         {product.image_url ? (
@@ -1160,7 +1218,7 @@ export default function AdminCatalogPage() {
                   />
                   <select value={lineBrand} onChange={(e) => setLineBrand(e.target.value)}>
                     <option value="">{t('admin.brandSelect')}</option>
-                    {brands.map((brand) => (
+                    {sortedBrands.map((brand) => (
                       <option key={brand.id} value={brand.id}>
                         {brand.name}
                       </option>
@@ -1187,7 +1245,7 @@ export default function AdminCatalogPage() {
                   onChange={(e) => setProductCategoryId(e.target.value)}
                 >
                   <option value="">{t('admin.categorySelect')}</option>
-                  {categories.map((category) => (
+                  {sortedCategories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -1347,7 +1405,7 @@ export default function AdminCatalogPage() {
                       }}
                     >
                       <option value="">{t('admin.categorySelect')}</option>
-                      {categories.map((category) => (
+                      {sortedCategories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>

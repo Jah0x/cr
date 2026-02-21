@@ -274,3 +274,10 @@ async def delete_product(product_id: str, request: Request, session: AsyncSessio
     service = get_catalog_service(session)
     await service.delete_product(product_id)
     return {"detail": "deleted"}
+
+
+@router.delete("/products")
+async def delete_all_products(request: Request, session: AsyncSession = Depends(get_db_session)):
+    service = get_catalog_service(session)
+    deleted_count = await service.delete_all_products()
+    return {"detail": "deleted", "deleted_count": deleted_count}

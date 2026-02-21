@@ -94,6 +94,20 @@ api.interceptors.response.use(
         window.location.assign('/platform/login')
       }
     }
+
+    if (
+      status === 401 &&
+      !isPlatformRequest(url) &&
+      typeof url === 'string' &&
+      !url.startsWith('/auth/login') &&
+      !url.startsWith('/invitations/')
+    ) {
+      localStorage.removeItem(tenantTokenKey)
+      localStorage.removeItem('user')
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login')
+      }
+    }
     return Promise.reject(error)
   }
 )
