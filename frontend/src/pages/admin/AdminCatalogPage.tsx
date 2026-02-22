@@ -44,6 +44,7 @@ type FastApiValidationError = { loc?: Array<string | number>; msg: string; type?
 type ApiErrorPayload = { detail?: string | FastApiValidationError[]; message?: string }
 
 type CatalogTab = 'categories' | 'brands' | 'lines' | 'products'
+type ProductSort = 'name_asc' | 'name_desc' | 'stock_desc' | 'stock_asc' | 'price_desc' | 'price_asc' | 'name_length_desc'
 
 export default function AdminCatalogPage() {
   const { t } = useTranslation()
@@ -101,6 +102,7 @@ export default function AdminCatalogPage() {
   const [editStockOnHand, setEditStockOnHand] = useState<number | null>(null)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createModalTab, setCreateModalTab] = useState<CatalogTab>('categories')
+  const [productSort, setProductSort] = useState<ProductSort>('name_asc')
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
@@ -117,14 +119,22 @@ export default function AdminCatalogPage() {
     () => [...lines].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
     [lines]
   )
-  const sortedProducts = useMemo(
-    () => [...products].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
-    [products]
-  )
   const stockMap = useMemo(
     () => new Map(stockLevels.map((item) => [item.product_id, item.on_hand])),
     [stockLevels]
   )
+  const sortedProducts = useMemo(() => {
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
+    return [...products].sort((a, b) => {
+      if (productSort === 'name_desc') return collator.compare(b.name, a.name)
+      if (productSort === 'stock_desc') return (stockMap.get(b.id) ?? 0) - (stockMap.get(a.id) ?? 0)
+      if (productSort === 'stock_asc') return (stockMap.get(a.id) ?? 0) - (stockMap.get(b.id) ?? 0)
+      if (productSort === 'price_desc') return Number(b.sell_price) - Number(a.sell_price)
+      if (productSort === 'price_asc') return Number(a.sell_price) - Number(b.sell_price)
+      if (productSort === 'name_length_desc') return b.name.length - a.name.length
+      return collator.compare(a.name, b.name)
+    })
+  }, [productSort, products, stockMap])
 
   const loadData = async () => {
     setCatalogLoading(true)
@@ -1082,9 +1092,20 @@ export default function AdminCatalogPage() {
         <section className="card">
           <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
             <h3>{t('adminSections.productList')}</h3>
-            <button className="secondary" onClick={deleteAllProducts} disabled={products.length === 0}>
-              {t('common.deleteAll', { defaultValue: 'Удалить все' })}
-            </button>
+            <div className="form-row" style={{ gap: 8 }}>
+              <select value={productSort} onChange={(event) => setProductSort(event.target.value as ProductSort)}>
+                <option value="name_asc">{t('admin.productSort.nameAsc', { defaultValue: 'Название A→Я' })}</option>
+                <option value="name_desc">{t('admin.productSort.nameDesc', { defaultValue: 'Название Я→A' })}</option>
+                <option value="stock_desc">{t('admin.productSort.stockDesc', { defaultValue: 'Остаток: больше сначала' })}</option>
+                <option value="stock_asc">{t('admin.productSort.stockAsc', { defaultValue: 'Остаток: меньше сначала' })}</option>
+                <option value="price_desc">{t('admin.productSort.priceDesc', { defaultValue: 'Цена: дороже сначала' })}</option>
+                <option value="price_asc">{t('admin.productSort.priceAsc', { defaultValue: 'Цена: дешевле сначала' })}</option>
+                <option value="name_length_desc">{t('admin.productSort.nameLengthDesc', { defaultValue: 'По длине названия' })}</option>
+              </select>
+              <button className="secondary" onClick={deleteAllProducts} disabled={products.length === 0}>
+                {t('common.deleteAll', { defaultValue: 'Удалить все' })}
+              </button>
+            </div>
           </div>
           <div className="table-wrapper">
             <table className={catalogLoading ? 'table table--skeleton' : 'table'}>

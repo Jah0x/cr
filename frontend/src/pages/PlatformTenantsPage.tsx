@@ -36,8 +36,22 @@ type TenantUser = {
   last_login_at?: string | null
 }
 
+
+
+const formatDateTime = (value: string | null | undefined, locale?: string) => {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(locale || undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
 function TenantCard({ tenant }: { tenant: Tenant }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const [tenantName, setTenantName] = useState(tenant.name)
@@ -194,9 +208,9 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
 
       <section><h4>{t('platformTenants.domains')}</h4>{domains?.map((domain) => <div key={domain.id} className="platform-org-list-row"><div><strong>{domain.domain}</strong><label className="form-inline"><input type="radio" name={`primary-domain-${tenant.id}`} checked={domain.is_primary} onChange={() => setPrimaryDomainMutation.mutate(domain.id)} disabled={setPrimaryDomainMutation.isPending} />{t('common.primary')}</label></div><button type="button" onClick={() => deleteDomainMutation.mutate(domain.id)}>{t('common.remove')}</button></div>)}<div className="form-inline"><input placeholder={t('platformTenants.domainPlaceholder')} value={domainInput} onChange={(event) => setDomainInput(event.target.value)} /><label className="form-inline"><input type="checkbox" checked={domainPrimary} onChange={(event) => setDomainPrimary(event.target.checked)} />{t('common.primary')}</label><button type="button" onClick={() => createDomainMutation.mutate()} disabled={!domainInput || createDomainMutation.isPending}>{t('platformTenants.addDomain')}</button></div></section>
 
-      <section><h4>{t('platformTenants.inviteLink')}</h4><div className="form-inline"><input placeholder={t('platformTenants.inviteEmailPlaceholder')} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} /><input placeholder={t('platformTenants.rolePlaceholder')} value={inviteRole} onChange={(event) => setInviteRole(event.target.value)} /><button type="button" onClick={() => inviteMutation.mutate()} disabled={!inviteEmail}>{t('platformTenants.generateInvite')}</button></div>{inviteResult && <div><div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {inviteResult.expires_at}</div><code style={{ display: 'block', wordBreak: 'break-all' }}>{inviteResult.invite_url}</code></div>}</section>
+      <section><h4>{t('platformTenants.inviteLink')}</h4><div className="form-inline"><input placeholder={t('platformTenants.inviteEmailPlaceholder')} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} /><input placeholder={t('platformTenants.rolePlaceholder')} value={inviteRole} onChange={(event) => setInviteRole(event.target.value)} /><button type="button" onClick={() => inviteMutation.mutate()} disabled={!inviteEmail}>{t('platformTenants.generateInvite')}</button></div>{inviteResult && <div><div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {formatDateTime(inviteResult.expires_at, i18n.language)}</div><code style={{ display: 'block', wordBreak: 'break-all' }}>{inviteResult.invite_url}</code></div>}</section>
 
-      <section><h4>{t('platformTenants.users')}</h4>{users?.map((user) => <div key={user.id} className="platform-org-list-row"><div><div>{user.email}</div><div style={{ fontSize: 12, color: '#64748b' }}>{user.roles.join(', ')}</div></div><div className="form-inline"><button type="button" onClick={() => updateUserMutation.mutate({ userId: user.id, isActive: !user.is_active })}>{user.is_active ? t('platformTenants.deactivate') : t('platformTenants.activate')}</button><button type="button" onClick={() => window.confirm(t('platformTenants.deleteUserConfirm')) && deleteUserMutation.mutate(user.id)}>{t('platformTenants.delete')}</button></div></div>)}<div className="form-stack"><div className="form-inline"><input placeholder={t('platformTenants.userEmail')} value={userEmail} onChange={(event) => setUserEmail(event.target.value)} /><input placeholder={t('platformTenants.rolesPlaceholder')} value={userRoles} onChange={(event) => setUserRoles(event.target.value)} /></div><div className="form-inline"><label className="form-inline"><input type="radio" name={`user-mode-${tenant.id}`} checked={userMode === 'password'} onChange={() => setUserMode('password')} />{t('platformTenants.passwordMode')}</label><label className="form-inline"><input type="radio" name={`user-mode-${tenant.id}`} checked={userMode === 'invite'} onChange={() => setUserMode('invite')} />{t('platformTenants.inviteMode')}</label>{userMode === 'password' && <input placeholder={t('platformTenants.passwordPlaceholder')} type="password" value={userPassword} onChange={(event) => setUserPassword(event.target.value)} />}</div><button type="button" onClick={() => (userMode === 'invite' ? inviteUserMutation.mutate() : createUserMutation.mutate())} disabled={!userEmail || roleList.length === 0 || (userMode === 'password' && !userPassword)}>{userMode === 'invite' ? t('platformTenants.createInvite') : t('platformTenants.addUser')}</button>{userInviteResult && userMode === 'invite' && <div><div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {userInviteResult.expires_at}</div><code style={{ display: 'block', wordBreak: 'break-all' }}>{userInviteResult.invite_url}</code></div>}</div></section>
+      <section><h4>{t('platformTenants.users')}</h4>{users?.map((user) => <div key={user.id} className="platform-org-list-row"><div><div>{user.email}</div><div style={{ fontSize: 12, color: '#64748b' }}>{user.roles.join(', ')}</div></div><div className="form-inline"><button type="button" onClick={() => updateUserMutation.mutate({ userId: user.id, isActive: !user.is_active })}>{user.is_active ? t('platformTenants.deactivate') : t('platformTenants.activate')}</button><button type="button" onClick={() => window.confirm(t('platformTenants.deleteUserConfirm')) && deleteUserMutation.mutate(user.id)}>{t('platformTenants.delete')}</button></div></div>)}<div className="form-stack"><div className="form-inline"><input placeholder={t('platformTenants.userEmail')} value={userEmail} onChange={(event) => setUserEmail(event.target.value)} /><input placeholder={t('platformTenants.rolesPlaceholder')} value={userRoles} onChange={(event) => setUserRoles(event.target.value)} /></div><div className="form-inline"><label className="form-inline"><input type="radio" name={`user-mode-${tenant.id}`} checked={userMode === 'password'} onChange={() => setUserMode('password')} />{t('platformTenants.passwordMode')}</label><label className="form-inline"><input type="radio" name={`user-mode-${tenant.id}`} checked={userMode === 'invite'} onChange={() => setUserMode('invite')} />{t('platformTenants.inviteMode')}</label>{userMode === 'password' && <input placeholder={t('platformTenants.passwordPlaceholder')} type="password" value={userPassword} onChange={(event) => setUserPassword(event.target.value)} />}</div><button type="button" onClick={() => (userMode === 'invite' ? inviteUserMutation.mutate() : createUserMutation.mutate())} disabled={!userEmail || roleList.length === 0 || (userMode === 'password' && !userPassword)}>{userMode === 'invite' ? t('platformTenants.createInvite') : t('platformTenants.addUser')}</button>{userInviteResult && userMode === 'invite' && <div><div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {formatDateTime(userInviteResult.expires_at, i18n.language)}</div><code style={{ display: 'block', wordBreak: 'break-all' }}>{userInviteResult.invite_url}</code></div>}</div></section>
 
       <section>
         <h4>{t('platformTenants.invites')}</h4>
@@ -204,7 +218,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
           <div key={invite.id} className="platform-org-list-row">
             <div>
               <strong>{invite.email}</strong>
-              <div style={{ fontSize: 12, color: '#64748b' }}>{invite.created_at} · {invite.expires_at} · {invite.used_at ?? '—'}</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>{formatDateTime(invite.created_at, i18n.language)} · {formatDateTime(invite.expires_at, i18n.language)} · {formatDateTime(invite.used_at, i18n.language)}</div>
             </div>
             <div className="form-inline">
               <button type="button" onClick={() => regenerateInviteMutation.mutate(invite.id)} disabled={regenerateInviteMutation.isPending}>{t('platformTenants.regenerateInvite')}</button>
@@ -212,7 +226,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
             </div>
           </div>
         )) : <div style={{ fontSize: 13, color: '#64748b' }}>{t('platformTenants.noInvites')}</div>}
-        {regeneratedInvite && <div><div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {regeneratedInvite.expires_at}</div><code style={{ display: 'block', wordBreak: 'break-all' }}>{regeneratedInvite.invite_url}</code></div>}
+        {regeneratedInvite && <div><div style={{ fontSize: 13 }}>{t('platformTenants.expires')}: {formatDateTime(regeneratedInvite.expires_at, i18n.language)}</div><code style={{ display: 'block', wordBreak: 'break-all' }}>{regeneratedInvite.invite_url}</code></div>}
       </section>
     </article>
   )

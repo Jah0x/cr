@@ -21,6 +21,7 @@ import TenantSettingsPage from './pages/TenantSettingsPage'
 import FinancePage from './pages/FinancePage'
 import ShiftsPage from './pages/ShiftsPage'
 import RegisterPage from './pages/RegisterPage'
+import PublicCatalogPage from './pages/PublicCatalogPage'
 import { loadRuntimeConfig } from './config/runtimeConfig'
 import { ToastProvider } from './components/ToastProvider'
 
@@ -58,6 +59,7 @@ const bootstrap = async () => {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/invite/:token" element={<RegisterPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/catalog" element={<PublicCatalogPage />} />
                 <Route element={<TenantLayout />}>
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<Navigate to="catalog" replace />} />
