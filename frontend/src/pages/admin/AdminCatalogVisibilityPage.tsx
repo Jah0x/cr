@@ -25,7 +25,8 @@ export default function AdminCatalogVisibilityPage() {
   const isPublicCatalogModuleEnabled = useMemo(() => {
     if (!tenantSettings) return false
     const module = tenantSettings.modules.find((item) => item.code === 'public_catalog')
-    return Boolean(module?.is_active && module?.is_enabled)
+    if (!module) return true
+    return Boolean(module.is_active && module.is_enabled)
   }, [tenantSettings])
 
   const load = async () => {

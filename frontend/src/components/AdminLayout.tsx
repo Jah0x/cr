@@ -27,7 +27,7 @@ export default function AdminLayout() {
   const isModuleEnabled = (code?: string) => {
     if (!code || !data) return true
     const module = data.modules.find((item) => item.code === code)
-    return module ? module.is_active && module.is_enabled : false
+    return module ? module.is_active && module.is_enabled : true
   }
 
   const visibleRoutes = adminRoutes.filter((route) => isModuleEnabled(route.moduleCode))
