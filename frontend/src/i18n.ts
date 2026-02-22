@@ -47,7 +47,8 @@ const resources = {
         purchasing: 'Suppliers & Purchasing',
         stock: 'Stock',
         reports: 'Reports',
-        users: 'Users'
+        users: 'Users',
+        catalogVisibility: 'Catalog visibility'
       },
       adminTabs: {
         categories: 'Categories',
@@ -607,7 +608,8 @@ const resources = {
         purchasing: 'Поставщики и закупки',
         stock: 'Склад',
         reports: 'Отчеты',
-        users: 'Пользователи'
+        users: 'Пользователи',
+        catalogVisibility: 'Видимость каталога'
       },
       adminTabs: {
         categories: 'Категории',

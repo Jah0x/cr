@@ -11,6 +11,7 @@ import AdminPurchasingPage from './pages/admin/AdminPurchasingPage'
 import AdminStockPage from './pages/admin/AdminStockPage'
 import AdminReportsPage from './pages/admin/AdminReportsPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminCatalogVisibilityPage from './pages/admin/AdminCatalogVisibilityPage'
 import PosPage from './pages/PosPage'
 import TenantLayout from './components/TenantLayout'
 import PlatformLayout from './components/PlatformLayout'
@@ -68,6 +69,7 @@ const bootstrap = async () => {
                     <Route path="stock" element={<AdminStockPage />} />
                     <Route path="reports" element={<AdminReportsPage />} />
                     <Route path="users" element={<AdminUsersPage />} />
+                    <Route path="catalog-visibility" element={<AdminCatalogVisibilityPage />} />
                   </Route>
                   <Route path="/pos" element={<PosPage />} />
                   <Route path="/finance" element={<FinancePage />} />
