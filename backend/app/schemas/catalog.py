@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from app.models.catalog import ProductUnit
 
+
 class CategoryBase(BaseModel):
     name: str
     is_active: bool = True
@@ -77,11 +78,14 @@ class ProductBase(BaseModel):
     brand_id: uuid.UUID
     line_id: Optional[uuid.UUID] = None
     unit: ProductUnit = ProductUnit.pcs
-    purchase_price: Decimal = Field(ge=0)
+    purchase_price: Decimal = Field(default=0, ge=0)
     cost_price: Decimal = Field(default=0, ge=0)
     sell_price: Decimal = Field(ge=0)
     tax_rate: Decimal = Field(ge=0)
     is_active: bool = True
+    is_hidden: bool = False
+    variant_group: Optional[str] = None
+    variant_name: Optional[str] = None
 
 
 class ProductCreate(ProductBase):
@@ -103,6 +107,9 @@ class ProductUpdate(BaseModel):
     sell_price: Optional[Decimal] = Field(default=None, ge=0)
     tax_rate: Optional[Decimal] = Field(default=None, ge=0)
     is_active: Optional[bool] = None
+    is_hidden: Optional[bool] = None
+    variant_group: Optional[str] = None
+    variant_name: Optional[str] = None
 
 
 class ProductOut(ProductBase):

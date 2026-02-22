@@ -7,7 +7,8 @@ const adminRoutes = [
   { key: 'purchasing', path: '/admin/purchasing' },
   { key: 'stock', path: '/admin/stock' },
   { key: 'reports', path: '/admin/reports' },
-  { key: 'users', path: '/admin/users' }
+  { key: 'users', path: '/admin/users' },
+  { key: 'catalogVisibility', path: '/admin/catalog-visibility' }
 ]
 
 export default function AdminLayout() {

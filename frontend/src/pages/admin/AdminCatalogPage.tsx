@@ -19,7 +19,6 @@ type Product = {
   sku?: string | null
   barcode?: string | null
   unit: string
-  purchase_price: number
   cost_price: number
   sell_price: number
   image_url?: string | null
@@ -74,7 +73,6 @@ export default function AdminCatalogPage() {
   const [productSku, setProductSku] = useState('')
   const [productBarcode, setProductBarcode] = useState('')
   const [productUnit, setProductUnit] = useState('pcs')
-  const [productPurchasePrice, setProductPurchasePrice] = useState('0')
   const [productCostPrice, setProductCostPrice] = useState('0')
   const [productSellPrice, setProductSellPrice] = useState('0')
   const [productImageUrl, setProductImageUrl] = useState('')
@@ -87,7 +85,6 @@ export default function AdminCatalogPage() {
   const [editSku, setEditSku] = useState('')
   const [editBarcode, setEditBarcode] = useState('')
   const [editUnit, setEditUnit] = useState('pcs')
-  const [editPurchasePrice, setEditPurchasePrice] = useState('0')
   const [editCostPrice, setEditCostPrice] = useState('0')
   const [editSellPrice, setEditSellPrice] = useState('0')
   const [editImageUrl, setEditImageUrl] = useState('')
@@ -483,7 +480,6 @@ export default function AdminCatalogPage() {
   }
 
   const createProduct = async () => {
-    const purchasePrice = Number(productPurchasePrice)
     const costPrice = Number(productCostPrice)
     const sellPrice = Number(productSellPrice)
     const trimmedName = productName.trim()
@@ -504,10 +500,8 @@ export default function AdminCatalogPage() {
     }
 
     if (
-      !Number.isFinite(purchasePrice) ||
       !Number.isFinite(costPrice) ||
       !Number.isFinite(sellPrice) ||
-      purchasePrice < 0 ||
       costPrice < 0 ||
       sellPrice < 0
     ) {
@@ -525,7 +519,7 @@ export default function AdminCatalogPage() {
         barcode: productBarcode.trim() || null,
         image_url: productImageUrl.trim() || null,
         unit: productUnit,
-        purchase_price: purchasePrice,
+        purchase_price: 0,
         cost_price: costPrice,
         sell_price: sellPrice,
         tax_rate: 0
@@ -534,7 +528,6 @@ export default function AdminCatalogPage() {
       setProductSku('')
       setProductBarcode('')
       setProductUnit('pcs')
-      setProductPurchasePrice('0')
       setProductCostPrice('0')
       setProductSellPrice('0')
       setProductImageUrl('')
@@ -582,7 +575,6 @@ export default function AdminCatalogPage() {
       setEditSku(product.sku ?? '')
       setEditBarcode(product.barcode ?? '')
       setEditUnit(product.unit ?? 'pcs')
-      setEditPurchasePrice(String(product.purchase_price ?? 0))
       setEditCostPrice(String(product.cost_price ?? 0))
       setEditSellPrice(String(product.sell_price ?? 0))
       setEditImageUrl(product.image_url ?? '')
@@ -593,7 +585,6 @@ export default function AdminCatalogPage() {
       setEditSku('')
       setEditBarcode('')
       setEditUnit('pcs')
-      setEditPurchasePrice('0')
       setEditCostPrice('0')
       setEditSellPrice('0')
       setEditImageUrl('')
@@ -611,7 +602,6 @@ export default function AdminCatalogPage() {
     setEditSku('')
     setEditBarcode('')
     setEditUnit('pcs')
-    setEditPurchasePrice('0')
     setEditCostPrice('0')
     setEditSellPrice('0')
     setEditImageUrl('')
@@ -652,7 +642,6 @@ export default function AdminCatalogPage() {
       } else if (editType === 'lines') {
         await updateLine(editId, trimmedName)
       } else if (editType === 'products') {
-        const purchasePrice = Number(editPurchasePrice)
         const costPrice = Number(editCostPrice)
         const sellPrice = Number(editSellPrice)
 
@@ -672,11 +661,9 @@ export default function AdminCatalogPage() {
         }
 
         if (
-          !Number.isFinite(purchasePrice) ||
-          !Number.isFinite(costPrice) ||
+              !Number.isFinite(costPrice) ||
           !Number.isFinite(sellPrice) ||
-          purchasePrice < 0 ||
-          costPrice < 0 ||
+              costPrice < 0 ||
           sellPrice < 0
         ) {
           addToast(t('admin.validation.nonNegative'), 'error')
@@ -688,7 +675,7 @@ export default function AdminCatalogPage() {
           sku: editSku.trim() || null,
           barcode: editBarcode.trim() || null,
           unit: editUnit,
-          purchase_price: purchasePrice,
+          purchase_price: 0,
           cost_price: costPrice,
           sell_price: sellPrice,
           image_url: editImageUrl.trim() || null,
@@ -760,7 +747,6 @@ export default function AdminCatalogPage() {
   const lineBrandMissing = !lineBrand
   const canCreateProduct =
     validateRequired([productCategoryId, productBrandId, productUnit]) &&
-    isNonNegativeNumber(productPurchasePrice) &&
     isNonNegativeNumber(productCostPrice) &&
     isNonNegativeNumber(productSellPrice) &&
     (Boolean(productName.trim()) || Boolean(productLineId))
@@ -1156,8 +1142,7 @@ export default function AdminCatalogPage() {
                       <td>{brandMap.get(product.brand_id) ?? '—'}</td>
                       <td>{product.line_id ? lineMap.get(product.line_id) ?? '—' : '—'}</td>
                       <td>{product.unit}</td>
-                      <td>{product.purchase_price}</td>
-                      <td>{product.cost_price}</td>
+                                            <td>{product.cost_price}</td>
                       <td>{product.sell_price}</td>
                       <td>
                         {stockLevelLoading ? <span className="skeleton skeleton-text" /> : stockMap.get(product.id) ?? 0}
@@ -1360,16 +1345,6 @@ export default function AdminCatalogPage() {
                     </select>
                   </label>
                   <label className="form-field">
-                    <span>{t('admin.purchasePriceLabel')}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder={t('admin.purchasePricePlaceholder')}
-                      value={productPurchasePrice}
-                      onChange={(e) => setProductPurchasePrice(e.target.value)}
-                    />
-                  </label>
-                  <label className="form-field">
                     <span>{t('admin.costPriceLabel')}</span>
                     <input
                       type="number"
@@ -1481,16 +1456,6 @@ export default function AdminCatalogPage() {
                         <option value="ml">{t('admin.unitMl')}</option>
                         <option value="g">{t('admin.unitG')}</option>
                       </select>
-                    </label>
-                    <label className="form-field">
-                      <span>{t('admin.purchasePriceLabel')}</span>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder={t('admin.purchasePricePlaceholder')}
-                        value={editPurchasePrice}
-                        onChange={(e) => setEditPurchasePrice(e.target.value)}
-                      />
                     </label>
                     <label className="form-field">
                       <span>{t('admin.costPriceLabel')}</span>

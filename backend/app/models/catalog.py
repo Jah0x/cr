@@ -85,6 +85,9 @@ class Product(Base):
     sell_price = Column(Numeric(12, 2), nullable=False, default=0)
     tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
     is_active = Column(Boolean, default=True)
+    is_hidden = Column(Boolean, nullable=False, default=False)
+    variant_group = Column(String, nullable=True)
+    variant_name = Column(String, nullable=True)
 
     category = relationship("Category", back_populates="products")
     brand = relationship("Brand")

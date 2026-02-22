@@ -19,6 +19,7 @@ from app.models.shifts import CashierShift, CashierShiftStatus
 from app.models.tenant import Tenant, TenantStatus
 from app.models.tenant_domain import TenantDomain
 from app.models.invitation import TenantInvitation
+from app.models.public_order import PublicOrder, PublicOrderItem
 from app.models.platform import (
     Feature,
     Module,
@@ -61,6 +62,8 @@ __all__ = [
     "TenantStatus",
     "TenantDomain",
     "TenantInvitation",
+    "PublicOrder",
+    "PublicOrderItem",
     "Module",
     "Feature",
     "Template",
