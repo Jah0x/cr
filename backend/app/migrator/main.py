@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 from alembic import command
+from alembic.util.exc import CommandError
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from sqlalchemy import Connection, create_engine, text
@@ -96,6 +97,14 @@ def _post_migration_check(connection: Connection, database_url: str) -> None:
         )
 
 
+def _load_db_public_revisions(connection: Connection) -> list[str]:
+    try:
+        rows = connection.execute(text("select version_num from public.alembic_version order by version_num")).scalars()
+        return [item for item in rows if isinstance(item, str)]
+    except Exception:
+        return []
+
+
 def run_public_migrations(config: Config) -> None:
     script = ScriptDirectory.from_config(config)
     script_location = config.get_main_option("script_location")
@@ -103,6 +112,7 @@ def run_public_migrations(config: Config) -> None:
     logger.info("Alembic script_location=%s", script_location)
     logger.info("Alembic version_locations=%s", version_locations)
     public_revisions = script.get_revisions("public@head")
+    known_revisions = {revision.revision for revision in script.walk_revisions()}
     logger.info(
         "Public revisions: %s",
         [revision.revision for revision in public_revisions],
@@ -111,7 +121,20 @@ def run_public_migrations(config: Config) -> None:
         raise RuntimeError("No alembic revisions found for public schema")
 
     logger.info("Running public alembic upgrade to head")
-    command.upgrade(config, "public@head")
+    try:
+        command.upgrade(config, "public@head")
+    except CommandError as exc:
+        connection = config.attributes.get("connection")
+        db_revisions = _load_db_public_revisions(connection) if isinstance(connection, Connection) else []
+        unknown_db_revisions = [revision for revision in db_revisions if revision not in known_revisions]
+        if unknown_db_revisions and all(revision.startswith("public_") for revision in unknown_db_revisions):
+            logger.warning(
+                "Skipping migration because database already has unknown public revisions: %s. "
+                "Most likely migrator image is outdated and should be rebuilt.",
+                unknown_db_revisions,
+            )
+            return
+        raise exc
     logger.info("Public migrations completed")
 
 
