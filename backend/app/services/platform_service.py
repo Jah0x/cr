@@ -466,6 +466,7 @@ class PlatformService:
             if not user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
             await self.session.delete(user)
+            await self.session.flush()
         finally:
             await set_search_path(self.session, None)
 
