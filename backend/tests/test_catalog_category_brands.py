@@ -200,3 +200,76 @@ def test_product_name_required_without_line():
 
     error_status = asyncio.run(scenario())
     assert error_status == 422
+
+
+def test_catalog_lists_sorted_and_delete_all_products():
+    asyncio.run(reset_db())
+
+    async def scenario():
+        session = TestSession()
+        service = CatalogService(
+            CategoryRepo(session),
+            BrandRepo(session),
+            ProductLineRepo(session),
+            ProductRepo(session),
+            CategoryBrandRepo(session),
+        )
+        async with session.begin():
+            category_b = Category(id=uuid.uuid4(), name="z-category")
+            category_a = Category(id=uuid.uuid4(), name="A-category")
+            brand_b = Brand(id=uuid.uuid4(), name="Zulu")
+            brand_a = Brand(id=uuid.uuid4(), name="alpha")
+            session.add_all([category_b, category_a, brand_b, brand_a])
+        async with session.begin():
+            await service.link_category_brand(category_a.id, brand_a.id)
+            await service.create_product(
+                {
+                    "category_id": category_a.id,
+                    "brand_id": brand_a.id,
+                    "line_id": None,
+                    "name": "Zulu Product",
+                    "sku": None,
+                    "barcode": None,
+                    "image_url": None,
+                    "unit": "pcs",
+                    "purchase_price": Decimal("10.00"),
+                    "cost_price": Decimal("10.00"),
+                    "sell_price": Decimal("15.00"),
+                    "tax_rate": Decimal("0"),
+                }
+            )
+            await service.create_product(
+                {
+                    "category_id": category_a.id,
+                    "brand_id": brand_a.id,
+                    "line_id": None,
+                    "name": "alpha Product",
+                    "sku": None,
+                    "barcode": None,
+                    "image_url": None,
+                    "unit": "pcs",
+                    "purchase_price": Decimal("10.00"),
+                    "cost_price": Decimal("10.00"),
+                    "sell_price": Decimal("15.00"),
+                    "tax_rate": Decimal("0"),
+                }
+            )
+
+        async with session.begin():
+            categories = await service.list_categories()
+            brands = await service.list_brands()
+            products_before = await service.list_products({"is_active": True})
+
+        async with session.begin():
+            deleted_count = await service.delete_all_products()
+            products_after = await service.list_products({"is_active": True})
+
+        await session.close()
+        return categories, brands, products_before, products_after, deleted_count
+
+    categories, brands, products_before, products_after, deleted_count = asyncio.run(scenario())
+    assert [item.name for item in categories] == ["A-category", "z-category"]
+    assert [item.name for item in brands] == ["alpha", "Zulu"]
+    assert [item.name for item in products_before] == ["alpha Product", "Zulu Product"]
+    assert deleted_count == 2
+    assert products_after == []

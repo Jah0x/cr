@@ -311,3 +311,6 @@ class CatalogService:
         if not product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
         await self.product_repo.soft_delete(product)
+
+    async def delete_all_products(self):
+        return await self.product_repo.soft_delete_all()

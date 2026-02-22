@@ -92,6 +92,8 @@ export default function RegisterPage() {
     try {
       const res = await api.post(`/invitations/${encodeURIComponent(trimmedToken)}/accept`, { password })
       localStorage.setItem('token', res.data.access_token)
+      const me = await api.get('/auth/me')
+      localStorage.setItem('user', JSON.stringify(me.data))
       navigate('/admin')
     } catch (err) {
       setError(getInviteErrorMessage(err, 'errors.registrationFailed'))

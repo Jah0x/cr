@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.catalog import Category, Brand, ProductLine, Product, CategoryBrand
@@ -10,7 +10,7 @@ class CategoryRepo:
         self.session = session
 
     async def list(self) -> List[Category]:
-        result = await self.session.execute(select(Category))
+        result = await self.session.execute(select(Category).order_by(func.lower(Category.name), Category.id))
         return result.scalars().all()
 
     async def create(self, data: dict) -> Category:
@@ -38,6 +38,7 @@ class BrandRepo:
                 stmt.join(CategoryBrand, Brand.id == CategoryBrand.brand_id)
                 .where(CategoryBrand.category_id == category_id)
             )
+        stmt = stmt.order_by(func.lower(Brand.name), Brand.id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
@@ -63,6 +64,7 @@ class ProductLineRepo:
         stmt = select(ProductLine)
         if brand_id:
             stmt = stmt.where(ProductLine.brand_id == brand_id)
+        stmt = stmt.order_by(func.lower(ProductLine.name), ProductLine.id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
@@ -102,6 +104,7 @@ class ProductRepo:
             stmt = stmt.where(Product.is_active == filters["is_active"])
         if filters.get("q"):
             stmt = stmt.where(Product.name.ilike(f"%{filters['q']}%"))
+        stmt = stmt.order_by(func.lower(Product.name), Product.id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
@@ -128,6 +131,15 @@ class ProductRepo:
     async def soft_delete(self, product: Product) -> None:
         product.is_active = False
         await self.session.flush()
+
+    async def soft_delete_all(self) -> int:
+        result = await self.session.execute(
+            update(Product)
+            .where(Product.is_active.is_(True))
+            .values(is_active=False)
+        )
+        await self.session.flush()
+        return result.rowcount or 0
 
 
 class CategoryBrandRepo:
@@ -157,5 +169,6 @@ class CategoryBrandRepo:
             select(Brand)
             .join(CategoryBrand, Brand.id == CategoryBrand.brand_id)
             .where(CategoryBrand.category_id == category_id)
+            .order_by(func.lower(Brand.name), Brand.id)
         )
         return result.scalars().all()
