@@ -1123,3 +1123,38 @@ button:disabled:hover {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
 }
+
+.catalog-hero {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 42%, #0ea5e9 100%);
+  color: #fff;
+}
+
+.catalog-hero .page-subtitle,
+.catalog-hero h2 {
+  color: #fff;
+  margin: 0;
+}
+
+.catalog-hero__note {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.catalog-grid {
+  gap: 16px;
+}
+
+.catalog-product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.catalog-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.15);
+}
+
+.catalog-order-card {
+  margin-top: 8px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%);
+}
