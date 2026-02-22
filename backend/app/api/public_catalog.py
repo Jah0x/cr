@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_tenant, get_db_session
 from app.models.catalog import Brand, Category, Product, ProductLine
-from app.models.platform import TenantSettings
+from app.models.platform import Module, TenantModule, TenantSettings
 from app.models.public_order import PublicOrder, PublicOrderItem
 from app.models.stock import StockMove
 from app.schemas.public_catalog import (
@@ -20,6 +20,14 @@ router = APIRouter(prefix="/public/catalog", tags=["public-catalog"])
 
 
 async def _catalog_enabled(session: AsyncSession, tenant_id) -> bool:
+    public_catalog_module = await session.scalar(select(Module).where(Module.code == "public_catalog"))
+    if not public_catalog_module or not public_catalog_module.is_active:
+        return False
+    tenant_module = await session.scalar(
+        select(TenantModule).where(TenantModule.module_id == public_catalog_module.id)
+    )
+    if not tenant_module or not tenant_module.is_enabled:
+        return False
     tenant_settings = await session.get(TenantSettings, tenant_id)
     settings_payload = tenant_settings.settings if tenant_settings else {}
     catalog_settings = settings_payload.get("internet_catalog", {})

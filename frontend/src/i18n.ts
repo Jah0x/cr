@@ -473,6 +473,14 @@ const resources = {
           transfer: 'Transfer'
         }
       },
+      adminCatalogVisibility: {
+        subtitle: 'Control which products are shown on the public catalog page.',
+        publicUrl: 'Public catalog URL',
+        variant: 'Variant',
+        hidden: 'Hidden',
+        empty: 'No active products found.',
+        moduleDisabled: 'Enable the Public catalog module in Settings → Modules to manage this page.'
+      },
       settings: {
         loading: 'Loading settings...',
         noSettings: 'No settings available.',
@@ -486,6 +494,10 @@ const resources = {
         showHelp: 'Show help tips',
         errorTitle: 'Unable to load tenant settings.',
         currencyTitle: 'Currency',
+        internetCatalogTitle: 'Public catalog',
+        internetCatalogEnabled: 'Enable public catalog page',
+        internetCatalogPublicUrl: 'Public page URL',
+        internetCatalogManageHint: 'Manage visibility and assortment on the Catalog visibility page in Admin.',
         currencyLabel: 'Default currency',
         currencyRub: 'Russian Ruble (RUB)',
         currencyUsd: 'US Dollar (USD)',
@@ -1034,6 +1046,14 @@ const resources = {
           transfer: 'Перевод'
         }
       },
+      adminCatalogVisibility: {
+        subtitle: 'Управляйте товарами, которые показываются на публичной странице каталога.',
+        publicUrl: 'Адрес публичного каталога',
+        variant: 'Вариант',
+        hidden: 'Скрыт',
+        empty: 'Активные товары не найдены.',
+        moduleDisabled: 'Включите модуль «Публичный каталог» в Настройки → Модули, чтобы управлять этой страницей.'
+      },
       settings: {
         loading: 'Загрузка настроек...',
         noSettings: 'Настройки недоступны.',
@@ -1047,6 +1067,10 @@ const resources = {
         showHelp: 'Показывать подсказки',
         errorTitle: 'Не удалось загрузить настройки организации.',
         currencyTitle: 'Валюта',
+        internetCatalogTitle: 'Публичный каталог',
+        internetCatalogEnabled: 'Включить публичную страницу каталога',
+        internetCatalogPublicUrl: 'Адрес публичной страницы',
+        internetCatalogManageHint: 'Управляйте видимостью и ассортиментом на странице «Видимость каталога» в админке.',
         currencyLabel: 'Валюта по умолчанию',
         currencyRub: 'Российский рубль (RUB)',
         currencyUsd: 'Доллар США (USD)',
