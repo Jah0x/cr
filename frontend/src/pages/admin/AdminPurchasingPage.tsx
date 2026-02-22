@@ -449,7 +449,7 @@ export default function AdminPurchasingPage() {
                   : t('adminPurchasing.addItemTitle')}
               </h4>
               <button className="ghost" onClick={closeCreateModal}>
-                {t('common.cancel')}
+                {t('common.close')}
               </button>
             </div>
             {createModalTab === 'suppliers' && (

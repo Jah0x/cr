@@ -499,6 +499,13 @@ button:disabled:hover {
   width: min(680px, 100%);
   display: grid;
   gap: 12px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.modal-list-scroll {
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
 }
 
 .admin-shell {

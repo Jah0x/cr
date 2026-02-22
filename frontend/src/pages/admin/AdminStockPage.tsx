@@ -234,7 +234,7 @@ export default function AdminStockPage() {
             <div className="modal-header">
               <h4>{t('adminStock.adjustmentsTitle')}</h4>
               <button className="ghost" onClick={closeAdjustModal}>
-                {t('common.cancel')}
+                {t('common.close')}
               </button>
             </div>
             <div className="form-stack">

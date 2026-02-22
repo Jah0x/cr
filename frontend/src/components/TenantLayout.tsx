@@ -72,6 +72,12 @@ export default function TenantLayout() {
     fontWeight: 600
   })
 
+  const logout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    window.location.assign('/login')
+  }
+
   if (!token || !isAuthValid) {
     return <Navigate to="/login" replace />
   }
@@ -113,6 +119,14 @@ export default function TenantLayout() {
             <option value="en">{t('language.en')}</option>
           </select>
         </label>
+        <button
+          type="button"
+          className="ghost"
+          onClick={logout}
+          style={{ color: '#fff', borderColor: 'rgba(255, 255, 255, 0.4)' }}
+        >
+          {t('nav.logout')}
+        </button>
       </nav>
       <Outlet />
     </div>

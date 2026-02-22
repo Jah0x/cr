@@ -1038,7 +1038,7 @@ export default function PosPage() {
             <div className="modal-header">
               <h4>{t('pos.saleDetails')}</h4>
               <Button variant="ghost" onClick={closeSaleDetail}>
-                {t('common.cancel')}
+                {t('common.close')}
               </Button>
             </div>
             <div className="form-stack">

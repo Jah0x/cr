@@ -66,6 +66,7 @@ export default function AdminCatalogPage() {
   const [categoryBrandsTableLoading, setCategoryBrandsTableLoading] = useState(false)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [brandSearch, setBrandSearch] = useState('')
+  const [linkModalColumns, setLinkModalColumns] = useState<1 | 2>(1)
   const [productCategoryId, setProductCategoryId] = useState('')
   const [productBrandId, setProductBrandId] = useState('')
   const [productLineId, setProductLineId] = useState('')
@@ -1195,7 +1196,7 @@ export default function AdminCatalogPage() {
                       : t('adminSections.createProduct')}
               </h4>
               <button className="ghost" onClick={closeCreateModal}>
-                {t('common.cancel')}
+                {t('common.close')}
               </button>
             </div>
             {createModalTab === 'categories' && (
@@ -1404,7 +1405,7 @@ export default function AdminCatalogPage() {
             <div className="modal-header">
               <h4>{t('common.edit', { defaultValue: 'Редактировать' })}</h4>
               <button className="ghost" onClick={closeEditModal}>
-                {t('common.cancel')}
+                {t('common.close')}
               </button>
             </div>
             <div className="form-stack">
@@ -1600,7 +1601,7 @@ export default function AdminCatalogPage() {
               <div className="form-row">
                 <button onClick={handleEditSave}>{t('common.save', { defaultValue: 'Сохранить' })}</button>
                 <button className="ghost" onClick={closeEditModal}>
-                  {t('common.cancel')}
+                  {t('common.close')}
                 </button>
               </div>
             </div>
@@ -1620,7 +1621,7 @@ export default function AdminCatalogPage() {
                   setBrandSearch('')
                 }}
               >
-                {t('common.cancel')}
+                {t('common.close')}
               </button>
             </div>
             <div className="form-stack">
@@ -1629,36 +1630,44 @@ export default function AdminCatalogPage() {
                 value={brandSearch}
                 onChange={(e) => setBrandSearch(e.target.value)}
               />
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">{t('admin.table.brand')}</th>
-                      <th scope="col">{t('admin.table.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAvailableBrands.length === 0 ? (
-                      <tr>
-                        <td colSpan={2}>{t('admin.emptyAvailableBrands')}</td>
-                      </tr>
-                    ) : (
-                      filteredAvailableBrands.map((brand) => (
-                        <tr key={brand.id}>
-                          <td>{brand.name}</td>
-                          <td>
-                            <button
-                              onClick={() => linkBrandToCategory(brand.id)}
-                              disabled={!categoryLinkId}
-                            >
-                              {t('admin.linkBrand')}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="form-inline">
+                <span className="muted">{t('admin.listRows')}</span>
+                <button
+                  type="button"
+                  className={linkModalColumns === 1 ? '' : 'secondary'}
+                  onClick={() => setLinkModalColumns(1)}
+                >
+                  1
+                </button>
+                <button
+                  type="button"
+                  className={linkModalColumns === 2 ? '' : 'secondary'}
+                  onClick={() => setLinkModalColumns(2)}
+                >
+                  2
+                </button>
+              </div>
+              <div className="modal-list-scroll">
+                {filteredAvailableBrands.length === 0 ? (
+                  <p className="page-subtitle">{t('admin.emptyAvailableBrands')}</p>
+                ) : (
+                  <div
+                    className="form-row"
+                    style={{ gridTemplateColumns: `repeat(${linkModalColumns}, minmax(0, 1fr))` }}
+                  >
+                    {filteredAvailableBrands.map((brand) => (
+                      <div key={brand.id} className="card card-body">
+                        <strong>{brand.name}</strong>
+                        <button
+                          onClick={() => linkBrandToCategory(brand.id)}
+                          disabled={!categoryLinkId}
+                        >
+                          {t('admin.linkBrand')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
