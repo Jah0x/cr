@@ -177,6 +177,11 @@ async def seed_platform_defaults():
             "name": "Finance",
             "description": "Expense tracking and profitability.",
         },
+        {
+            "code": "public_catalog",
+            "name": "Public catalog",
+            "description": "Customer-facing product showcase and public order requests.",
+        },
     ]
     templates = [
         {

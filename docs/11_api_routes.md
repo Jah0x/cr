@@ -59,7 +59,7 @@ Notes: registration is not public; owners provision accounts.
 
 
 ## Public catalog (tenant storefront)
-- **GET /public/catalog/products?q=** — public tenant catalog listing for internet storefront. Returns empty list when tenant setting `internet_catalog.is_enabled` is disabled.
+- **GET /public/catalog/products?q=** — public tenant catalog listing for internet storefront. Returns empty list when tenant module `public_catalog` is disabled or tenant setting `internet_catalog.is_enabled` is disabled.
 
 ## Purchasing (owner, admin)
 ### Suppliers

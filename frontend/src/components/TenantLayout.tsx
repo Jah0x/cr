@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useTenantSettings } from '../api/tenantSettings'
 import api from '../api/client'
 
-const adminModules = ['catalog', 'purchasing', 'stock', 'sales', 'reports', 'users', 'finance']
+const adminModules = ['catalog', 'purchasing', 'stock', 'sales', 'reports', 'users', 'finance', 'public_catalog']
 
 export default function TenantLayout() {
   const { t, i18n } = useTranslation()

@@ -72,6 +72,15 @@ class PurchasingService:
         invoice = await self.get_invoice(invoice_id)
         if invoice.status != PurchaseStatus.draft:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot edit invoice")
+        quantity = data.get("quantity")
+        unit_cost = data.get("unit_cost")
+        if quantity is None or float(quantity) <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quantity must be greater than zero")
+        if unit_cost is None or float(unit_cost) < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unit cost cannot be negative")
+        product = await self.product_repo.get(data["product_id"])
+        if not product:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
         item = await self.invoice_repo.add_item(invoice, data)
         await self.session.refresh(invoice)
         return item

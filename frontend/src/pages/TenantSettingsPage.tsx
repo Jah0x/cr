@@ -210,6 +210,29 @@ export default function TenantSettingsPage() {
     setCurrency(storedCurrency)
   }, [storedCurrency])
 
+  const internetCatalogSettingsRaw = data.settings?.internet_catalog
+  const internetCatalogSettings =
+    internetCatalogSettingsRaw && typeof internetCatalogSettingsRaw === 'object' && !Array.isArray(internetCatalogSettingsRaw)
+      ? (internetCatalogSettingsRaw as Record<string, unknown>)
+      : {}
+  const isInternetCatalogEnabled = Boolean(internetCatalogSettings.is_enabled)
+  const catalogPublicUrl = `${window.location.origin}/catalog`
+
+  const handleInternetCatalogToggle = () => {
+    updateTenantSettings.mutate(
+      {
+        internet_catalog: {
+          ...internetCatalogSettings,
+          is_enabled: !isInternetCatalogEnabled
+        }
+      },
+      {
+        onSuccess: () => addToast(t('common.updated'), 'success'),
+        onError: (err) => addToast(getApiErrorMessage(err, t, 'common.error'), 'error')
+      }
+    )
+  }
+
   const handlePrefToggle = (key: string) => {
     const currentValue = pendingPrefs[key] ?? data.ui_prefs[key] ?? false
     const next = { ...data.ui_prefs, ...pendingPrefs, [key]: !currentValue }
@@ -405,6 +428,25 @@ export default function TenantSettingsPage() {
               </div>
             </Card>
           )}
+          <Card title={t('settings.internetCatalogTitle')}>
+            <div className="form-stack">
+              <Checkbox
+                checked={isInternetCatalogEnabled}
+                disabled={updateTenantSettings.isPending}
+                onChange={handleInternetCatalogToggle}
+                label={t('settings.internetCatalogEnabled')}
+              />
+              <div className="form-stack">
+                <span>{t('settings.internetCatalogPublicUrl')}</span>
+                <a href={catalogPublicUrl} target="_blank" rel="noreferrer">
+                  {catalogPublicUrl}
+                </a>
+              </div>
+              {isInternetCatalogEnabled && (
+                <p className="page-subtitle">{t('settings.internetCatalogManageHint')}</p>
+              )}
+            </div>
+          </Card>
           <Card title={t('settings.currencyTitle')}>
             <div className="form-stack">
               <Select

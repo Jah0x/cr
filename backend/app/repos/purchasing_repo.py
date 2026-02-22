@@ -1,6 +1,7 @@
 from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.purchasing import Supplier, PurchaseInvoice, PurchaseItem, PurchaseStatus
 
@@ -32,7 +33,7 @@ class PurchaseInvoiceRepo:
         self.session = session
 
     async def list(self, status: Optional[PurchaseStatus] = None) -> List[PurchaseInvoice]:
-        stmt = select(PurchaseInvoice)
+        stmt = select(PurchaseInvoice).options(selectinload(PurchaseInvoice.items))
         if status:
             stmt = stmt.where(PurchaseInvoice.status == status)
         result = await self.session.execute(stmt)
@@ -45,7 +46,11 @@ class PurchaseInvoiceRepo:
         return invoice
 
     async def get(self, invoice_id) -> Optional[PurchaseInvoice]:
-        result = await self.session.execute(select(PurchaseInvoice).where(PurchaseInvoice.id == invoice_id))
+        result = await self.session.execute(
+            select(PurchaseInvoice)
+            .options(selectinload(PurchaseInvoice.items))
+            .where(PurchaseInvoice.id == invoice_id)
+        )
         return result.scalar_one_or_none()
 
     async def add_item(self, invoice: PurchaseInvoice, data: dict) -> PurchaseItem:
