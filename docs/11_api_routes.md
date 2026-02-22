@@ -57,6 +57,10 @@ Notes: registration is not public; owners provision accounts.
 - **PATCH /products/{product_id}** — update fields from create payload.
 - **DELETE /products/{product_id}** — soft delete (sets `is_active=false`).
 
+
+## Public catalog (tenant storefront)
+- **GET /public/catalog/products?q=** — public tenant catalog listing for internet storefront. Returns empty list when tenant setting `internet_catalog.is_enabled` is disabled.
+
 ## Purchasing (owner, admin)
 ### Suppliers
 - **GET /suppliers** — list.

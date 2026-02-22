@@ -22,6 +22,16 @@ export default function RegisterPage() {
     if (axios.isAxiosError(err)) {
       const data = err.response?.data as { error?: { code?: string } } | undefined
       const status = err.response?.status
+      switch (data?.error?.code) {
+        case 'INVITE_NOT_FOUND':
+          return appendRequestId(t('errors.inviteNotFound'), err, t)
+        case 'INVITE_EXPIRED':
+          return appendRequestId(t('errors.inviteExpired'), err, t)
+        case 'INVITE_TENANT_MISMATCH':
+          return appendRequestId(t('errors.inviteTenantMismatch'), err, t)
+        case 'INVITE_ALREADY_USED':
+          return appendRequestId(t('errors.inviteExpiredStatus'), err, t)
+      }
       if (status === 404) {
         return appendRequestId(t('errors.inviteNotFoundOrExpired'), err, t)
       }
@@ -31,17 +41,8 @@ export default function RegisterPage() {
       if (status === 500) {
         return appendRequestId(t('errors.inviteServerError'), err, t)
       }
-      switch (data?.error?.code) {
-        case 'INVITE_NOT_FOUND':
-          return appendRequestId(t('errors.inviteNotFound'), err, t)
-        case 'INVITE_EXPIRED':
-          return appendRequestId(t('errors.inviteExpired'), err, t)
-        case 'INVITE_TENANT_MISMATCH':
-          return appendRequestId(t('errors.inviteTenantMismatch'), err, t)
-        default:
-          if (!err.response || typeof err.response.data === 'string' || err.response.status === 503) {
-            return appendRequestId(t('errors.inviteNetwork'), err, t)
-          }
+      if (!err.response || typeof err.response.data === 'string' || err.response.status === 503) {
+        return appendRequestId(t('errors.inviteNetwork'), err, t)
       }
     }
     return getApiErrorMessage(err, t, fallbackKey)

@@ -69,7 +69,7 @@ class PlatformService:
                 )
                 invite = await self._create_invite(existing.code, existing.id, owner_email, role_name="owner")
                 await self._ensure_primary_domain(existing, existing.code, name)
-                tenant_url = self._tenant_url(existing.code)
+                tenant_url = await self._tenant_url(existing.code, existing.id)
                 return {
                     "tenant": existing,
                     "tenant_url": tenant_url,
@@ -205,7 +205,7 @@ class PlatformService:
                 status_code = status.HTTP_409_CONFLICT
                 detail["message"] = "Tenant provisioning lock timeout"
             raise HTTPException(status_code=status_code, detail=detail) from exc
-        tenant_url = self._tenant_url(schema)
+        tenant_url = await self._tenant_url(schema, tenant_id)
         return {
             "tenant": tenant,
             "tenant_url": tenant_url,
@@ -483,7 +483,7 @@ class PlatformService:
             )
             .order_by(TenantInvitation.created_at.desc())
         )
-        tenant_url = self._tenant_url(schema)
+        tenant_url = await self._tenant_url(schema, tenant_id)
         if existing:
             raw_token = secrets.token_urlsafe(32)
             token_hash = hash_invite_token(raw_token)
@@ -532,7 +532,16 @@ class PlatformService:
             )
         await set_search_path(self.session, None)
 
-    def _tenant_url(self, schema: str) -> str:
+    async def _tenant_url(self, schema: str, tenant_id=None) -> str:
+        await set_search_path(self.session, None)
+        if tenant_id:
+            primary_domain = await self.session.scalar(
+                select(TenantDomain.domain)
+                .where(TenantDomain.tenant_id == tenant_id, TenantDomain.is_primary.is_(True))
+                .limit(1)
+            )
+            if primary_domain:
+                return f"https://{primary_domain}"
         settings = get_settings()
         root_domain = settings.root_domain.strip(".")
         if root_domain:
