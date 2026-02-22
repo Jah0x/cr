@@ -581,6 +581,10 @@ button:disabled:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  max-height: 76px;
+  overflow-y: auto;
+  align-content: flex-start;
+  padding-right: 4px;
 }
 
 .tab {
