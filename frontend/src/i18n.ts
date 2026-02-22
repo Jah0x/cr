@@ -39,7 +39,8 @@ const resources = {
         pos: 'POS',
         finance: 'Finance',
         shifts: 'Shifts',
-        settings: 'Settings'
+        settings: 'Settings',
+        logout: 'Logout'
       },
       adminNav: {
         catalog: 'Catalog',
@@ -61,6 +62,7 @@ const resources = {
       common: {
         add: 'Add',
         save: 'Save',
+        close: 'Close',
         saving: 'Saving...',
         cancel: 'Cancel',
         create: 'Create',
@@ -172,6 +174,7 @@ const resources = {
         unlinkBrand: 'Unlink',
         linkBrandModalTitle: 'Link brand to category',
         searchBrandPlaceholder: 'Search brand',
+        listRows: 'Rows in window',
         emptyCategories: 'No categories yet.',
         emptyBrands: 'No brands yet.',
         emptyLines: 'No lines yet.',
@@ -596,7 +599,8 @@ const resources = {
         pos: 'Касса',
         finance: 'Финансы',
         shifts: 'Смены',
-        settings: 'Настройки'
+        settings: 'Настройки',
+        logout: 'Выйти'
       },
       adminNav: {
         catalog: 'Каталог',
@@ -618,6 +622,7 @@ const resources = {
       common: {
         add: 'Добавить',
         save: 'Сохранить',
+        close: 'Закрыть',
         saving: 'Сохранение...',
         cancel: 'Отмена',
         create: 'Создать',
@@ -729,6 +734,7 @@ const resources = {
         unlinkBrand: 'Отвязать',
         linkBrandModalTitle: 'Привязка бренда к категории',
         searchBrandPlaceholder: 'Поиск бренда',
+        listRows: 'Рядов в окне',
         emptyCategories: 'Категории отсутствуют.',
         emptyBrands: 'Бренды отсутствуют.',
         emptyLines: 'Линейки отсутствуют.',

@@ -58,7 +58,7 @@ function RoleAssignmentModal({ user, isBusy, onClose, onSubmit, t }: RoleModalPr
         <div className="modal-header">
           <h4>{t('adminUsers.assignRoles', { defaultValue: 'Назначить роли' })}</h4>
           <Button variant="ghost" onClick={onClose} disabled={isBusy}>
-            {t('common.cancel')}
+            {t('common.close')}
           </Button>
         </div>
         <div className="muted">{user.email}</div>
@@ -89,7 +89,7 @@ function RoleAssignmentModal({ user, isBusy, onClose, onSubmit, t }: RoleModalPr
               {t('common.save', { defaultValue: 'Сохранить' })}
             </PrimaryButton>
             <Button type="button" variant="ghost" onClick={onClose} disabled={isBusy}>
-              {t('common.cancel')}
+              {t('common.close')}
             </Button>
           </div>
         </form>
@@ -124,7 +124,7 @@ function PasswordUpdateModal({ user, isBusy, onClose, onSubmit, t }: PasswordMod
         <div className="modal-header">
           <h4>{t('adminUsers.setPassword')}</h4>
           <Button variant="ghost" onClick={onClose} disabled={isBusy}>
-            {t('common.cancel')}
+            {t('common.close')}
           </Button>
         </div>
         <div className="muted">{user.email}</div>
@@ -433,7 +433,7 @@ export default function AdminUsersPage() {
             <div className="modal-header">
               <h4>{t('adminUsers.createUser', { defaultValue: 'Создать пользователя' })}</h4>
               <Button variant="ghost" onClick={closeCreateModal} disabled={creatingUser}>
-                {t('common.cancel')}
+                {t('common.close')}
               </Button>
             </div>
             <form className="form-stack" onSubmit={handleCreateSubmit}>
