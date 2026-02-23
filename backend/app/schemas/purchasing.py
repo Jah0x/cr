@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional, List
 from decimal import Decimal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.purchasing import PurchaseStatus
 
@@ -54,7 +54,7 @@ class PurchaseInvoiceOut(BaseModel):
 
 
 class PurchaseInvoiceDetail(PurchaseInvoiceOut):
-    items: List[PurchaseItemOut] = []
+    items: List[PurchaseItemOut] = Field(default_factory=list)
 
 
 class PurchasePostResult(BaseModel):

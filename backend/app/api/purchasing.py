@@ -76,7 +76,7 @@ async def list_invoices(request: Request, status: str | None = None, session: As
 async def get_invoice(invoice_id: str, request: Request, session: AsyncSession = Depends(get_db_session)):
     service = get_service(session)
     invoice = await service.get_invoice(invoice_id)
-    return PurchaseInvoiceDetail(**invoice.__dict__, items=invoice.items)
+    return PurchaseInvoiceDetail.model_validate(invoice)
 
 
 @router.post("/purchase-invoices/{invoice_id}/items", response_model=PurchaseInvoiceDetail)
@@ -84,7 +84,7 @@ async def add_purchase_item(invoice_id: str, payload: PurchaseItemCreate, reques
     service = get_service(session)
     await service.add_item(invoice_id, payload.model_dump())
     invoice = await service.get_invoice(invoice_id)
-    return PurchaseInvoiceDetail(**invoice.__dict__, items=invoice.items)
+    return PurchaseInvoiceDetail.model_validate(invoice)
 
 
 @router.post("/purchase-invoices/{invoice_id}/post", response_model=PurchasePostResult)
