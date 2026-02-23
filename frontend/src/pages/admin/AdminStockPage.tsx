@@ -11,6 +11,17 @@ type Product = { id: string; name: string }
 
 type StockLevel = { product_id: string; on_hand: number }
 
+type StockMove = {
+  id: string
+  product_id: string
+  quantity: number
+  delta_qty: number
+  reason: string
+  created_at: string
+}
+
+type AdjustmentMode = 'set' | 'increase' | 'decrease'
+
 type FastApiValidationError = { loc?: Array<string | number>; msg: string; type?: string }
 
 type ApiErrorPayload = { detail?: string | FastApiValidationError[]; message?: string }
@@ -25,8 +36,12 @@ export default function AdminStockPage() {
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
   const [stockLevelsLoading, setStockLevelsLoading] = useState(true)
+  const [stockMoves, setStockMoves] = useState<StockMove[]>([])
+  const [stockMovesLoading, setStockMovesLoading] = useState(true)
   const [stockProduct, setStockProduct] = useState('')
   const [stockQty, setStockQty] = useState('0')
+  const [stockReason, setStockReason] = useState('')
+  const [adjustmentMode, setAdjustmentMode] = useState<AdjustmentMode>('set')
   const [adjustModalOpen, setAdjustModalOpen] = useState(false)
 
   const productMap = useMemo(() => new Map(products.map((item) => [item.id, item.name])), [products])
@@ -102,9 +117,22 @@ export default function AdminStockPage() {
     }
   }
 
+  const loadStockMoves = async () => {
+    setStockMovesLoading(true)
+    try {
+      const res = await api.get('/stock/moves')
+      setStockMoves(res.data)
+    } catch (error) {
+      handleApiError(error)
+    } finally {
+      setStockMovesLoading(false)
+    }
+  }
+
   useEffect(() => {
     void loadProducts()
     void loadStockLevels()
+    void loadStockMoves()
   }, [])
 
   const isNonNegativeNumber = (value: string) => {
@@ -117,15 +145,29 @@ export default function AdminStockPage() {
       addToast(t('admin.validation.requiredFields'), 'error')
       return
     }
+    const qty = Number(stockQty)
+    const currentQty = Number(stockLevels.find((item) => item.product_id === stockProduct)?.on_hand ?? 0)
+    const deltaQty =
+      adjustmentMode === 'set' ? qty - currentQty : adjustmentMode === 'increase' ? qty : qty * -1
+    if (adjustmentMode !== 'set' && qty <= 0) {
+      addToast(t('admin.validation.requiredFields'), 'error')
+      return
+    }
+    if (adjustmentMode === 'decrease' && qty > currentQty) {
+      addToast(t('adminStock.decreaseLimitError'), 'error')
+      return
+    }
     try {
       await api.post('/stock/adjustments', {
         product_id: stockProduct,
-        quantity: Number(stockQty),
-        reason: 'adjustment'
+        quantity: deltaQty,
+        reason: stockReason.trim() || t('adminStock.defaultReason')
       })
       addToast(t('common.updated'), 'success')
       setStockQty('0')
+      setStockReason('')
       loadStockLevels()
+      loadStockMoves()
       setAdjustModalOpen(false)
     } catch (error) {
       handleApiError(error)
@@ -139,6 +181,16 @@ export default function AdminStockPage() {
   const closeAdjustModal = () => {
     setAdjustModalOpen(false)
   }
+
+  const selectedOnHand = Number(stockLevels.find((item) => item.product_id === stockProduct)?.on_hand ?? 0)
+  const enteredQty = Number(stockQty)
+  const stockPreview = Number.isFinite(enteredQty)
+    ? adjustmentMode === 'set'
+      ? enteredQty
+      : adjustmentMode === 'increase'
+        ? selectedOnHand + enteredQty
+        : selectedOnHand - enteredQty
+    : selectedOnHand
 
   const renderSkeletonRows = (rows: number, columns: number) =>
     Array.from({ length: rows }, (_, rowIndex) => (
@@ -224,7 +276,37 @@ export default function AdminStockPage() {
             <h3>{t('adminStock.adjustmentsTitle')}</h3>
             <p className="page-subtitle">{t('adminStock.adjustmentsSubtitle')}</p>
           </div>
-          <p className="page-subtitle">{t('common.useAddButton', { defaultValue: 'Используйте кнопку “Добавить”.' })}</p>
+          <div className="table-wrapper">
+            <table className={stockMovesLoading ? 'table table--skeleton' : 'table'}>
+              <thead>
+                <tr>
+                  <th scope="col">{t('admin.table.name')}</th>
+                  <th scope="col">{t('adminStock.delta')}</th>
+                  <th scope="col">{t('adminStock.reason')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockMovesLoading ? (
+                  renderSkeletonRows(4, 3)
+                ) : stockMoves.length ? (
+                  stockMoves
+                    .slice()
+                    .reverse()
+                    .map((item) => (
+                      <tr key={item.id}>
+                        <td>{productMap.get(item.product_id) ?? '—'}</td>
+                        <td>{Number(item.delta_qty) > 0 ? `+${item.delta_qty}` : item.delta_qty}</td>
+                        <td>{item.reason || '—'}</td>
+                      </tr>
+                    ))
+                ) : (
+                  <tr>
+                    <td colSpan={3}>{t('adminStock.emptyAdjustments')}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -240,25 +322,58 @@ export default function AdminStockPage() {
             <div className="form-stack">
               <p className="page-subtitle">{t('adminStock.adjustmentsSubtitle')}</p>
               <div className="form-row">
-                <select
-                  value={stockProduct}
-                  onChange={(e) => setStockProduct(e.target.value)}
-                  disabled={productsLoading}
-                >
-                  <option value="">{t('admin.productSelect')}</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder={t('admin.qtyPlaceholder')}
-                  value={stockQty}
-                  onChange={(e) => setStockQty(e.target.value)}
-                />
+                <label className="form-field">
+                  <span>{t('adminStock.productField')}</span>
+                  <select
+                    value={stockProduct}
+                    onChange={(e) => setStockProduct(e.target.value)}
+                    disabled={productsLoading}
+                  >
+                    <option value="">{t('adminStock.productPlaceholder')}</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>{t('adminStock.modeField')}</span>
+                  <select
+                    value={adjustmentMode}
+                    onChange={(e) => setAdjustmentMode(e.target.value as AdjustmentMode)}
+                  >
+                    <option value="set">{t('adminStock.modeSet')}</option>
+                    <option value="increase">{t('adminStock.modeIncrease')}</option>
+                    <option value="decrease">{t('adminStock.modeDecrease')}</option>
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>{t('adminStock.qtyField')}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder={t('adminStock.qtyPlaceholderDetailed')}
+                    value={stockQty}
+                    onChange={(e) => setStockQty(e.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="form-row">
+                <label className="form-field">
+                  <span>{t('adminStock.reasonField')}</span>
+                  <input
+                    placeholder={t('adminStock.reasonPlaceholder')}
+                    value={stockReason}
+                    onChange={(e) => setStockReason(e.target.value)}
+                  />
+                </label>
+                <div className="form-field">
+                  <span>{t('adminStock.currentAndNext')}</span>
+                  <div className="page-subtitle">
+                    {t('adminStock.previewText', { current: selectedOnHand, next: stockPreview })}
+                  </div>
+                </div>
                 <button onClick={adjustStock}>{t('admin.adjust')}</button>
               </div>
             </div>
