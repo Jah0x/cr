@@ -288,6 +288,9 @@ const resources = {
         voidInvoice: 'Void invoice',
         supplierNamePlaceholder: 'Supplier name',
         supplierSelectPlaceholder: 'Select supplier for invoice',
+        productField: 'Product',
+        qtyField: 'Quantity',
+        costField: 'Unit cost',
         productSelectPlaceholder: 'Select product for position',
         qtyPlaceholderDetailed: 'Quantity for position',
         costPlaceholderDetailed: 'Unit cost for position'
@@ -892,6 +895,9 @@ const resources = {
         voidInvoice: 'Аннулировать накладную',
         supplierNamePlaceholder: 'Название поставщика',
         supplierSelectPlaceholder: 'Выберите поставщика для накладной',
+        productField: 'Товар',
+        qtyField: 'Количество',
+        costField: 'Себестоимость за единицу',
         productSelectPlaceholder: 'Выберите товар для позиции',
         qtyPlaceholderDetailed: 'Количество для позиции',
         costPlaceholderDetailed: 'Себестоимость за единицу'

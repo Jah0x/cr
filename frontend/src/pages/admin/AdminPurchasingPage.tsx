@@ -575,32 +575,41 @@ export default function AdminPurchasingPage() {
                   <p className="page-subtitle">{t('adminPurchasing.addItemSubtitle')}</p>
                 </div>
                 <div className="form-row">
-                  <select
-                    value={purchaseProduct}
-                    onChange={(e) => setPurchaseProduct(e.target.value)}
-                    disabled={productsLoading}
-                  >
-                    <option value="">{t('adminPurchasing.productSelectPlaceholder')}</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder={t('adminPurchasing.qtyPlaceholderDetailed')}
-                    value={purchaseQty}
-                    onChange={(e) => setPurchaseQty(e.target.value)}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder={t('adminPurchasing.costPlaceholderDetailed')}
-                    value={purchaseCost}
-                    onChange={(e) => setPurchaseCost(e.target.value)}
-                  />
+                  <label className="form-field">
+                    <span>{t('adminPurchasing.productField')}</span>
+                    <select
+                      value={purchaseProduct}
+                      onChange={(e) => setPurchaseProduct(e.target.value)}
+                      disabled={productsLoading}
+                    >
+                      <option value="">{t('adminPurchasing.productSelectPlaceholder')}</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>{t('adminPurchasing.qtyField')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('adminPurchasing.qtyPlaceholderDetailed')}
+                      value={purchaseQty}
+                      onChange={(e) => setPurchaseQty(e.target.value)}
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>{t('adminPurchasing.costField')}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={t('adminPurchasing.costPlaceholderDetailed')}
+                      value={purchaseCost}
+                      onChange={(e) => setPurchaseCost(e.target.value)}
+                    />
+                  </label>
                   <button onClick={addPurchaseItem} disabled={!invoiceId}>
                     {t('admin.addItem')}
                   </button>

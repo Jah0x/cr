@@ -24,7 +24,10 @@ async def _catalog_enabled(session: AsyncSession, tenant_id) -> bool:
     if not public_catalog_module or not public_catalog_module.is_active:
         return False
     tenant_module = await session.scalar(
-        select(TenantModule).where(TenantModule.module_id == public_catalog_module.id)
+        select(TenantModule).where(
+            TenantModule.module_id == public_catalog_module.id,
+            TenantModule.tenant_id == tenant_id,
+        )
     )
     if not tenant_module or not tenant_module.is_enabled:
         return False
