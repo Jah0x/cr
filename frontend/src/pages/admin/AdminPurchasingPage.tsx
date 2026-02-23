@@ -13,6 +13,8 @@ type Product = { id: string; name: string }
 
 type PurchaseInvoice = { id: string; status: string; supplier_id?: string | null }
 
+type InvoiceStatusFilter = 'all' | 'draft' | 'posted' | 'void'
+
 type PurchaseItem = {
   id: string
   product_id: string
@@ -43,6 +45,8 @@ export default function AdminPurchasingPage() {
   const [invoiceSupplierId, setInvoiceSupplierId] = useState('')
   const [invoiceId, setInvoiceId] = useState('')
   const [invoiceDetail, setInvoiceDetail] = useState<PurchaseInvoiceDetail | null>(null)
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<InvoiceStatusFilter>('draft')
+  const [invoiceSearch, setInvoiceSearch] = useState('')
   const [purchaseProduct, setPurchaseProduct] = useState('')
   const [purchaseQty, setPurchaseQty] = useState('0')
   const [purchaseCost, setPurchaseCost] = useState('0')
@@ -131,7 +135,10 @@ export default function AdminPurchasingPage() {
   const loadInvoices = async () => {
     setInvoicesLoading(true)
     try {
-      const res = await api.get('/purchase-invoices', { params: { status: 'draft' } })
+      const statusParam = invoiceStatusFilter === 'all' ? undefined : invoiceStatusFilter
+      const res = await api.get('/purchase-invoices', {
+        params: statusParam ? { status: statusParam } : undefined
+      })
       setInvoices(res.data)
     } catch (error) {
       handleApiError(error)
@@ -143,8 +150,11 @@ export default function AdminPurchasingPage() {
   useEffect(() => {
     void loadSuppliers()
     void loadProducts()
-    void loadInvoices()
   }, [])
+
+  useEffect(() => {
+    void loadInvoices()
+  }, [invoiceStatusFilter])
 
   useEffect(() => {
     if (!invoiceId) {
@@ -256,6 +266,22 @@ export default function AdminPurchasingPage() {
     }
   }
 
+  const voidInvoice = async () => {
+    if (!invoiceId) {
+      addToast(t('adminPurchasing.selectInvoice'), 'error')
+      return
+    }
+    try {
+      await api.post(`/purchase-invoices/${invoiceId}/void`)
+      addToast(t('common.updated'), 'success')
+      setInvoiceId('')
+      setInvoiceDetail(null)
+      loadInvoices()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
   const openCreateModal = () => {
     setCreateModalTab(activeTab)
     setCreateModalOpen(true)
@@ -275,6 +301,18 @@ export default function AdminPurchasingPage() {
         ))}
       </tr>
     ))
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    const search = invoiceSearch.trim().toLowerCase()
+    if (!search) {
+      return true
+    }
+    const supplierName = supplierMap.get(invoice.supplier_id ?? '')?.toLowerCase() ?? ''
+    return invoice.id.toLowerCase().includes(search) || supplierName.includes(search)
+  })
+
+  const invoiceTotal =
+    invoiceDetail?.items?.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_cost), 0) ?? 0
 
   return (
     <div className="admin-page">
@@ -356,6 +394,26 @@ export default function AdminPurchasingPage() {
             </div>
             <div className="form-row">
               <label className="form-field">
+                <span>{t('adminPurchasing.statusFilter')}</span>
+                <select
+                  value={invoiceStatusFilter}
+                  onChange={(e) => setInvoiceStatusFilter(e.target.value as InvoiceStatusFilter)}
+                >
+                  <option value="all">{t('adminPurchasing.statusAll')}</option>
+                  <option value="draft">{t('adminPurchasing.statusDraft')}</option>
+                  <option value="posted">{t('adminPurchasing.statusPosted')}</option>
+                  <option value="void">{t('adminPurchasing.statusVoid')}</option>
+                </select>
+              </label>
+              <label className="form-field">
+                <span>{t('adminPurchasing.searchField')}</span>
+                <input
+                  placeholder={t('adminPurchasing.searchPlaceholder')}
+                  value={invoiceSearch}
+                  onChange={(e) => setInvoiceSearch(e.target.value)}
+                />
+              </label>
+              <label className="form-field">
                 <span>{t('adminPurchasing.selectInvoice')}</span>
                 <select
                   value={invoiceId}
@@ -363,7 +421,7 @@ export default function AdminPurchasingPage() {
                   disabled={invoicesLoading}
                 >
                   <option value="">{t('adminPurchasing.selectInvoicePlaceholder')}</option>
-                  {invoices.map((invoice) => (
+                  {filteredInvoices.map((invoice) => (
                     <option key={invoice.id} value={invoice.id}>
                       {invoice.id.slice(0, 8)} ·{' '}
                       {supplierMap.get(invoice.supplier_id ?? '') ??
@@ -373,7 +431,7 @@ export default function AdminPurchasingPage() {
                 </select>
               </label>
             </div>
-            {!invoicesLoading && invoices.length === 0 && (
+            {!invoicesLoading && filteredInvoices.length === 0 && (
               <div className="form-stack">
                 <span className="page-subtitle">{t('adminPurchasing.selectInvoice')}</span>
                 <PrimaryButton type="button" onClick={openCreateModal}>
@@ -382,8 +440,13 @@ export default function AdminPurchasingPage() {
               </div>
             )}
             {invoiceId && (
-              <div className="page-subtitle">
-                {t('admin.workingInvoice', { id: invoiceId })}
+              <div className="form-row">
+                <div className="page-subtitle">
+                  {t('admin.workingInvoice', { id: invoiceId })}
+                </div>
+                <button type="button" className="secondary" onClick={loadInvoices}>
+                  {t('common.retry')}
+                </button>
               </div>
             )}
           </section>
@@ -430,9 +493,28 @@ export default function AdminPurchasingPage() {
                 </tbody>
               </table>
             </div>
+            {Boolean(invoiceDetail) && (
+              <div className="form-row">
+                <div className="form-field">
+                  <span>{t('adminPurchasing.itemsCount')}</span>
+                  <strong>{invoiceDetail?.items?.length ?? 0}</strong>
+                </div>
+                <div className="form-field">
+                  <span>{t('adminPurchasing.total')}</span>
+                  <strong>{invoiceTotal}</strong>
+                </div>
+                <div className="form-field">
+                  <span>{t('common.status')}</span>
+                  <strong>{invoiceDetail?.status ?? '—'}</strong>
+                </div>
+              </div>
+            )}
             <div className="form-row">
               <button className="danger" onClick={postInvoice} disabled={!invoiceId}>
                 {t('admin.postInvoice')}
+              </button>
+              <button className="secondary" onClick={voidInvoice} disabled={!invoiceId}>
+                {t('adminPurchasing.voidInvoice')}
               </button>
             </div>
           </section>
@@ -457,7 +539,7 @@ export default function AdminPurchasingPage() {
                 <p className="page-subtitle">{t('adminPurchasing.createSupplierSubtitle')}</p>
                 <div className="form-row">
                   <input
-                    placeholder={t('admin.supplierPlaceholder')}
+                    placeholder={t('adminPurchasing.supplierNamePlaceholder')}
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
                   />
@@ -477,7 +559,7 @@ export default function AdminPurchasingPage() {
                     value={invoiceSupplierId}
                     onChange={(e) => setInvoiceSupplierId(e.target.value)}
                   >
-                    <option value="">{t('admin.supplierPlaceholder')}</option>
+                    <option value="">{t('adminPurchasing.supplierSelectPlaceholder')}</option>
                     {suppliers.map((supplier) => (
                       <option key={supplier.id} value={supplier.id}>
                         {supplier.name}
@@ -498,7 +580,7 @@ export default function AdminPurchasingPage() {
                     onChange={(e) => setPurchaseProduct(e.target.value)}
                     disabled={productsLoading}
                   >
-                    <option value="">{t('admin.productSelect')}</option>
+                    <option value="">{t('adminPurchasing.productSelectPlaceholder')}</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
                         {product.name}
@@ -508,14 +590,14 @@ export default function AdminPurchasingPage() {
                   <input
                     type="number"
                     min="0"
-                    placeholder={t('admin.qtyPlaceholder')}
+                    placeholder={t('adminPurchasing.qtyPlaceholderDetailed')}
                     value={purchaseQty}
                     onChange={(e) => setPurchaseQty(e.target.value)}
                   />
                   <input
                     type="number"
                     min="0"
-                    placeholder={t('admin.costPlaceholder')}
+                    placeholder={t('adminPurchasing.costPlaceholderDetailed')}
                     value={purchaseCost}
                     onChange={(e) => setPurchaseCost(e.target.value)}
                   />
