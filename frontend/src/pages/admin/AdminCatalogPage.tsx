@@ -105,6 +105,16 @@ export default function AdminCatalogPage() {
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
   const lineMap = useMemo(() => new Map(lines.map((item) => [item.id, item.name])), [lines])
+  const formatNumber = (value: number | string, maximumFractionDigits = 2) => {
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) {
+      return '0'
+    }
+    return new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits
+    }).format(numericValue)
+  }
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
     [categories]
@@ -1142,8 +1152,8 @@ export default function AdminCatalogPage() {
                       <td>{brandMap.get(product.brand_id) ?? '—'}</td>
                       <td>{product.line_id ? lineMap.get(product.line_id) ?? '—' : '—'}</td>
                       <td>{product.unit}</td>
-                                            <td>{product.cost_price}</td>
-                      <td>{product.sell_price}</td>
+                      <td>{formatNumber(product.cost_price)}</td>
+                      <td>{formatNumber(product.sell_price)}</td>
                       <td>
                         {stockLevelLoading ? <span className="skeleton skeleton-text" /> : stockMap.get(product.id) ?? 0}
                       </td>
