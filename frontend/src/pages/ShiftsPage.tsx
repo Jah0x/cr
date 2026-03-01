@@ -44,7 +44,13 @@ const toIsoDate = (value: string, endOfDay = false) => {
 
 const formatAmount = (value: number | string | null | undefined) => {
   const amount = Number(value ?? 0)
-  return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
+  if (!Number.isFinite(amount)) {
+    return '0'
+  }
+  return new Intl.NumberFormat('ru-RU', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(amount)
 }
 
 export default function ShiftsPage() {

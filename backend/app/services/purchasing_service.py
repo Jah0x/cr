@@ -85,6 +85,13 @@ class PurchasingService:
         await self.session.refresh(invoice)
         return item
 
+
+    async def delete_invoice(self, invoice_id):
+        invoice = await self.get_invoice(invoice_id)
+        if invoice.status == PurchaseStatus.posted:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete posted invoice")
+        await self.invoice_repo.delete(invoice)
+
     async def post_invoice(self, invoice_id):
         invoice = await self.get_invoice(invoice_id)
         if invoice.status != PurchaseStatus.draft:

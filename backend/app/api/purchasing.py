@@ -72,6 +72,13 @@ async def list_invoices(request: Request, status: str | None = None, session: As
     return await get_service(session).list_invoices(status_filter)
 
 
+
+
+@router.delete("/purchase-invoices/{invoice_id}")
+async def delete_invoice(invoice_id: str, request: Request, session: AsyncSession = Depends(get_db_session)):
+    await get_service(session).delete_invoice(invoice_id)
+    return {"detail": "deleted"}
+
 @router.get("/purchase-invoices/{invoice_id}", response_model=PurchaseInvoiceDetail)
 async def get_invoice(invoice_id: str, request: Request, session: AsyncSession = Depends(get_db_session)):
     service = get_service(session)

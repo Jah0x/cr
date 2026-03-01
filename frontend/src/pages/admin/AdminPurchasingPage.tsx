@@ -47,6 +47,7 @@ export default function AdminPurchasingPage() {
   const [invoiceDetail, setInvoiceDetail] = useState<PurchaseInvoiceDetail | null>(null)
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<InvoiceStatusFilter>('draft')
   const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([])
   const [purchaseProduct, setPurchaseProduct] = useState('')
   const [purchaseQty, setPurchaseQty] = useState('1')
   const [purchaseCost, setPurchaseCost] = useState('')
@@ -292,6 +293,72 @@ export default function AdminPurchasingPage() {
     }
   }
 
+  const deleteInvoice = async (targetInvoiceId?: string) => {
+    const id = targetInvoiceId ?? invoiceId
+    if (!id) {
+      addToast(t('adminPurchasing.selectInvoice'), 'error')
+      return
+    }
+    if (!confirmDeletion()) {
+      return
+    }
+    try {
+      await api.delete(`/purchase-invoices/${id}`)
+      addToast(t('common.deleted'), 'success')
+      if (id === invoiceId) {
+        setInvoiceId('')
+        setInvoiceDetail(null)
+      }
+      setSelectedInvoiceIds((prev) => prev.filter((item) => item !== id))
+      loadInvoices()
+    } catch (error) {
+      handleApiError(error)
+    }
+  }
+
+  const processSelectedInvoices = async (action: 'post' | 'void' | 'delete') => {
+    if (selectedInvoiceIds.length === 0) {
+      addToast(t('adminPurchasing.selectInvoice'), 'error')
+      return
+    }
+    if (action === 'delete' && !confirmDeletion()) {
+      return
+    }
+
+    const failures: string[] = []
+    for (const id of selectedInvoiceIds) {
+      try {
+        if (action === 'post') {
+          await api.post(`/purchase-invoices/${id}/post`)
+        } else if (action === 'void') {
+          await api.post(`/purchase-invoices/${id}/void`)
+        } else {
+          await api.delete(`/purchase-invoices/${id}`)
+        }
+      } catch {
+        failures.push(id.slice(0, 8))
+      }
+    }
+
+    if (failures.length) {
+      addToast(
+        t('adminPurchasing.bulkActionFailed', {
+          defaultValue: `Не удалось обработать накладные: ${failures.join(', ')}`
+        }),
+        'error'
+      )
+    } else {
+      addToast(t('common.updated'), 'success')
+    }
+
+    setSelectedInvoiceIds([])
+    if (invoiceId && selectedInvoiceIds.includes(invoiceId)) {
+      setInvoiceId('')
+      setInvoiceDetail(null)
+    }
+    loadInvoices()
+  }
+
   const openCreateModal = () => {
     setCreateModalTab(activeTab)
     setCreateModalOpen(true)
@@ -299,6 +366,10 @@ export default function AdminPurchasingPage() {
 
   const closeCreateModal = () => {
     setCreateModalOpen(false)
+  }
+
+  const toggleInvoiceSelection = (id: string) => {
+    setSelectedInvoiceIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
   }
 
   const renderSkeletonRows = (rows: number, columns: number) =>
@@ -312,14 +383,22 @@ export default function AdminPurchasingPage() {
       </tr>
     ))
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    const search = invoiceSearch.trim().toLowerCase()
-    if (!search) {
-      return true
-    }
-    const supplierName = supplierMap.get(invoice.supplier_id ?? '')?.toLowerCase() ?? ''
-    return invoice.id.toLowerCase().includes(search) || supplierName.includes(search)
-  })
+  const filteredInvoices = useMemo(
+    () =>
+      invoices.filter((invoice) => {
+        const search = invoiceSearch.trim().toLowerCase()
+        if (!search) {
+          return true
+        }
+        const supplierName = supplierMap.get(invoice.supplier_id ?? '')?.toLowerCase() ?? ''
+        return invoice.id.toLowerCase().includes(search) || supplierName.includes(search)
+      }),
+    [invoiceSearch, invoices, supplierMap]
+  )
+
+  useEffect(() => {
+    setSelectedInvoiceIds((prev) => prev.filter((id) => filteredInvoices.some((invoice) => invoice.id === id)))
+  }, [filteredInvoices])
 
   const invoiceTotal =
     invoiceDetail?.items?.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_cost), 0) ?? 0
@@ -441,6 +520,71 @@ export default function AdminPurchasingPage() {
                 </select>
               </label>
             </div>
+            {filteredInvoices.length > 0 && (
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">
+                        <input
+                          type="checkbox"
+                          checked={filteredInvoices.length > 0 && selectedInvoiceIds.length === filteredInvoices.length}
+                          onChange={(e) =>
+                            setSelectedInvoiceIds(e.target.checked ? filteredInvoices.map((invoice) => invoice.id) : [])
+                          }
+                        />
+                      </th>
+                      <th scope="col">ID</th>
+                      <th scope="col">{t('admin.table.name')}</th>
+                      <th scope="col">{t('common.status')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInvoices.map((invoice) => (
+                      <tr key={invoice.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedInvoiceIds.includes(invoice.id)}
+                            onChange={() => toggleInvoiceSelection(invoice.id)}
+                          />
+                        </td>
+                        <td>{invoice.id.slice(0, 8)}</td>
+                        <td>{supplierMap.get(invoice.supplier_id ?? '') ?? t('adminPurchasing.unknownSupplier')}</td>
+                        <td>{invoice.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="form-row">
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={selectedInvoiceIds.length === 0}
+                    onClick={() => processSelectedInvoices('post')}
+                  >
+                    {t('admin.postInvoice', { defaultValue: 'Провести накладную' })} ({selectedInvoiceIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={selectedInvoiceIds.length === 0}
+                    onClick={() => processSelectedInvoices('void')}
+                  >
+                    {t('adminPurchasing.voidInvoice')} ({selectedInvoiceIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={selectedInvoiceIds.length === 0}
+                    onClick={() => processSelectedInvoices('delete')}
+                  >
+                    {t('common.delete')} ({selectedInvoiceIds.length})
+                  </button>
+                </div>
+              </div>
+            )}
+
             {!invoicesLoading && filteredInvoices.length === 0 && (
               <div className="form-stack">
                 <span className="page-subtitle">{t('adminPurchasing.selectInvoice')}</span>
@@ -578,6 +722,9 @@ export default function AdminPurchasingPage() {
               <button className="secondary" onClick={voidInvoice} disabled={!invoiceId}>
                 {t('adminPurchasing.voidInvoice')}
               </button>
+              <button className="secondary" onClick={() => deleteInvoice()} disabled={!invoiceId}>
+                {t('common.delete')}
+              </button>
             </div>
           </section>
         </div>
@@ -590,7 +737,7 @@ export default function AdminPurchasingPage() {
               <h4>
                 {createModalTab === 'suppliers'
                   ? t('adminPurchasing.createSupplier')
-                  : t('adminPurchasing.addItemTitle')}
+                  : t('admin.newInvoice')}
               </h4>
               <button className="ghost" onClick={closeCreateModal}>
                 {t('common.close')}
