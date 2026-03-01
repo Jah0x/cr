@@ -76,7 +76,7 @@ export default function ImportStatus({
             {history.map((item) => (
               <tr key={item.id}>
                 <td>{item.id}</td>
-                <td>{new Date(item.created_at).toLocaleString()}</td>
+                <td>{item.created_at ? new Date(item.created_at).toLocaleString() : '—'}</td>
                 <td>{item.status}</td>
                 <td>
                   +{item.counters.created} / ~{item.counters.updated} / !{item.counters.failed}
