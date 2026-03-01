@@ -24,6 +24,7 @@ class ImportOut(BaseModel):
     rows_total: int
     rows_valid: int
     rows_invalid: int
+    columns: list[str] = Field(default_factory=list)
 
 
 class ImportPreviewRequest(BaseModel):
@@ -68,6 +69,7 @@ def _to_out(item) -> ImportOut:
         rows_total=item.rows_total,
         rows_valid=item.rows_valid,
         rows_invalid=item.rows_invalid,
+        columns=[],
     )
 
 
@@ -90,11 +92,13 @@ async def upload_catalog_import(
 
     service = ImportService(session, ImportsRepo(session))
     try:
-        parsed = service.parse_file(raw, sheet=sheet_name, encoding=encoding, delimiter=delimiter)
+        parsed = service.parse_file(raw, filename=file.filename, sheet=sheet_name, encoding=encoding, delimiter=delimiter)
     except UnicodeDecodeError as exc:
         raise HTTPException(status_code=400, detail=f"Failed to decode file with encoding '{encoding}'") from exc
     except csv.Error as exc:
         raise HTTPException(status_code=400, detail="Failed to parse CSV") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     record = await service.imports_repo.create_job(
         {
@@ -115,7 +119,9 @@ async def upload_catalog_import(
             "counters": {},
         }
     )
-    return _to_out(record)
+    out = _to_out(record)
+    out.columns = parsed["columns"]
+    return out
 
 
 @router.post("/catalog/preview")

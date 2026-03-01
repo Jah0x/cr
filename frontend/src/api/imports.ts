@@ -63,16 +63,8 @@ type BackendImportOut = {
   rows_total: number
   rows_valid: number
   rows_invalid: number
+  columns?: string[]
   counters?: Partial<ImportCounters>
-}
-
-const parseCsvColumns = async (file: File, delimiter = ','): Promise<string[]> => {
-  const text = await file.text()
-  const [header = ''] = text.split(/\r?\n/, 1)
-  return header
-    .split(delimiter)
-    .map((value) => value.trim())
-    .filter(Boolean)
 }
 
 export async function upload(params: {
@@ -96,11 +88,10 @@ export async function upload(params: {
   }
 
   const res = await api.post<BackendImportOut>('/admin/imports/catalog/upload', formData)
-  const columns = await parseCsvColumns(params.file, String(params.options?.delimiter ?? ','))
   return {
     import_id: res.data.id,
     file_name: res.data.filename,
-    columns,
+    columns: res.data.columns ?? [],
     options: params.options
   }
 }

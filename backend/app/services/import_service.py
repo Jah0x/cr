@@ -2,6 +2,9 @@ import csv
 import io
 import uuid
 from decimal import Decimal
+from pathlib import Path
+from xml.etree import ElementTree as ET
+from zipfile import BadZipFile, ZipFile
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -18,11 +21,27 @@ class ImportService:
         self.session = session
         self.imports_repo = imports_repo
 
-    def parse_file(self, file_bytes: bytes, sheet: str | None = None, encoding: str | None = None, delimiter: str | None = None):
-        del sheet
+    def parse_file(
+        self,
+        file_bytes: bytes,
+        filename: str | None = None,
+        sheet: str | None = None,
+        encoding: str | None = None,
+        delimiter: str | None = None,
+    ):
+        suffix = Path(filename or "").suffix.lower()
+
+        if suffix == ".xlsx":
+            rows, columns = self._parse_xlsx(file_bytes, sheet=sheet)
+            return {
+                "columns": columns,
+                "rows": rows,
+                "sample_rows": rows[:20],
+            }
+
         text = file_bytes.decode(encoding or "utf-8")
         reader = csv.DictReader(io.StringIO(text), delimiter=delimiter or ",")
-        rows: list[dict[str, str]] = []
+        rows: list[dict[str, str | None]] = []
         for row in reader:
             rows.append({str(k): (v.strip() if isinstance(v, str) else v) for k, v in row.items()})
         return {
@@ -30,6 +49,112 @@ class ImportService:
             "rows": rows,
             "sample_rows": rows[:20],
         }
+
+    def _parse_xlsx(self, file_bytes: bytes, sheet: str | None = None):
+        namespace = {"x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main", "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships"}
+
+        try:
+            archive = ZipFile(io.BytesIO(file_bytes))
+        except BadZipFile as exc:
+            raise ValueError("Invalid XLSX file") from exc
+
+        with archive:
+            workbook_xml = ET.fromstring(archive.read("xl/workbook.xml"))
+            rels_xml = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+            shared_strings = self._read_shared_strings(archive)
+
+            rel_by_id = {
+                rel.attrib.get("Id"): rel.attrib.get("Target", "")
+                for rel in rels_xml.findall("{http://schemas.openxmlformats.org/package/2006/relationships}Relationship")
+            }
+            sheets = workbook_xml.findall("x:sheets/x:sheet", namespace)
+            if not sheets:
+                return [], []
+
+            selected = sheets[0]
+            if sheet:
+                for candidate in sheets:
+                    if candidate.attrib.get("name") == sheet:
+                        selected = candidate
+                        break
+
+            rel_id = selected.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+            target = rel_by_id.get(rel_id or "", "worksheets/sheet1.xml")
+            sheet_path = f"xl/{target.lstrip('/')}"
+            sheet_xml = ET.fromstring(archive.read(sheet_path))
+
+            rows = self._extract_sheet_rows(sheet_xml, shared_strings)
+            if not rows:
+                return [], []
+
+            headers = [str(cell).strip() if cell is not None else "" for cell in rows[0]]
+            mapped_rows: list[dict[str, str | None]] = []
+            for row in rows[1:]:
+                mapped: dict[str, str | None] = {}
+                for idx, header in enumerate(headers):
+                    if not header:
+                        continue
+                    value = row[idx] if idx < len(row) else None
+                    mapped[header] = str(value).strip() if value is not None else None
+                if mapped:
+                    mapped_rows.append(mapped)
+
+            return mapped_rows, [header for header in headers if header]
+
+    def _read_shared_strings(self, archive: ZipFile) -> list[str]:
+        try:
+            xml = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+        except KeyError:
+            return []
+
+        values: list[str] = []
+        for item in xml.findall("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}si"):
+            chunks = [node.text or "" for node in item.findall(".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t")]
+            values.append("".join(chunks))
+        return values
+
+    def _extract_sheet_rows(self, sheet_xml: ET.Element, shared_strings: list[str]) -> list[list[str | None]]:
+        rows: list[list[str | None]] = []
+        row_nodes = sheet_xml.findall(".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row")
+
+        for row in row_nodes:
+            cells = row.findall("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}c")
+            if not cells:
+                continue
+
+            values: list[str | None] = []
+            for cell in cells:
+                ref = cell.attrib.get("r", "A1")
+                col_letters = "".join(ch for ch in ref if ch.isalpha()) or "A"
+                col_idx = self._column_index(col_letters)
+                while len(values) <= col_idx:
+                    values.append(None)
+
+                cell_type = cell.attrib.get("t")
+                if cell_type == "inlineStr":
+                    text_parts = [n.text or "" for n in cell.findall(".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t")]
+                    value = "".join(text_parts)
+                else:
+                    value_node = cell.find("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}v")
+                    raw = value_node.text if value_node is not None else None
+                    if cell_type == "s" and raw is not None and raw.isdigit():
+                        idx = int(raw)
+                        value = shared_strings[idx] if idx < len(shared_strings) else raw
+                    else:
+                        value = raw
+
+                values[col_idx] = value
+
+            rows.append(values)
+
+        return rows
+
+    @staticmethod
+    def _column_index(column_letters: str) -> int:
+        result = 0
+        for char in column_letters.upper():
+            result = result * 26 + (ord(char) - ord("A") + 1)
+        return max(result - 1, 0)
 
     @staticmethod
     def _parse_decimal(value: object, decimal_separator: str = ".", thousand_separator: str = ",") -> Decimal | None:
