@@ -1097,6 +1097,9 @@ export default function AdminCatalogPage() {
           <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
             <h3>{t('adminSections.productList')}</h3>
             <div className="form-row" style={{ gap: 8 }}>
+              <button type="button" className="secondary" onClick={() => setImportWizardOpen(true)}>
+                Импорт каталога
+              </button>
               <select value={productSort} onChange={(event) => setProductSort(event.target.value as ProductSort)}>
                 <option value="name_asc">{t('admin.productSort.nameAsc', { defaultValue: 'Название A→Я' })}</option>
                 <option value="name_desc">{t('admin.productSort.nameDesc', { defaultValue: 'Название Я→A' })}</option>
