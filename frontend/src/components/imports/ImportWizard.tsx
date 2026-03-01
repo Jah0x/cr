@@ -89,7 +89,12 @@ export default function ImportWizard({ onClose }: ImportWizardProps) {
     if (!importId) return
     setApplying(true)
     try {
-      const res = await apply({ import_id: importId, dry_run: dryRun, background })
+      const res = await apply({
+        import_id: importId,
+        mode: background ? 'background' : 'sync',
+        mapping,
+        options: { dry_run: dryRun }
+      })
       setStatus(res)
       setStep(3)
       await loadHistory()
