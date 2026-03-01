@@ -33,7 +33,11 @@ class PurchaseInvoiceRepo:
         self.session = session
 
     async def list(self, status: Optional[PurchaseStatus] = None) -> List[PurchaseInvoice]:
-        stmt = select(PurchaseInvoice).options(selectinload(PurchaseInvoice.items))
+        stmt = (
+            select(PurchaseInvoice)
+            .options(selectinload(PurchaseInvoice.items))
+            .execution_options(populate_existing=True)
+        )
         if status:
             stmt = stmt.where(PurchaseInvoice.status == status)
         result = await self.session.execute(stmt)
@@ -49,6 +53,7 @@ class PurchaseInvoiceRepo:
         result = await self.session.execute(
             select(PurchaseInvoice)
             .options(selectinload(PurchaseInvoice.items))
+            .execution_options(populate_existing=True)
             .where(PurchaseInvoice.id == invoice_id)
         )
         return result.scalar_one_or_none()
