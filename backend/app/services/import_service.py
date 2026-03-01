@@ -193,7 +193,6 @@ class ImportService:
         decimal_separator = str(options.get("decimal_separator", "."))
         thousand_separator = str(options.get("thousand_separator", ","))
 
-        categories, brands, lines = await self._lookup_ids()
         errors: list[dict[str, str]] = []
         sample_actions: list[dict[str, str | int]] = []
         valid_count = 0
@@ -216,24 +215,6 @@ class ImportService:
                     self._parse_decimal(raw, decimal_separator, thousand_separator)
                 except Exception:
                     row_errors.append(f"invalid number in {numeric_field}: {raw}")
-
-            category_col = mapping.get("category")
-            if category_col:
-                category_name = str(row.get(category_col, "")).strip().lower()
-                if category_name and category_name not in categories:
-                    row_errors.append(f"unknown category: {row.get(category_col)}")
-
-            brand_col = mapping.get("brand")
-            if brand_col:
-                brand_name = str(row.get(brand_col, "")).strip().lower()
-                if brand_name and brand_name not in brands:
-                    row_errors.append(f"unknown brand: {row.get(brand_col)}")
-
-            line_col = mapping.get("line")
-            if line_col:
-                line_name = str(row.get(line_col, "")).strip().lower()
-                if line_name and line_name not in lines:
-                    row_errors.append(f"unknown line: {row.get(line_col)}")
 
             if row_errors:
                 invalid_count += 1
@@ -303,11 +284,6 @@ class ImportService:
             if mapping.get("line"):
                 line_name = str(row.get(mapping["line"], "")).strip().lower()
                 line_id = lines.get(line_name)
-
-            if not category_id or not brand_id:
-                counters["failed"] += 1
-                errors.append({"row": str(idx), "error": "category/brand not found"})
-                continue
 
             payload = {
                 "id": uuid.uuid4(),
