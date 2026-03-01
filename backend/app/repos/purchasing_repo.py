@@ -65,6 +65,9 @@ class PurchaseInvoiceRepo:
         await self.session.flush()
         return item
 
+    async def delete(self, invoice: PurchaseInvoice) -> None:
+        await self.session.delete(invoice)
+
 
 class PurchaseItemRepo:
     def __init__(self, session: AsyncSession):
