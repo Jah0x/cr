@@ -16,6 +16,7 @@ import {
   type UploadImportResponse
 } from '../../api/imports'
 import { useToast } from '../ToastProvider'
+import { extractDetail } from '../../utils/apiError'
 
 type ImportWizardProps = {
   onClose: () => void
@@ -50,8 +51,8 @@ export default function ImportWizard({ onClose }: ImportWizardProps) {
       setUploadMeta(res)
       setStep(1)
       await loadHistory()
-    } catch {
-      addToast('Ошибка загрузки файла', 'error')
+    } catch (error) {
+      addToast(extractDetail(error) || 'Ошибка загрузки файла', 'error')
     } finally {
       setLoading(false)
     }

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { TFunction } from 'i18next'
 
-const extractDetail = (error: unknown): string | undefined => {
+export const extractDetail = (error: unknown): string | undefined => {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as
       | { detail?: string; message?: string; error?: { message?: string } }

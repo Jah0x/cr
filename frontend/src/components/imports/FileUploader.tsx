@@ -26,7 +26,7 @@ export default function FileUploader({ onUpload, loading }: FileUploaderProps) {
       <h4>Загрузка файла</h4>
       <label className="form-field">
         <span>Файл (CSV/XLSX)</span>
-        <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <input type="file" accept=".csv,.xlsx" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </label>
       <div className="form-row">
         <label className="form-field">
@@ -35,7 +35,7 @@ export default function FileUploader({ onUpload, loading }: FileUploaderProps) {
         </label>
         <label className="form-field">
           <span>Разделитель</span>
-          <input value={delimiter} onChange={(e) => setDelimiter(e.target.value || ',')} maxLength={2} />
+          <input value={delimiter} onChange={(e) => setDelimiter(e.target.value || ',')} maxLength={1} />
         </label>
       </div>
       <label className="form-row" style={{ alignItems: 'center', gap: 8 }}>
