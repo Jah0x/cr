@@ -6,6 +6,7 @@ import { useToast } from '../../components/ToastProvider'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { PrimaryButton } from '../../components/Buttons'
 import PageTitle from '../../components/PageTitle'
+import ImportWizard from '../../components/imports/ImportWizard'
 
 type Category = { id: string; name: string }
 
@@ -101,6 +102,7 @@ export default function AdminCatalogPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createModalTab, setCreateModalTab] = useState<CatalogTab>('categories')
   const [productSort, setProductSort] = useState<ProductSort>('name_asc')
+  const [importWizardOpen, setImportWizardOpen] = useState(false)
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories])
   const brandMap = useMemo(() => new Map(brands.map((item) => [item.id, item.name])), [brands])
@@ -820,9 +822,14 @@ export default function AdminCatalogPage() {
         title={t('adminNav.catalog')}
         subtitle={t('admin.catalogSubtitle')}
         actions={
-          <PrimaryButton type="button" onClick={openCreateModal}>
-            {t('common.add', { defaultValue: 'Добавить' })}
-          </PrimaryButton>
+          <div className="form-row" style={{ gap: 8 }}>
+            <button type="button" className="secondary" onClick={() => setImportWizardOpen(true)}>
+              Импорт каталога
+            </button>
+            <PrimaryButton type="button" onClick={openCreateModal}>
+              {t('common.add', { defaultValue: 'Добавить' })}
+            </PrimaryButton>
+          </div>
         }
       />
       <div className="tabs">
@@ -1648,6 +1655,8 @@ export default function AdminCatalogPage() {
           </div>
         </div>
       )}
+
+      {importWizardOpen && <ImportWizard onClose={() => setImportWizardOpen(false)} />}
     </div>
   )
 }
