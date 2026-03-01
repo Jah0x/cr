@@ -11,6 +11,7 @@ from app.api import (
     finance,
     invitations,
     public_catalog,
+    imports_catalog,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "finance",
     "invitations",
     "public_catalog",
+    "imports_catalog",
 ]
